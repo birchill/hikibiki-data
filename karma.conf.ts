@@ -7,7 +7,7 @@ module.exports = config => {
       '**/*.test.ts': ['webpack'],
     },
     frameworks: ['mocha', 'chai'],
-    browsers: ['Firefox', 'Chrome'],
+    browsers: ['FirefoxHeadless', 'ChromeHeadless'],
     plugins: [
       require('karma-mocha'),
       require('karma-chai'),
