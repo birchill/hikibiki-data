@@ -1,4 +1,4 @@
-Running tests:
+## Running tests
 
 ```
 yarn test
@@ -25,3 +25,9 @@ CHROME_BIN=/mnt/c/Program\ Files\ \(x86\)/Google/Chrome/Application/chrome.exe n
 
 That will complain about not being able to write to the temp directory but
 otherwise should be fine.
+
+## Publishing
+
+```
+yarn publish
+```
