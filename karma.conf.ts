@@ -2,26 +2,30 @@ const path = require('path');
 
 module.exports = config => {
   config.set({
-    files: [{ pattern: 'src/**/*.ts', watched: false }],
+    files: [{ pattern: 'src/**/*.test.ts', watched: false }],
     preprocessors: {
-      '**/*.ts': ['karma-typescript'],
+      '**/*.test.ts': ['webpack'],
     },
-    frameworks: ['mocha', 'chai', 'karma-typescript'],
-    reporters: ['progress', 'karma-typescript'],
+    frameworks: ['mocha', 'chai'],
     browsers: ['Firefox', 'Chrome'],
     plugins: [
       require('karma-mocha'),
       require('karma-chai'),
+      require('karma-webpack'),
       require('karma-firefox-launcher'),
       require('karma-chrome-launcher'),
-      require('karma-typescript'),
     ],
-    karmaTypescriptConfig: {
-      compilerOptions: {
-        module: 'commonjs',
-        target: 'es6'
+    webpack: {
+      mode: 'development',
+      resolve: {
+        extensions: ['.ts', '.js'],
       },
-      tsconfig: './tsconfig.json',
+      resolveLoader: {
+        modules: [path.join(__dirname, 'node_modules')],
+      },
+      module: {
+        rules: [{ test: /\.ts$/, use: 'ts-loader' }],
+      },
     },
   });
 };
