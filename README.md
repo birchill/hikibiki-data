@@ -29,5 +29,7 @@ otherwise should be fine.
 ## Publishing
 
 ```
+yarn release
+git push --follow-tags origin master
 yarn publish
 ```

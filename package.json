@@ -5,7 +5,8 @@
   "author": "Brian Birtles",
   "scripts": {
     "build": "tsc",
-    "test": "karma start --single-run"
+    "test": "karma start --single-run",
+    "release": "standard-version"
   },
   "repository": {
     "type": "git",
@@ -45,6 +46,7 @@
     "lint-staged": "^9.4.1",
     "mocha": "^6.2.1",
     "prettier": "^1.18.2",
+    "standard-version": "^7.0.0",
     "ts-loader": "^6.2.0",
     "typescript": "^3.6.3",
     "webpack": "^4.41.0"
