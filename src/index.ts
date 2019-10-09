@@ -8,6 +8,7 @@ export {
   IdleUpdateState,
   OfflineUpdateState,
   UpdateState,
+  UpdatingDbUpdateState,
   // TODO: Only export the cloneable versions
   CloneableUpdateState,
   CloneableErrorUpdateState,
