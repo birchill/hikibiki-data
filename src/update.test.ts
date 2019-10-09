@@ -28,12 +28,15 @@ type KanjiEntryEvent = EntryEvent<KanjiEntryLine>;
 type KanjiDeletionEvent = DeletionEvent<KanjiDeletionLine>;
 type KanjiDownloadEvent = DownloadEvent<KanjiEntryLine, KanjiDeletionLine>;
 
-describe('updateKanji', () => {
+describe('updateKanji', function() {
   let store: KanjiStore;
   let actions: Array<UpdateAction> = [];
   const callback = (action: UpdateAction) => {
     actions.push(action);
   };
+
+  // We time out some of these tests occasionally.
+  this.timeout(10000);
 
   beforeEach(() => {
     actions = [];
