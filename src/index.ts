@@ -9,7 +9,4 @@ export {
   OfflineUpdateState,
   UpdateState,
   UpdatingDbUpdateState,
-  // TODO: Only export the cloneable versions
-  CloneableUpdateState,
-  CloneableErrorUpdateState,
 } from './update-state';
