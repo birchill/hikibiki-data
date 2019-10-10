@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.0.3](https://github.com/birchill/hikibiki-sync/compare/v1.0.2...v1.0.3) (2019-10-10)
+
+
+### Bug Fixes
+
+* Include sourceContent in source maps ([b49c829](https://github.com/birchill/hikibiki-sync/commit/b49c829))
+
 ### [1.0.2](https://github.com/birchill/hikibiki-sync/compare/v1.0.1...v1.0.2) (2019-10-10)
 
 
