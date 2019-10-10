@@ -16,9 +16,6 @@
   "bugs": {
     "url": "https://github.com/birchill/hikibiki-sync/issues"
   },
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com/"
-  },
   "files": [
     "dist"
   ],
