@@ -25,13 +25,11 @@
   "main": "dist/index.js",
   "homepage": "https://github.com/birchill/hikibiki#readme",
   "dependencies": {
-    "deep-equal": "^1.1.0",
     "dexie": "^3.0.0-alpha.8"
   },
   "devDependencies": {
     "@types/chai": "^4.2.3",
     "@types/chai-datetime": "0.0.33",
-    "@types/deep-equal": "^1.0.1",
     "@types/fetch-mock": "^7.3.1",
     "@types/mocha": "^5.2.7",
     "chai": "^4.2.0",

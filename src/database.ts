@@ -1,8 +1,7 @@
-import deepEqual from 'deep-equal';
-
 import { isRadicalEntryLine, isRadicalDeletionLine } from './bushudb';
 import { DatabaseVersion } from './common';
 import { hasLanguage, download } from './download';
+import { jsonEqualish } from './json-equalish';
 import {
   KanjiEntryLine,
   isKanjiEntryLine,
@@ -123,18 +122,7 @@ export class KanjiDatabase {
     db: 'kanjidb' | 'bushudb',
     version: DatabaseVersion | null
   ) {
-    // So at some point we need to rewrite deep-equal. It:
-    //
-    // a) treats undefined and null as equal
-    //    (despite the fact that they produce different JSON output)
-    // b) treats a missing property and an undefined property as inequal
-    //    (despite the fact that they produce the same JSON output)
-    //
-    // For now we just supplement it with an extra type check.
-    if (
-      deepEqual(this.dbVersions[db], version) &&
-      typeof this.dbVersions[db] === typeof version
-    ) {
+    if (jsonEqualish(this.dbVersions[db], version)) {
       return;
     }
 
