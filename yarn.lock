@@ -1569,10 +1569,10 @@ detect-newline@3.0.0:
   resolved "https://registry.yarnpkg.com/detect-newline/-/detect-newline-3.0.0.tgz#8ae477c089e51872c264531cd6547719c0b86b2f"
   integrity sha512-JAP22dVPAqvhdRFFxK1G5GViIokyUn0UWXRNW0ztK96fsqi9cuM8w8ESbSk+T2w5OVorcMcL6m7yUg1RrX+2CA==
 
-dexie@^3.0.0-alpha.8:
-  version "3.0.0-alpha.8"
-  resolved "https://registry.yarnpkg.com/dexie/-/dexie-3.0.0-alpha.8.tgz#f4cd733c0c120816a73a6eac2157131af3bc7dd3"
-  integrity sha512-fujc1ZETUyJ7b0w7JzG4PK1wQca58BQbR7Gb3xaf+fWGrLm/uxfmB/k/FpHoGHHxCh3+v5lvB3XQG3ANoownNg==
+dexie@^3.0.0-beta.1:
+  version "3.0.0-beta.1"
+  resolved "https://registry.yarnpkg.com/dexie/-/dexie-3.0.0-beta.1.tgz#fcd75ca08c8be2c34b25b563b7617d9cf97a3c96"
+  integrity sha512-gT65LlB31mVMsGFoTQyS+A/osPQMvICzwy/kySVcabNnGYNU0RVtx8TR5tCWm6qvF76QBt/NNcwS4Iju4tRCYw==
 
 di@^0.0.1:
   version "0.0.1"

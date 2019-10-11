@@ -22,7 +22,7 @@
   "main": "dist/index.js",
   "homepage": "https://github.com/birchill/hikibiki#readme",
   "dependencies": {
-    "dexie": "^3.0.0-alpha.8"
+    "dexie": "^3.0.0-beta.1"
   },
   "devDependencies": {
     "@types/chai": "^4.2.3",
