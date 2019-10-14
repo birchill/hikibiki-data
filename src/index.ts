@@ -1,3 +1,8 @@
+export {
+  CloneableErrorUpdateState,
+  CloneableUpdateState,
+  toCloneableUpdateState,
+} from './cloneable-update-state';
 export { DatabaseVersion } from './common';
 export { DatabaseState, KanjiDatabase, KanjiResult } from './database';
 export { DownloadError, DownloadErrorCode } from './download';
