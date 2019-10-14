@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.1.0](https://github.com/birchill/hikibiki-sync/compare/v1.0.4...v1.1.0) (2019-10-14)
+
+
+### Features
+
+* Add utility functions for making a postMessage-able version of UpdateState ([a661e40](https://github.com/birchill/hikibiki-sync/commit/a661e40))
+
 ### [1.0.4](https://github.com/birchill/hikibiki-sync/compare/v1.0.3...v1.0.4) (2019-10-11)
 
 ### [1.0.3](https://github.com/birchill/hikibiki-sync/compare/v1.0.2...v1.0.3) (2019-10-10)
