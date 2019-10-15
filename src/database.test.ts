@@ -349,6 +349,56 @@ describe('database', function() {
       },
     ];
 
-    assert.deepEqual(result[0], expected[0]);
+    assert.deepEqual(result, expected);
+  });
+
+  it('should fill in katakana component descriptions', async () => {
+    await db.ready;
+    assert.isNull(db.dbVersions.kanjidb);
+
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.mock(
+      'end:kanjidb-rc-en-1.0.0-full.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":1}
+{"c":"通","r":{"on":["ツウ","ツ"],"kun":["とお.る","とお.り","-とお.り","-どお.り","とお.す","とお.し","-どお.し","かよ.う"],"na":["とん","どうし","どおり","みち"]},"m":["traffic","pass through","avenue","commute","counter for letters, notes, documents, etc."],"rad":{"x":162,"var":"nyou"},"refs":{"nelson_c":4703,"nelson_n":6063,"halpern_njecd":3109,"halpern_kkld":1982,"halpern_kkld_2ed":2678,"heisig":1408,"heisig6":1511,"henshall":176,"sh_kk":150,"sh_kk2":150,"kanji_in_context":204,"busy_people":"3.11","kodansha_compact":695,"skip":"3-3-7","sh_desc":"2q7.18","conning":159},"misc":{"sc":9,"gr":2,"freq":80,"jlpt":3,"kk":9},"comp":"マ⽤⻌"}
+`
+    );
+    fetchMock.mock(
+      'end:bushudb-rc-en-1.0.0-full.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":4}
+{"id":"101","r":101,"b":"⽤","k":"用","s":5,"na":["もちいる"],"m":["utilize","business","service","use","employ"]}
+{"id":"162","r":162,"b":"⾡","k":"辵","s":3,"na":["しんにょう","しんにゅう"],"m":["road","walk","to advance","move ahead"]}
+{"id":"162-nyou","r":162,"b":"⻌","k":"辶","s":3,"na":["しんにょう","しんにゅう"],"m":["road","walk","to advance","move ahead"],"posn":"nyou"}
+{"id":"162-nyou-2","r":162,"b":"⻍","k":"辶","s":4,"na":["しんにょう","しんにゅう"],"m":["road","walk","to advance","move ahead"],"posn":"nyou"}
+`
+    );
+
+    await db.update();
+
+    assert.equal(db.state, DatabaseState.Ok);
+
+    const result = await db.getKanji(['通']);
+    assert.deepEqual(result[0].comp, [
+      /*
+      {
+        c: 'マ',
+        na: ['マ'],
+        m: ['katakana ma'],
+        m_lang: 'en',
+      },
+      */
+      {
+        c: '⽤',
+        na: ['もちいる'],
+        m: ['utilize', 'business', 'service', 'use', 'employ'],
+        m_lang: 'en',
+      },
+      {
+        c: '⻌',
+        na: ['しんにょう', 'しんにゅう'],
+        m: ['road', 'walk', 'to advance', 'move ahead'],
+        m_lang: 'en',
+      },
+    ]);
   });
 });
