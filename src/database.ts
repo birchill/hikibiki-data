@@ -432,13 +432,16 @@ export class KanjiDatabase {
       let rad: KanjiResult['rad'];
       if (radicalVariant) {
         rad = {
-          ...record.rad,
+          x: record.rad.x,
           b: radicalVariant.b,
           k: radicalVariant.k,
           na: radicalVariant.na,
           m: radicalVariant.m,
           m_lang: radicalVariant.m_lang || lang,
         };
+        if (record.rad.nelson) {
+          rad.nelson = record.rad.nelson;
+        }
       } else {
         // The radical was not found. This should basically never happen.
         // But rather than crash fatally, just fill in some nonsense data
@@ -599,8 +602,6 @@ export class KanjiDatabase {
 
     return mapping;
   }
-
-  // XXX Check for offline events?
 }
 
 function baseRadicalIdForKanji(record: KanjiRecord): string {
