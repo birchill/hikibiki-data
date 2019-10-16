@@ -379,14 +379,12 @@ describe('database', function() {
 
     const result = await db.getKanji(['通']);
     assert.deepEqual(result[0].comp, [
-      /*
       {
         c: 'マ',
         na: ['マ'],
         m: ['katakana ma'],
         m_lang: 'en',
       },
-      */
       {
         c: '⽤',
         na: ['もちいる'],

@@ -521,7 +521,6 @@ export class KanjiDatabase {
               m: radicalRecord.m,
               m_lang: radicalRecord.m_lang || lang,
             });
-            continue;
           }
         } else if (kanjiMap.has(c)) {
           const kanjiRecord = kanjiMap.get(c);
@@ -539,10 +538,49 @@ export class KanjiDatabase {
               m: kanjiRecord.m,
               m_lang: kanjiRecord.m_lang || lang,
             });
-            continue;
           }
+        } else if (c.codePointAt(0)! >= 0x30a1 && c.codePointAt(0)! <= 0x30fa) {
+          // NOTE: If we ever support languages that are not roman-based, or
+          // where it doesn't make sense to convert katakana into a roman
+          // equivalent we should detect that here.
+          //
+          // For now we handle Japanese simply because that seems likely.
+          if (lang === 'ja') {
+            comp.push({
+              c,
+              na: [c],
+              m: [`片仮名の${c}`],
+              m_lang: lang,
+            });
+          } else {
+            const asRoman = katakanaToRoman[c.codePointAt(0)! - 0x30a1][1];
+            // NOTE: We only currently deal with a very limited number of
+            // languages where it seems legitimate to write 片仮名 as
+            // "katakana" (as best I can tell).
+            //
+            // Once we come to handle languages like Korean and so on we'll
+            // actually want to localize this properly.
+            //
+            // e.g.
+            //
+            //   Korean: 카타카나
+            //   Chinese (what kind?): 片假名
+            //   Arabic: الكاتاكانا ?
+            //   Persian: काताकाना ?
+            //   Russian: Ката́кана ?
+            //
+            // Given that all these languages fall back to English anyway,
+            // though, it's probably not so bad if we forget to do this.
+            comp.push({
+              c,
+              na: [c],
+              m: [`katakana ${asRoman}`],
+              m_lang: lang,
+            });
+          }
+        } else {
+          console.error(`Couldn't find a radical or kanji entry for ${c}`);
         }
-        console.error(`Couldn't find a radical or kanji entry for ${c}`);
       }
 
       result.push(comp);
@@ -615,3 +653,107 @@ function radicalIdForKanji(record: KanjiRecord): string {
   }
   return id;
 }
+
+// NOTE: This is NOT meant to be a generic romaji utility. It does NOT
+// cover e.g. ファ or ジャ. It is very specifically for filling out component
+// records that use a katakana character and handles exactly the range we use
+// there to detect katakana (which excludes some katakana at the end of the
+// Unicode katakana block like ヾ).
+//
+// It also doesn't differentiate between e.g. ア or ァ. In fact, it is only
+// ever expected to cover ム and マ but we've made it a little bit more generic
+// simply because the kanji components data is expected to be frequently updated
+// and it's completely possible that other katakana symbols might show up there
+// in the future.
+const katakanaToRoman: Array<[string, string]> = [
+  ['ァ', 'a'],
+  ['ア', 'a'],
+  ['ィ', 'i'],
+  ['イ', 'i'],
+  ['ゥ', 'u'],
+  ['ウ', 'u'],
+  ['ェ', 'e'],
+  ['エ', 'e'],
+  ['ォ', 'o'],
+  ['オ', 'o'],
+  ['カ', 'ka'],
+  ['ガ', 'ga'],
+  ['キ', 'ki'],
+  ['ギ', 'gi'],
+  ['ク', 'ku'],
+  ['グ', 'gu'],
+  ['ケ', 'ke'],
+  ['ゲ', 'ge'],
+  ['コ', 'ko'],
+  ['ゴ', 'go'],
+  ['サ', 'sa'],
+  ['ザ', 'za'],
+  ['シ', 'shi'],
+  ['ジ', 'ji'],
+  ['ス', 'su'],
+  ['ズ', 'zu'],
+  ['セ', 'se'],
+  ['ゼ', 'ze'],
+  ['ソ', 'so'],
+  ['ゾ', 'zo'],
+  ['タ', 'ta'],
+  ['ダ', 'da'],
+  ['チ', 'chi'],
+  ['ヂ', 'di'],
+  ['ッ', 'tsu'],
+  ['ツ', 'tsu'],
+  ['ヅ', 'dzu'],
+  ['テ', 'te'],
+  ['デ', 'de'],
+  ['ト', 'to'],
+  ['ド', 'do'],
+  ['ナ', 'na'],
+  ['ニ', 'ni'],
+  ['ヌ', 'nu'],
+  ['ネ', 'ne'],
+  ['ノ', 'no'],
+  ['ハ', 'ha'],
+  ['バ', 'ba'],
+  ['パ', 'pa'],
+  ['ヒ', 'hi'],
+  ['ビ', 'bi'],
+  ['ピ', 'pi'],
+  ['フ', 'fu'],
+  ['ブ', 'bu'],
+  ['プ', 'pu'],
+  ['ヘ', 'he'],
+  ['ベ', 'be'],
+  ['ペ', 'pe'],
+  ['ホ', 'ho'],
+  ['ボ', 'bo'],
+  ['ポ', 'po'],
+  ['マ', 'ma'],
+  ['ミ', 'mi'],
+  ['ム', 'mu'],
+  ['メ', 'me'],
+  ['モ', 'mo'],
+  ['ャ', 'ya'],
+  ['ヤ', 'ya'],
+  ['ュ', 'yu'],
+  ['ユ', 'yu'],
+  ['ョ', 'yo'],
+  ['ヨ', 'yo'],
+  ['ラ', 'ra'],
+  ['リ', 'ri'],
+  ['ル', 'ru'],
+  ['レ', 're'],
+  ['ロ', 'ro'],
+  ['ヮ', 'wa'],
+  ['ワ', 'wa'],
+  ['ヰ', 'wi'],
+  ['ヱ', 'we'],
+  ['ヲ', 'wo'],
+  ['ン', 'n'],
+  ['ヴ', 'vu'],
+  ['ヵ', 'ka'],
+  ['ヶ', 'ke'],
+  ['ヷ', 'ga'],
+  ['ヸ', 'vi'],
+  ['ヹ', 've'],
+  ['ヺ', 'vo'],
+];
