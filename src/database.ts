@@ -574,7 +574,7 @@ export class KanjiDatabase {
             //
             // Given that all these languages fall back to English anyway,
             // though, it's probably not so bad if we forget to do this.
-            if (['en', 'es', 'pt', 'fr'].includes(lang)) {
+            if (!['en', 'es', 'pt', 'fr'].includes(lang)) {
               this.logWarningMessage(
                 `Generating katakana record for unknown language: ${lang}`
               );
