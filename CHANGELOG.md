@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.2.0](https://github.com/birchill/hikibiki-data/compare/v1.1.1...v1.2.0) (2019-10-16)
+
+
+### Bug Fixes
+
+* Log warning if we try to generate a katakana record for a language we don't recognize ([6e148c6](https://github.com/birchill/hikibiki-data/commit/6e148c6))
+
+
+### Features
+
+* Add generation of data for katakana components ([f60b7f7](https://github.com/birchill/hikibiki-data/commit/f60b7f7))
+* Add onWarning callback for logging non-fatal but unexpected data errors ([0f226fb](https://github.com/birchill/hikibiki-data/commit/0f226fb))
+
 ### [1.1.1](https://github.com/birchill/hikibiki-data/compare/v1.1.0...v1.1.1) (2019-10-15)
 
 ## [1.1.0](https://github.com/birchill/hikibiki-data/compare/v1.0.4...v1.1.0) (2019-10-14)
