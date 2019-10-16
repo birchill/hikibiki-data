@@ -678,7 +678,7 @@ function radicalIdForKanji(record: KanjiRecord): string {
 // Unicode katakana block like ヾ).
 //
 // It also doesn't differentiate between e.g. ア or ァ. In fact, it is only
-// ever expected to cover ム and マ but we've made it a little bit more generic
+// ever expected to cover ム and ユ but we've made it a little bit more generic
 // simply because the kanji components data is expected to be frequently updated
 // and it's completely possible that other katakana symbols might show up there
 // in the future.
