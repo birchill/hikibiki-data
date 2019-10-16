@@ -69,6 +69,7 @@ export class KanjiDatabase {
     bushudb: DatabaseVersion | null | undefined;
   } = { kanjidb: undefined, bushudb: undefined };
   onChange?: (topic: 'updatestate') => void;
+  onWarning?: (message: string) => void;
 
   private preferredLang: string | null = null;
   private readyPromise: Promise<any>;
@@ -446,7 +447,9 @@ export class KanjiDatabase {
         // The radical was not found. This should basically never happen.
         // But rather than crash fatally, just fill in some nonsense data
         // instead.
-        console.error(`Failed to find radical: ${radicalIdForKanji(record)}`);
+        this.logWarningMessage(
+          `Failed to find radical: ${radicalIdForKanji(record)}`
+        );
         rad = {
           ...record.rad,
           // We generally maintain the invariant that either 'b' or 'k' is
@@ -579,7 +582,9 @@ export class KanjiDatabase {
             });
           }
         } else {
-          console.error(`Couldn't find a radical or kanji entry for ${c}`);
+          this.logWarningMessage(
+            `Couldn't find a radical or kanji entry for ${c}`
+          );
         }
       }
 
@@ -639,6 +644,13 @@ export class KanjiDatabase {
     this.charToRadicalMap = mapping;
 
     return mapping;
+  }
+
+  private logWarningMessage(message: string) {
+    console.error(message);
+    if (this.onWarning) {
+      this.onWarning(message);
+    }
   }
 }
 
