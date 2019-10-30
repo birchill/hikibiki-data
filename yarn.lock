@@ -1565,9 +1565,9 @@ detect-newline@3.0.0:
   integrity sha512-JAP22dVPAqvhdRFFxK1G5GViIokyUn0UWXRNW0ztK96fsqi9cuM8w8ESbSk+T2w5OVorcMcL6m7yUg1RrX+2CA==
 
 dexie@^3.0.0-beta.1:
-  version "3.0.0-beta.1"
-  resolved "https://registry.yarnpkg.com/dexie/-/dexie-3.0.0-beta.1.tgz#fcd75ca08c8be2c34b25b563b7617d9cf97a3c96"
-  integrity sha512-gT65LlB31mVMsGFoTQyS+A/osPQMvICzwy/kySVcabNnGYNU0RVtx8TR5tCWm6qvF76QBt/NNcwS4Iju4tRCYw==
+  version "3.0.0-rc.1"
+  resolved "https://registry.yarnpkg.com/dexie/-/dexie-3.0.0-rc.1.tgz#3f7fe711b8d8ad27b69370696d9dbf5817f849d4"
+  integrity sha512-hQ5d/wS3nEPNEMnV4vCFoiXrSCordsVlxsFKEXA4VhPHWpMwO1CD+2eYsGYtGFs6HZK5MSmGjkVV2kQsPyBCGg==
 
 di@^0.0.1:
   version "0.0.1"
