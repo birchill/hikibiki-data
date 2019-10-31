@@ -1,7 +1,8 @@
+import { jsonEqualish } from '@birchill/json-equalish';
+
 import { isRadicalEntryLine, isRadicalDeletionLine } from './bushudb';
 import { DatabaseVersion } from './common';
 import { hasLanguage, download } from './download';
-import { jsonEqualish } from './json-equalish';
 import {
   KanjiEntryLine,
   isKanjiEntryLine,
