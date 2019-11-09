@@ -15,6 +15,7 @@ interface Readings {
   on?: Array<string>;
   kun?: Array<string>;
   na?: Array<string>;
+  py?: Array<string>;
 }
 
 interface Radical {
