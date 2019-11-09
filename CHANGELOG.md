@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.2.3](https://github.com/birchill/hikibiki-data/compare/v1.2.2...v1.2.3) (2019-11-09)
+
+
+### Bug Fixes
+
+* Add pinyin to Readings type ([4350fe1](https://github.com/birchill/hikibiki-data/commit/4350fe1))
+
 ### [1.2.2](https://github.com/birchill/hikibiki-data/compare/v1.2.1...v1.2.2) (2019-10-31)
 
 ### [1.2.1](https://github.com/birchill/hikibiki-data/compare/v1.2.0...v1.2.1) (2019-10-16)
