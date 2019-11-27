@@ -628,7 +628,7 @@ async function* ljsonStreamIterator(
       reader.releaseLock();
       throw new DownloadError(
         DownloadErrorCode.DatabaseFileNotAccessible,
-        e.message
+        `Could not read database file (${e?.message ?? String(e)})`
       );
     }
 
