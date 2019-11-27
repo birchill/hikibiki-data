@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.2.4](https://github.com/birchill/hikibiki-data/compare/v1.2.3...v1.2.4) (2019-11-27)
+
+
+### Bug Fixes
+
+* Be more forgiving of the error object when reporting file not accessible errors ([8ca76b8](https://github.com/birchill/hikibiki-data/commit/8ca76b8e810a1d293722faddf6fd411463f68003))
+* Improve handling of setting the preferred language ([608be8b](https://github.com/birchill/hikibiki-data/commit/608be8b074c3b512ff229c37d57d8417c396e3e5))
+
 ### [1.2.3](https://github.com/birchill/hikibiki-data/compare/v1.2.2...v1.2.3) (2019-11-09)
 
 
