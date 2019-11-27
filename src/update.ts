@@ -164,9 +164,10 @@ async function update<
   };
 
   while (true) {
-    let readResult: ReadableStreamReadResult<
-      DownloadEvent<EntryLine, DeletionLine>
-    >;
+    let readResult: ReadableStreamReadResult<DownloadEvent<
+      EntryLine,
+      DeletionLine
+    >>;
     try {
       readResult = await reader.read();
     } catch (e) {
@@ -206,9 +207,9 @@ async function update<
           //
           //   https://stackoverflow.com/questions/57815891/how-to-define-an-object-type-that-does-not-include-a-specific-member
           //
-          const recordToPut = toRecord((stripFields(value, [
-            'type',
-          ]) as unknown) as EntryLine);
+          const recordToPut = toRecord(
+            (stripFields(value, ['type']) as unknown) as EntryLine
+          );
           recordsToPut.push(recordToPut);
         }
         break;
@@ -228,13 +229,14 @@ async function update<
   }
 }
 
-export function cancelUpdate(store: KanjiStore): boolean {
+export async function cancelUpdate(store: KanjiStore): Promise<boolean> {
   const reader = inProgressUpdates.get(store);
   if (!reader) {
     return false;
   }
 
   inProgressUpdates.delete(store);
-  reader.cancel();
+  await reader.cancel();
+
   return true;
 }

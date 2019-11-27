@@ -304,11 +304,11 @@ export class KanjiDatabase {
     }
   }
 
-  cancelUpdate(): boolean {
+  async cancelUpdate(): Promise<boolean> {
     const hadProgressUpdate = !!this.inProgressUpdate;
     this.inProgressUpdate = undefined;
 
-    cancelUpdate(this.store);
+    await cancelUpdate(this.store);
 
     return hadProgressUpdate;
   }
@@ -359,8 +359,14 @@ export class KanjiDatabase {
 
     this.preferredLang = lang;
 
-    await this.cancelUpdate();
-    await this.destroy();
+    const hadUpdate = await this.cancelUpdate();
+
+    // If we are empty and didn't have an update in progress, there is no need
+    // to clobber the database (and in fact doing so could confuse clients who
+    // are simply trying to set the initially preferred language).
+    if (this.state !== DatabaseState.Empty || hadUpdate) {
+      await this.destroy();
+    }
 
     // We _could_ detect if we had data or had an in-progress update and
     // automatically call update() here in that case, but it seems simpler to
