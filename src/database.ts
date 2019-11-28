@@ -96,7 +96,12 @@ export class KanjiDatabase {
         if (e?.name === 'OpenFailedError') {
           console.error('IndexedDB not available');
           console.error(e);
+
+          this.dbVersions.kanjidb == null;
+          this.dbVersions.bushudb == null;
           this.state = DatabaseState.Unavailable;
+
+          this.notifyChanged();
         } else {
           throw e;
         }
