@@ -97,8 +97,7 @@ export class KanjiDatabase {
           console.error('IndexedDB not available');
           console.error(e);
 
-          this.dbVersions.kanjidb = null;
-          this.dbVersions.bushudb = null;
+          this.dbVersions = { kanjidb: null, bushudb: null };
           this.state = DatabaseState.Unavailable;
 
           this.notifyChanged();
@@ -111,7 +110,12 @@ export class KanjiDatabase {
     this.readyPromise.then(() => this.notifyChanged());
 
     // Pre-fetch the radical information (but don't block on this)
-    this.readyPromise.then(() => this.getRadicals());
+    this.getRadicals().catch(() => {
+      // Ignore errors from pre-fetching. This should only happen when the
+      // database is unavailable (which we deal with by notifying the onChange
+      // listener). If there is another cause, then we will deal with it
+      // next time we call getRadicals().
+    });
   }
 
   get ready() {
@@ -346,8 +350,8 @@ export class KanjiDatabase {
     if (this.state !== DatabaseState.Unavailable) {
       // Wait for radicals query to finish before tidying up
       await this.getRadicals();
+      await this.store.destroy();
     }
-    await this.store.destroy();
     this.store = new KanjiStore();
     this.state = DatabaseState.Empty;
     this.updateState = { state: 'idle', lastCheck: null };
@@ -648,6 +652,10 @@ export class KanjiDatabase {
 
   private async getRadicals(): Promise<Map<string, RadicalRecord>> {
     await this.ready;
+
+    if (this.state === DatabaseState.Unavailable) {
+      throw new Error('Database unavailable');
+    }
 
     if (!this.radicalsPromise) {
       this.radicalsPromise = this.store.bushu
