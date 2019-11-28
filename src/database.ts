@@ -343,8 +343,10 @@ export class KanjiDatabase {
   }
 
   async destroy() {
-    // Wait for radicals query to finish before tidying up
-    await this.getRadicals();
+    if (this.state !== DatabaseState.Unavailable) {
+      // Wait for radicals query to finish before tidying up
+      await this.getRadicals();
+    }
     await this.store.destroy();
     this.store = new KanjiStore();
     this.state = DatabaseState.Empty;
