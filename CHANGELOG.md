@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.3.0](https://github.com/birchill/hikibiki-data/compare/v1.2.4...v1.3.0) (2019-11-28)
+
+
+### Features
+
+* Add unavailable state ([135203a](https://github.com/birchill/hikibiki-data/commit/135203afd0ac721445902925f4860c3352e47235))
+
 ### [1.2.4](https://github.com/birchill/hikibiki-data/compare/v1.2.3...v1.2.4) (2019-11-27)
 
 
