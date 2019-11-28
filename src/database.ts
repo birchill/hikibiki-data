@@ -28,10 +28,11 @@ export const enum DatabaseState {
   Initializing,
   // No data has been stored yet
   Empty,
-  // We have data, but it's not usable
-  OutOfDate,
   // We have data and it's usable
   Ok,
+  // The database itself is somehow unavailable (e.g. IndexedDB has been
+  // disabled or blocked due to user permissions or private mode browsing).
+  Unavailable,
 }
 
 export interface KanjiResult
@@ -90,6 +91,15 @@ export class KanjiDatabase {
       })
       .then(version => {
         this.updateDbVersion('bushudb', version);
+      })
+      .catch(e => {
+        if (e?.name === 'OpenFailedError') {
+          console.error('IndexedDB not available');
+          console.error(e);
+          this.state = DatabaseState.Unavailable;
+        } else {
+          throw e;
+        }
       });
 
     // Let observers know (but don't block)
@@ -148,6 +158,10 @@ export class KanjiDatabase {
   }
 
   async update() {
+    if (this.state === DatabaseState.Unavailable) {
+      throw new Error('Trying to update unavailable database');
+    }
+
     if (this.inProgressUpdate) {
       return this.inProgressUpdate;
     }
@@ -352,6 +366,7 @@ export class KanjiDatabase {
     // Make sure the language exists before we clobber the database
     if (
       this.state !== DatabaseState.Empty &&
+      this.state !== DatabaseState.Unavailable &&
       lang &&
       (!(await hasLanguage({
         dbName: 'kanjidb',
@@ -385,6 +400,10 @@ export class KanjiDatabase {
   }
 
   async getDbLang(): Promise<string | null> {
+    if (this.state === DatabaseState.Unavailable) {
+      throw new Error('Trying to query unavailable database');
+    }
+
     await this.ready;
 
     if (this.state === DatabaseState.Empty) {
@@ -395,6 +414,10 @@ export class KanjiDatabase {
   }
 
   async getKanji(kanji: Array<string>): Promise<Array<KanjiResult>> {
+    if (this.state === DatabaseState.Unavailable) {
+      throw new Error('Trying to query unavailable database');
+    }
+
     await this.ready;
 
     if (this.state !== DatabaseState.Ok) {
