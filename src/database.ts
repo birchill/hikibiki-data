@@ -97,8 +97,8 @@ export class KanjiDatabase {
           console.error('IndexedDB not available');
           console.error(e);
 
-          this.dbVersions.kanjidb == null;
-          this.dbVersions.bushudb == null;
+          this.dbVersions.kanjidb = null;
+          this.dbVersions.bushudb = null;
           this.state = DatabaseState.Unavailable;
 
           this.notifyChanged();
