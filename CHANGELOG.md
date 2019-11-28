@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.3.1](https://github.com/birchill/hikibiki-data/compare/v1.3.0...v1.3.1) (2019-11-28)
+
+
+### Bug Fixes
+
+* Don't wait for radicals query to complete if the database is unavailable ([f0bd600](https://github.com/birchill/hikibiki-data/commit/f0bd6002184227ba0aa5541593d78843119f21c1))
+* Notify of change when going to unavailable state ([7b04a19](https://github.com/birchill/hikibiki-data/commit/7b04a19b2693c66a4e0f56bcb93855687679b494))
+
 ## [1.3.0](https://github.com/birchill/hikibiki-data/compare/v1.2.4...v1.3.0) (2019-11-28)
 
 
