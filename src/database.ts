@@ -195,12 +195,11 @@ export class KanjiDatabase {
           if (this.updateState.state !== 'offline') {
             return;
           }
-          try {
-            this.update();
-          } catch (e) {
+
+          this.update().catch(() => {
             // Ignore. The client will be notified of errors via the onChange
             // callback.
-          }
+          });
         },
         { once: true }
       );
@@ -246,12 +245,11 @@ export class KanjiDatabase {
           if (this.updateState.state !== 'error') {
             return;
           }
-          try {
-            this.update();
-          } catch (e) {
+
+          this.update().catch(() => {
             // Ignore. The client will be notified of errors via the onChange
             // callback.
-          }
+          });
         }, this.updateState.retryIntervalMs) as unknown) as number;
       }
 
