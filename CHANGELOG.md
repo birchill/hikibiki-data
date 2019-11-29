@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.3.3](https://github.com/birchill/hikibiki-data/compare/v1.3.2...v1.3.3) (2019-11-29)
+
+
+### Bug Fixes
+
+* Work around Dexie bugs with MissingAPIErrors and auto-opening ([bee169f](https://github.com/birchill/hikibiki-data/commit/bee169f5c4c53cc98ee99d87b5a2a387ef76025f))
+
 ### [1.3.2](https://github.com/birchill/hikibiki-data/compare/v1.3.1...v1.3.2) (2019-11-28)
 
 
