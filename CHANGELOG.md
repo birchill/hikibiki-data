@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.3.5](https://github.com/birchill/hikibiki-data/compare/v1.3.4...v1.3.5) (2019-11-29)
+
+
+### Bug Fixes
+
+* Handle unavailable database in getDbLang ([4af80ed](https://github.com/birchill/hikibiki-data/commit/4af80ed950885dd26d017d95325041f68e2e89e7))
+
 ### [1.3.4](https://github.com/birchill/hikibiki-data/compare/v1.3.3...v1.3.4) (2019-11-29)
 
 
