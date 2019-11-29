@@ -413,13 +413,12 @@ export class KanjiDatabase {
   }
 
   async getDbLang(): Promise<string | null> {
-    if (this.state === DatabaseState.Unavailable) {
-      throw new Error('Trying to query unavailable database');
-    }
-
     await this.ready;
 
-    if (this.state === DatabaseState.Empty) {
+    if (
+      this.state === DatabaseState.Empty ||
+      this.state === DatabaseState.Unavailable
+    ) {
       return null;
     }
 
