@@ -84,7 +84,13 @@ export class KanjiDatabase {
     this.store = new KanjiStore();
 
     // Check initial state
-    this.readyPromise = this.getDbVersion('kanjidb')
+    this.readyPromise = this.store
+      // We need to explicitly open the database since in the case where
+      // IndexedDB is not available, Dexie gets confused between the exception it
+      // throws when auto-opening the database and the exception it throws when
+      // trying to create a transaction to read the DB version.
+      .open()
+      .then(() => this.getDbVersion('kanjidb'))
       .then(version => {
         this.updateDbVersion('kanjidb', version);
         return this.getDbVersion('bushudb');
@@ -93,20 +99,16 @@ export class KanjiDatabase {
         this.updateDbVersion('bushudb', version);
       })
       .catch(e => {
-        if (e?.name === 'OpenFailedError') {
-          console.error('IndexedDB not available');
-          console.error(e);
+        console.error('IndexedDB not available');
+        console.error(e);
 
-          this.dbVersions = { kanjidb: null, bushudb: null };
-          this.state = DatabaseState.Unavailable;
+        this.dbVersions = { kanjidb: null, bushudb: null };
+        this.state = DatabaseState.Unavailable;
 
-          this.notifyChanged();
-        } else {
-          throw e;
-        }
+        this.notifyChanged();
       });
 
-    // Let observers know (but don't block)
+    // Let observers know once the initial state has been resolved.
     this.readyPromise.then(() => this.notifyChanged());
 
     // Pre-fetch the radical information (but don't block on this)
@@ -128,6 +130,7 @@ export class KanjiDatabase {
     }
   }
 
+  // This should only be called after opening the database.
   private async getDbVersion(
     db: 'kanjidb' | 'bushudb'
   ): Promise<DatabaseVersion | null> {
@@ -347,6 +350,7 @@ export class KanjiDatabase {
   }
 
   async destroy() {
+    await this.ready;
     if (this.state !== DatabaseState.Unavailable) {
       // Wait for radicals query to finish before tidying up
       await this.getRadicals();
@@ -425,11 +429,11 @@ export class KanjiDatabase {
   }
 
   async getKanji(kanji: Array<string>): Promise<Array<KanjiResult>> {
+    await this.ready;
+
     if (this.state === DatabaseState.Unavailable) {
       throw new Error('Trying to query unavailable database');
     }
-
-    await this.ready;
 
     if (this.state !== DatabaseState.Ok) {
       return [];
