@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.3.4](https://github.com/birchill/hikibiki-data/compare/v1.3.3...v1.3.4) (2019-11-29)
+
+
+### Bug Fixes
+
+* Correctly ignore failures from async downloads ([6e11786](https://github.com/birchill/hikibiki-data/commit/6e11786dc75fdcd7bfd7ea06bb04d117357b1a43))
+
 ### [1.3.3](https://github.com/birchill/hikibiki-data/compare/v1.3.2...v1.3.3) (2019-11-29)
 
 
