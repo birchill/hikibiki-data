@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.4.0](https://github.com/birchill/hikibiki-data/compare/v1.3.5...v1.4.0) (2019-12-03)
+
+
+### Features
+
+* Add url field to DownloadError ([8c484ed](https://github.com/birchill/hikibiki-data/commit/8c484ed82548f82cbd5f56cc57c44327e64f4390))
+
 ### [1.3.5](https://github.com/birchill/hikibiki-data/compare/v1.3.4...v1.3.5) (2019-11-29)
 
 
