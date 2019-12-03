@@ -77,10 +77,16 @@ export const enum DownloadErrorCode {
   DatabaseTooOld,
 }
 
+interface DownloadErrorOptions {
+  code: DownloadErrorCode;
+  url?: string;
+}
+
 export class DownloadError extends Error {
   code: DownloadErrorCode;
+  url?: string;
 
-  constructor(code: DownloadErrorCode, ...params: any[]) {
+  constructor({ code, url }: DownloadErrorOptions, ...params: any[]) {
     super(...params);
     Object.setPrototypeOf(this, DownloadError.prototype);
 
@@ -90,6 +96,7 @@ export class DownloadError extends Error {
 
     this.name = 'DownloadError';
     this.code = code;
+    this.url = url;
   }
 }
 
@@ -168,7 +175,7 @@ export function download<EntryLine, DeletionLine>({
           `${major}.${minor}.${patch}`;
         controller.error(
           new DownloadError(
-            DownloadErrorCode.DatabaseTooOld,
+            { code: DownloadErrorCode.DatabaseTooOld },
             `Database version (${versionToString(
               versionInfo
             )}) older than current version (${versionToString(currentVersion)})`
@@ -324,15 +331,15 @@ async function getVersionInfo({
 
   // Get the file if needed
   if (forceFetch || !cachedVersionFile || cachedVersionFile.lang !== lang) {
+    const url = `${baseUrl}jpdict-rc-${lang}-version.json`;
+
     // Fetch rejects the promise for network errors, but not for HTTP errors :(
     let response;
     try {
-      response = await fetch(`${baseUrl}jpdict-rc-${lang}-version.json`, {
-        signal,
-      });
+      response = await fetch(url, { signal });
     } catch (e) {
       throw new DownloadError(
-        DownloadErrorCode.VersionFileNotAccessible,
+        { code: DownloadErrorCode.VersionFileNotAccessible, url },
         `Version file not accessible (${e.message})`
       );
     }
@@ -343,7 +350,7 @@ async function getVersionInfo({
           ? DownloadErrorCode.VersionFileNotFound
           : DownloadErrorCode.VersionFileNotAccessible;
       throw new DownloadError(
-        code,
+        { code, url },
         `Version file not accessible (status: ${response.status})`
       );
     }
@@ -353,7 +360,7 @@ async function getVersionInfo({
       versionInfo = await response.json();
     } catch (e) {
       throw new DownloadError(
-        DownloadErrorCode.VersionFileInvalid,
+        { code: DownloadErrorCode.VersionFileInvalid, url },
         `Invalid version object: ${e.message}`
       );
     }
@@ -369,7 +376,7 @@ async function getVersionInfo({
   );
   if (!dbVersionInfo) {
     throw new DownloadError(
-      DownloadErrorCode.VersionFileInvalid,
+      { code: DownloadErrorCode.VersionFileInvalid },
       `Invalid version object: ${JSON.stringify(versionInfo)}`
     );
   }
@@ -401,7 +408,7 @@ function getCurrentDbVersionInfo(
     a[dbName][majorVersion] === null
   ) {
     throw new DownloadError(
-      DownloadErrorCode.MajorVersionNotFound,
+      { code: DownloadErrorCode.MajorVersionNotFound },
       `No ${majorVersion}.x version information for ${dbName} database`
     );
   }
@@ -485,7 +492,7 @@ async function* getEvents<EntryLine, DeletionLine>({
     response = await fetch(url, { signal });
   } catch (e) {
     throw new DownloadError(
-      DownloadErrorCode.DatabaseFileNotFound,
+      { code: DownloadErrorCode.DatabaseFileNotFound, url },
       `Database file ${url} not accessible (${e.message})`
     );
   }
@@ -496,14 +503,14 @@ async function* getEvents<EntryLine, DeletionLine>({
         ? DownloadErrorCode.DatabaseFileNotFound
         : DownloadErrorCode.DatabaseFileNotAccessible;
     throw new DownloadError(
-      code,
+      { code, url },
       `Database file ${url} not accessible (status: ${response.status})`
     );
   }
 
   if (response.body === null) {
     throw new DownloadError(
-      DownloadErrorCode.DatabaseFileNotAccessible,
+      { code: DownloadErrorCode.DatabaseFileNotAccessible, url },
       'Body is null'
     );
   }
@@ -517,14 +524,14 @@ async function* getEvents<EntryLine, DeletionLine>({
     if (isHeaderLine(line)) {
       if (headerRead) {
         throw new DownloadError(
-          DownloadErrorCode.DatabaseFileHeaderDuplicate,
+          { code: DownloadErrorCode.DatabaseFileHeaderDuplicate, url },
           `Got duplicate database header: ${JSON.stringify(line)}`
         );
       }
 
       if (compareVersions(line.version, version) !== 0) {
         throw new DownloadError(
-          DownloadErrorCode.DatabaseFileVersionMismatch,
+          { code: DownloadErrorCode.DatabaseFileVersionMismatch, url },
           `Got mismatched database versions (Expected: ${JSON.stringify(
             version
           )} got: ${JSON.stringify(line.version)})`
@@ -543,7 +550,7 @@ async function* getEvents<EntryLine, DeletionLine>({
     } else {
       if (!headerRead) {
         throw new DownloadError(
-          DownloadErrorCode.DatabaseFileHeaderMissing,
+          { code: DownloadErrorCode.DatabaseFileHeaderMissing, url },
           `Expected database version but got ${JSON.stringify(line)}`
         );
       }
@@ -559,9 +566,10 @@ async function* getEvents<EntryLine, DeletionLine>({
       } else if (isDeletionLine(line)) {
         // We shouldn't have deletion records when doing a full snapshot
         if (fileType === 'full') {
-          throw new DownloadError(
-            DownloadErrorCode.DatabaseFileDeletionInSnapshot
-          );
+          throw new DownloadError({
+            code: DownloadErrorCode.DatabaseFileDeletionInSnapshot,
+            url,
+          });
         }
 
         const deletionEvent: DeletionEvent<DeletionLine> = {
@@ -580,7 +588,7 @@ async function* getEvents<EntryLine, DeletionLine>({
         // If anything unexpected shows up we should fail so we can debug
         // exactly what happenned.
         throw new DownloadError(
-          DownloadErrorCode.DatabaseFileInvalidRecord,
+          { code: DownloadErrorCode.DatabaseFileInvalidRecord, url },
           `Got unexpected record: ${JSON.stringify(line)}`
         );
       }
@@ -612,7 +620,7 @@ async function* ljsonStreamIterator(
     } catch (e) {
       reader.releaseLock();
       throw new DownloadError(
-        DownloadErrorCode.DatabaseFileInvalidJSON,
+        { code: DownloadErrorCode.DatabaseFileInvalidJSON },
         `Could not parse JSON in database file: ${line}`
       );
     }
@@ -627,7 +635,7 @@ async function* ljsonStreamIterator(
     } catch (e) {
       reader.releaseLock();
       throw new DownloadError(
-        DownloadErrorCode.DatabaseFileNotAccessible,
+        { code: DownloadErrorCode.DatabaseFileNotAccessible },
         `Could not read database file (${e?.message ?? String(e)})`
       );
     }

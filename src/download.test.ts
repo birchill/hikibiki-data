@@ -90,6 +90,8 @@ describe('download', () => {
         downloadError.code,
         DownloadErrorCode.VersionFileNotFound
       );
+      assert.isDefined(downloadError.url);
+      assert.isTrue(downloadError.url!.endsWith('jpdict-rc-en-version.json'));
       assert.strictEqual(events.length, 0);
     }
   });
