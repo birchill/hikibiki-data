@@ -19,6 +19,10 @@ export interface VersionEvent {
   partial: boolean;
 }
 
+export interface VersionEndEvent {
+  type: 'versionend';
+}
+
 export interface ProgressEvent {
   type: 'progress';
   loaded: number;
@@ -27,6 +31,7 @@ export interface ProgressEvent {
 
 export type DownloadEvent<EntryLine, DeletionLine> =
   | VersionEvent
+  | VersionEndEvent
   | EntryEvent<EntryLine>
   | DeletionEvent<DeletionLine>
   | ProgressEvent;
@@ -231,6 +236,7 @@ export function download<EntryLine, DeletionLine>({
           controller.close();
           return;
         }
+        controller.enqueue({ type: 'versionend' });
       } else {
         currentPatch = currentVersion.patch;
       }
@@ -266,6 +272,8 @@ export function download<EntryLine, DeletionLine>({
           controller.close();
           return;
         }
+
+        controller.enqueue({ type: 'versionend' });
       }
 
       controller.close();

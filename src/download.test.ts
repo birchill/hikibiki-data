@@ -74,6 +74,7 @@ describe('download', () => {
         dateOfCreation: '2019-06-22',
         partial: false,
       },
+      { type: 'versionend' },
     ]);
   });
 
@@ -262,7 +263,7 @@ describe('download', () => {
     const reader = kanjiDownload().getReader();
     const events = await drainEvents(reader);
 
-    assert.strictEqual(events.length, 3);
+    assert.strictEqual(events.length, 4);
     assert.deepEqual(events[1], {
       type: 'entry',
       c: '㐂',
@@ -566,6 +567,7 @@ ${entry}
         dateOfCreation: '2019-06-24',
         partial: true,
       },
+      { type: 'versionend' },
     ]);
   });
 
@@ -641,7 +643,7 @@ ${entry}
         downloadError.code,
         DownloadErrorCode.DatabaseFileNotFound
       );
-      assert.strictEqual(events.length, 2);
+      assert.strictEqual(events.length, 3);
     }
   });
 
@@ -666,7 +668,7 @@ ${entry}
         downloadError.code,
         DownloadErrorCode.DatabaseFileInvalidJSON
       );
-      assert.strictEqual(events.length, 2);
+      assert.strictEqual(events.length, 3);
     }
   });
 
@@ -695,7 +697,7 @@ ${entry}
         downloadError.code,
         DownloadErrorCode.DatabaseFileVersionMismatch
       );
-      assert.strictEqual(events.length, 2);
+      assert.strictEqual(events.length, 3);
     }
   });
 

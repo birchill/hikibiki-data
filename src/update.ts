@@ -180,10 +180,11 @@ async function update<
 
     if (done) {
       if (inProgressUpdates.has(store)) {
-        try {
-          await finishCurrentVersion();
-        } finally {
-          inProgressUpdates.delete(store);
+        inProgressUpdates.delete(store);
+        if (currentVersion) {
+          throw new Error(
+            `Unfinished version: ${JSON.stringify(currentVersion)}`
+          );
         }
       }
       return;
@@ -191,12 +192,12 @@ async function update<
 
     switch (value.type) {
       case 'version':
-        try {
-          await finishCurrentVersion();
-        } catch (e) {
+        if (currentVersion) {
           reader.releaseLock();
           inProgressUpdates.delete(store);
-          throw e;
+          throw new Error(
+            `Unfinished version: ${JSON.stringify(currentVersion)}`
+          );
         }
 
         currentVersion = { ...stripFields(value, ['type', 'partial']), lang };
@@ -207,6 +208,16 @@ async function update<
           dbName,
           version: currentVersion,
         });
+        break;
+
+      case 'versionend':
+        try {
+          await finishCurrentVersion();
+        } catch (e) {
+          reader.releaseLock();
+          inProgressUpdates.delete(store);
+          throw e;
+        }
         break;
 
       case 'entry':

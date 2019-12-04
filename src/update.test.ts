@@ -7,6 +7,7 @@ import {
   EntryEvent,
   ProgressEvent,
   VersionEvent,
+  VersionEndEvent,
 } from './download';
 import { KanjiEntryLine, KanjiDeletionLine } from './kanjidb';
 import { KanjiStore } from './store';
@@ -53,7 +54,8 @@ describe('updateKanji', function() {
       type: 'version',
       partial: false,
     };
-    const downloadStream = mockStream(versionEvent);
+    const versionEndEvent: VersionEndEvent = { type: 'versionend' };
+    const downloadStream = mockStream(versionEvent, versionEndEvent);
 
     await updateKanji({ downloadStream, lang: 'en', store, callback });
 
@@ -69,7 +71,8 @@ describe('updateKanji', function() {
       type: 'version',
       partial: false,
     };
-    const downloadStream = mockStream(versionEvent);
+    const versionEndEvent: VersionEndEvent = { type: 'versionend' };
+    const downloadStream = mockStream(versionEvent, versionEndEvent);
 
     await updateKanji({ downloadStream, lang: 'en', store, callback });
 
@@ -113,7 +116,12 @@ describe('updateKanji', function() {
         misc: { sc: 6 },
       },
     ];
-    const downloadStream = mockStream(versionEvent, ...entryEvents);
+    const versionEndEvent: VersionEndEvent = { type: 'versionend' };
+    const downloadStream = mockStream(
+      versionEvent,
+      ...entryEvents,
+      versionEndEvent
+    );
 
     await updateKanji({ downloadStream, lang: 'en', store, callback });
 
@@ -175,7 +183,12 @@ describe('updateKanji', function() {
       c: '㐂',
       deleted: true,
     };
-    const downloadStream = mockStream(versionEvent, deletionEvent);
+    const versionEndEvent: VersionEndEvent = { type: 'versionend' };
+    const downloadStream = mockStream(
+      versionEvent,
+      deletionEvent,
+      versionEndEvent
+    );
 
     await updateKanji({ downloadStream, lang: 'en', store, callback });
 
@@ -211,12 +224,14 @@ describe('updateKanji', function() {
       loaded: 1,
       total: 1,
     };
+    const versionEndEvent: VersionEndEvent = { type: 'versionend' };
 
     const downloadStream = mockStream(
       versionEvent,
       progressEventA,
       entryEvent,
-      progressEventB
+      progressEventB,
+      versionEndEvent
     );
 
     await updateKanji({ downloadStream, lang: 'en', store, callback });
@@ -255,6 +270,7 @@ describe('updateKanji', function() {
         refs: {},
         misc: { sc: 6 },
       },
+      { type: 'versionend' },
 
       // First patch adds one record and deletes another
       {
@@ -283,6 +299,7 @@ describe('updateKanji', function() {
         c: '㐆',
         deleted: true,
       },
+      { type: 'versionend' },
 
       // Second patch adds one more record
       {
@@ -300,6 +317,7 @@ describe('updateKanji', function() {
         refs: {},
         misc: { sc: 13 },
       },
+      { type: 'versionend' },
     ];
 
     const downloadStream = mockStream(...events);
@@ -366,6 +384,7 @@ describe('updateKanji', function() {
         refs: {},
         misc: { sc: 6 },
       },
+      { type: 'versionend' },
 
       // Next minor version simply re-adds one
       {
@@ -383,6 +402,7 @@ describe('updateKanji', function() {
         refs: {},
         misc: { sc: 6 },
       },
+      { type: 'versionend' },
     ];
 
     const downloadStream = mockStream(...events);
