@@ -180,15 +180,24 @@ async function update<
 
     if (done) {
       if (inProgressUpdates.has(store)) {
-        await finishCurrentVersion();
-        inProgressUpdates.delete(store);
+        try {
+          await finishCurrentVersion();
+        } finally {
+          inProgressUpdates.delete(store);
+        }
       }
       return;
     }
 
     switch (value.type) {
       case 'version':
-        await finishCurrentVersion();
+        try {
+          await finishCurrentVersion();
+        } catch (e) {
+          reader.releaseLock();
+          inProgressUpdates.delete(store);
+          throw e;
+        }
 
         currentVersion = { ...stripFields(value, ['type', 'partial']), lang };
         partialVersion = value.partial;
