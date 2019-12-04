@@ -66,7 +66,6 @@ export function reducer(state: UpdateState, action: UpdateAction): UpdateState {
         dbName: state.dbName,
         downloadVersion: state.downloadVersion,
         lastCheck: state.lastCheck,
-        retryIntervalMs: getRetryIntervalMs(state),
       };
 
     case 'finish':
