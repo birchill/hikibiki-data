@@ -340,7 +340,7 @@ async function getVersionInfo({
     } catch (e) {
       throw new DownloadError(
         { code: DownloadErrorCode.VersionFileNotAccessible, url },
-        `Version file not accessible (${e.message})`
+        `Version file ${url} not accessible (${e.message})`
       );
     }
 
@@ -351,7 +351,7 @@ async function getVersionInfo({
           : DownloadErrorCode.VersionFileNotAccessible;
       throw new DownloadError(
         { code, url },
-        `Version file not accessible (status: ${response.status})`
+        `Version file ${url} not accessible (status: ${response.status})`
       );
     }
 
