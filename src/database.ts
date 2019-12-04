@@ -86,9 +86,9 @@ export class KanjiDatabase {
     // Check initial state
     this.readyPromise = this.store
       // We need to explicitly open the database since in the case where
-      // IndexedDB is not available, Dexie gets confused between the exception it
-      // throws when auto-opening the database and the exception it throws when
-      // trying to create a transaction to read the DB version.
+      // IndexedDB is not available, Dexie gets confused between the exception
+      // it throws when auto-opening the database and the exception it throws
+      // when trying to create a transaction to read the DB version.
       .open()
       .then(() => this.getDbVersion('kanjidb'))
       .then(version => {
@@ -134,7 +134,13 @@ export class KanjiDatabase {
   private async getDbVersion(
     db: 'kanjidb' | 'bushudb'
   ): Promise<DatabaseVersion | null> {
-    const versionDoc = await this.store.dbVersion.get(db === 'kanjidb' ? 1 : 2);
+    // We explicitly catch errors here since we seem to have trouble with
+    // Dexie's faux-Promises and native Promises not playing together well
+    // producing cases where we get unhandledrejection errors even when
+    // the error is handled.
+    const versionDoc = await this.store.dbVersion
+      .get(db === 'kanjidb' ? 1 : 2)
+      .catch(() => undefined);
     if (!versionDoc) {
       return null;
     }
