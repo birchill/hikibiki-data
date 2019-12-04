@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.4.1](https://github.com/birchill/hikibiki-data/compare/v1.4.0...v1.4.1) (2019-12-04)
+
+
+### Bug Fixes
+
+* Add version file URL to error message ([c4172e3](https://github.com/birchill/hikibiki-data/commit/c4172e3da5d3bbee7d2dcbb0a57653e3cdbc399f))
+* Clear retry interval after a successful download ([ca296cd](https://github.com/birchill/hikibiki-data/commit/ca296cdbc5c6421a7e6b6f834d62b003942d469c))
+* Handle errors when fetching database version ([f0399b6](https://github.com/birchill/hikibiki-data/commit/f0399b6e1ce80c5b315f8ce242c948732eb66529))
+* Make sure to clear in-progress updates when finishing the current version fails ([3c9660d](https://github.com/birchill/hikibiki-data/commit/3c9660d70706282c3dcfff2290ab1d8e9c609683))
+
 ## [1.4.0](https://github.com/birchill/hikibiki-data/compare/v1.3.5...v1.4.0) (2019-12-03)
 
 
