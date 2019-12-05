@@ -23,7 +23,7 @@
   "homepage": "https://github.com/birchill/hikibiki#readme",
   "dependencies": {
     "@birchill/json-equalish": "^1.0.1",
-    "dexie": "^3.0.0-beta.1"
+    "idb": "^4.0.5"
   },
   "devDependencies": {
     "@types/chai": "^4.2.3",

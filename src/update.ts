@@ -42,11 +42,10 @@ export type UpdateCallback = (action: UpdateAction) => void;
 // c) Accumulate all the data in memory first and then use regular
 //    transactions to apply it.
 //
-// Considering that Dexie's bulkPut() is nearly an order of magnitude faster
-// than doing a series of put() operations in a transaction means (c) is very
-// attractive.
+// Considering that by not waiting for the success result of push actions bulk
+// putting can be really fast, (c) is very attractive.
 //
-// (See https://jsfiddle.net/birtles/q2tgrh85/3/ for a rough benchmark.)
+// (See https://jsfiddle.net/birtles/vx4urLkw/16/ for a rough benchmark.)
 //
 // However, we plan to use this in situations where we are downloading other
 // dictionaries in parallel. In that case we'd rather not accumulate all the
@@ -114,9 +113,11 @@ async function update<
   store: KanjiStore;
   lang: string;
   dbName: 'kanjidb' | 'bushudb';
+  // XXX Drop this?
   table: Dexie.Table<RecordType, IdType>;
   toRecord: (e: EntryLine) => RecordType;
   getId: (e: DeletionLine) => IdType;
+  // XXX Drop this
   versionId: 1 | 2;
   callback: UpdateCallback;
 }) {
@@ -146,14 +147,14 @@ async function update<
       ...currentVersion,
     };
 
-    await store.transaction('rw', table, store.dbVersion, async () => {
-      if (!partialVersion) {
-        await table.clear();
-      } else {
-        await table.bulkDelete(recordsToDelete);
-      }
-      await table.bulkPut(recordsToPut);
-      await store.dbVersion.put(versionRecord);
+    // XXX Work out where to use kanjidb vs kanji
+    // XXX Work out if we really want to keep referring to tables instead of
+    //     object stores
+    await store.bulkUpdateTable({
+      table: dbName === 'kanjidb' ? 'kanji' : 'bushu',
+      put: recordsToPut,
+      drop: partialVersion ? recordsToDelete : '*',
+      version: versionRecord,
     });
 
     recordsToPut = [];

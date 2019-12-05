@@ -1563,11 +1563,6 @@ detect-newline@3.0.0:
   resolved "https://registry.yarnpkg.com/detect-newline/-/detect-newline-3.0.0.tgz#8ae477c089e51872c264531cd6547719c0b86b2f"
   integrity sha512-JAP22dVPAqvhdRFFxK1G5GViIokyUn0UWXRNW0ztK96fsqi9cuM8w8ESbSk+T2w5OVorcMcL6m7yUg1RrX+2CA==
 
-dexie@^3.0.0-beta.1:
-  version "3.0.0-rc.1"
-  resolved "https://registry.yarnpkg.com/dexie/-/dexie-3.0.0-rc.1.tgz#3f7fe711b8d8ad27b69370696d9dbf5817f849d4"
-  integrity sha512-hQ5d/wS3nEPNEMnV4vCFoiXrSCordsVlxsFKEXA4VhPHWpMwO1CD+2eYsGYtGFs6HZK5MSmGjkVV2kQsPyBCGg==
-
 di@^0.0.1:
   version "0.0.1"
   resolved "https://registry.yarnpkg.com/di/-/di-0.0.1.tgz#806649326ceaa7caa3306d75d985ea2748ba913c"
@@ -2490,6 +2485,11 @@ iconv-lite@0.4.24, iconv-lite@^0.4.4:
   integrity sha512-v3MXnZAcvnywkTUEZomIActle7RXXeedOR31wwl7VlyoXO4Qi9arvSenNQWne1TcRwhCL1HwLI21bEqdpj8/rA==
   dependencies:
     safer-buffer ">= 2.1.2 < 3"
+
+idb@^4.0.5:
+  version "4.0.5"
+  resolved "https://registry.yarnpkg.com/idb/-/idb-4.0.5.tgz#23b930fbb0abce391e939c35b7b31a669e74041f"
+  integrity sha512-P+Fk9HT2h1DhXoE1YNK183SY+CRh2GHNh28de94sGwhe0bUA75JJeVJWt3SenE5p0BXK7maflIq29dl6UZHrFw==
 
 ieee754@^1.1.4:
   version "1.1.13"
