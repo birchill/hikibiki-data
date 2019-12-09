@@ -7,7 +7,6 @@ import {
   getIdForRadicalRecord,
   toKanjiRecord,
   toRadicalRecord,
-  DatabaseVersionRecord,
   KanjiStore,
   KanjiRecord,
   RadicalRecord,
@@ -66,10 +65,8 @@ export async function updateKanji(
   return update<KanjiEntryLine, KanjiDeletionLine, KanjiRecord, number>({
     ...options,
     dbName: 'kanjidb',
-    table: options.store.kanji,
     toRecord: toKanjiRecord,
     getId: getIdForKanjiRecord,
-    versionId: 1,
   });
 }
 
@@ -79,10 +76,8 @@ export async function updateRadicals(
   return update<RadicalEntryLine, RadicalDeletionLine, RadicalRecord, string>({
     ...options,
     dbName: 'bushudb',
-    table: options.store.bushu,
     toRecord: toRadicalRecord,
     getId: getIdForRadicalRecord,
-    versionId: 2,
   });
 }
 
@@ -96,29 +91,23 @@ export interface UpdateOptions<EntryLine, DeletionLine> {
 async function update<
   EntryLine extends Omit<object, 'type'>,
   DeletionLine,
-  RecordType,
+  RecordType extends KanjiRecord | RadicalEntryLine,
   IdType extends number | string
 >({
   downloadStream,
   store,
   lang,
   dbName,
-  table,
   toRecord,
   getId,
-  versionId,
   callback,
 }: {
   downloadStream: ReadableStream<DownloadEvent<EntryLine, DeletionLine>>;
   store: KanjiStore;
   lang: string;
   dbName: 'kanjidb' | 'bushudb';
-  // XXX Drop this?
-  table: Dexie.Table<RecordType, IdType>;
   toRecord: (e: EntryLine) => RecordType;
   getId: (e: DeletionLine) => IdType;
-  // XXX Drop this
-  versionId: 1 | 2;
   callback: UpdateCallback;
 }) {
   if (inProgressUpdates.has(store)) {
@@ -142,11 +131,6 @@ async function update<
 
     callback({ type: 'finishdownload', version: currentVersion });
 
-    const versionRecord: DatabaseVersionRecord = {
-      id: versionId,
-      ...currentVersion,
-    };
-
     // XXX Work out where to use kanjidb vs kanji
     // XXX Work out if we really want to keep referring to tables instead of
     //     object stores
@@ -154,7 +138,7 @@ async function update<
       table: dbName === 'kanjidb' ? 'kanji' : 'bushu',
       put: recordsToPut,
       drop: partialVersion ? recordsToDelete : '*',
-      version: versionRecord,
+      version: currentVersion,
     });
 
     recordsToPut = [];

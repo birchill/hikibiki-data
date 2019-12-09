@@ -1,11 +1,4 @@
-import {
-  DBSchema,
-  deleteDB,
-  IDBPDatabase,
-  IDBPTransaction,
-  openDB,
-  StoreNames,
-} from 'idb';
+import { DBSchema, deleteDB, IDBPDatabase, IDBPTransaction, openDB } from 'idb';
 
 import { RadicalEntryLine, RadicalDeletionLine } from './bushudb';
 import { DatabaseVersion } from './common';
