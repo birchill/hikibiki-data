@@ -120,9 +120,14 @@ export class KanjiStore {
       },
       blocked() {
         // TODO: At very least we should be logging this
+        console.log('Opening blocked');
       },
       blocking() {
-        // TODO: At very least we should be logging this
+        if (this.db) {
+          this.db.close();
+          this.db = undefined;
+          this.state = 'idle';
+        }
       },
     }).then(db => {
       this.db = db;
@@ -144,6 +149,8 @@ export class KanjiStore {
   }
 
   async destroy() {
+    // TODO: This should destroy the database even if it is not open.
+
     if (this.state === 'idle') {
       return;
     }
@@ -156,6 +163,9 @@ export class KanjiStore {
       await this.openPromise;
     }
 
+    this.db!.close();
+    this.db = undefined;
+
     this.state = 'deleting';
 
     // For error / open
@@ -163,10 +173,10 @@ export class KanjiStore {
     this.deletePromise = deleteDB('KanjiStore', {
       blocked() {
         // TODO: Log this
+        console.log('Deletion blocked');
       },
     }).then(() => {
-      this.db = undefined;
-      this.openPromise = undefined;
+      this.state = 'idle';
     });
 
     await this.deletePromise;
@@ -221,6 +231,8 @@ export class KanjiStore {
     drop: Array<KanjiSchema[Name]['key']> | '*';
     version: DatabaseVersion;
   }) {
+    await this.open();
+
     const tx = this.db!.transaction([table, 'dbVersion'], 'readwrite');
     const targetTable = tx.objectStore(table);
 
