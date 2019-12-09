@@ -18,7 +18,6 @@ import {
   updateRadicals,
   UpdateOptions,
 } from './update';
-import { stripFields } from './utils';
 
 const KANJIDB_MAJOR_VERSION = 1;
 const BUSHUDB_MAJOR_VERSION = 1;
@@ -84,21 +83,14 @@ export class KanjiDatabase {
     this.store = new KanjiStore();
 
     // Check initial state
-    this.readyPromise = this.store
-      // We need to explicitly open the database since in the case where
-      // IndexedDB is not available, Dexie gets confused between the exception
-      // it throws when auto-opening the database and the exception it throws
-      // when trying to create a transaction to read the DB version.
-      .open()
-      .then(() => this.getDbVersion('kanjidb'))
-      .then(version => {
-        this.updateDbVersion('kanjidb', version);
-        return this.getDbVersion('bushudb');
-      })
-      .then(version => {
-        this.updateDbVersion('bushudb', version);
-      })
-      .catch(e => {
+    this.readyPromise = (async () => {
+      try {
+        const kanjiDbVersion = await this.store.getDbVersion('kanji');
+        this.updateDbVersion('kanjidb', kanjiDbVersion);
+
+        const bushuDbVersion = await this.store.getDbVersion('bushu');
+        this.updateDbVersion('bushudb', bushuDbVersion);
+      } catch (e) {
         console.error('IndexedDB not available');
         console.error(e);
 
@@ -106,7 +98,8 @@ export class KanjiDatabase {
         this.state = DatabaseState.Unavailable;
 
         this.notifyChanged();
-      });
+      }
+    })();
 
     // Let observers know once the initial state has been resolved.
     this.readyPromise.then(() => this.notifyChanged());
@@ -128,24 +121,6 @@ export class KanjiDatabase {
     if (this.onChange) {
       this.onChange('updatestate');
     }
-  }
-
-  // This should only be called after opening the database.
-  private async getDbVersion(
-    db: 'kanjidb' | 'bushudb'
-  ): Promise<DatabaseVersion | null> {
-    // We explicitly catch errors here since we seem to have trouble with
-    // Dexie's faux-Promises and native Promises not playing together well
-    // producing cases where we get unhandledrejection errors even when
-    // the error is handled.
-    const versionDoc = await this.store.dbVersion
-      .get(db === 'kanjidb' ? 1 : 2)
-      .catch(() => undefined);
-    if (!versionDoc) {
-      return null;
-    }
-
-    return stripFields(versionDoc, ['id']);
   }
 
   private updateDbVersion(
@@ -445,11 +420,7 @@ export class KanjiDatabase {
     const lang = (await this.getDbLang())!;
 
     const ids = kanji.map(kanji => kanji.codePointAt(0)!);
-    const records = await this.store.kanji.bulkGet(ids);
-
-    const kanjiRecords: Array<KanjiRecord> = records.filter(
-      (record: KanjiRecord | undefined) => typeof record !== 'undefined'
-    );
+    const kanjiRecords = await this.store.getKanji(ids);
 
     const radicalResults = await this.getRadicalForKanji(kanjiRecords, lang);
     if (kanjiRecords.length !== radicalResults.length) {
@@ -556,14 +527,9 @@ export class KanjiDatabase {
     // ... And look them up
     let kanjiMap: Map<string, KanjiRecord> = new Map();
     if (kanjiToLookup.size) {
-      const kanjiRecords = await this.store.kanji
-        .where('c')
-        .anyOf([...kanjiToLookup]);
+      const kanjiRecords = await this.store.getKanji([...kanjiToLookup]);
       kanjiMap = new Map(
-        (await kanjiRecords.toArray()).map(record => [
-          String.fromCodePoint(record.c),
-          record,
-        ])
+        kanjiRecords.map(record => [String.fromCodePoint(record.c), record])
       );
     }
 
@@ -665,8 +631,8 @@ export class KanjiDatabase {
     }
 
     if (!this.radicalsPromise) {
-      this.radicalsPromise = this.store.bushu
-        .toArray()
+      this.radicalsPromise = this.store
+        .getAllRadicals()
         .then(records => new Map(records.map(record => [record.id, record])));
     }
 

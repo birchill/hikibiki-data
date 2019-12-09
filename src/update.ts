@@ -7,7 +7,6 @@ import {
   getIdForRadicalRecord,
   toKanjiRecord,
   toRadicalRecord,
-  DatabaseVersionRecord,
   KanjiStore,
   KanjiRecord,
   RadicalRecord,
@@ -42,11 +41,10 @@ export type UpdateCallback = (action: UpdateAction) => void;
 // c) Accumulate all the data in memory first and then use regular
 //    transactions to apply it.
 //
-// Considering that Dexie's bulkPut() is nearly an order of magnitude faster
-// than doing a series of put() operations in a transaction means (c) is very
-// attractive.
+// Considering that by not waiting for the success result of push actions bulk
+// putting can be really fast, (c) is very attractive.
 //
-// (See https://jsfiddle.net/birtles/q2tgrh85/3/ for a rough benchmark.)
+// (See https://jsfiddle.net/birtles/vx4urLkw/16/ for a rough benchmark.)
 //
 // However, we plan to use this in situations where we are downloading other
 // dictionaries in parallel. In that case we'd rather not accumulate all the
@@ -67,10 +65,8 @@ export async function updateKanji(
   return update<KanjiEntryLine, KanjiDeletionLine, KanjiRecord, number>({
     ...options,
     dbName: 'kanjidb',
-    table: options.store.kanji,
     toRecord: toKanjiRecord,
     getId: getIdForKanjiRecord,
-    versionId: 1,
   });
 }
 
@@ -80,10 +76,8 @@ export async function updateRadicals(
   return update<RadicalEntryLine, RadicalDeletionLine, RadicalRecord, string>({
     ...options,
     dbName: 'bushudb',
-    table: options.store.bushu,
     toRecord: toRadicalRecord,
     getId: getIdForRadicalRecord,
-    versionId: 2,
   });
 }
 
@@ -97,27 +91,23 @@ export interface UpdateOptions<EntryLine, DeletionLine> {
 async function update<
   EntryLine extends Omit<object, 'type'>,
   DeletionLine,
-  RecordType,
+  RecordType extends KanjiRecord | RadicalEntryLine,
   IdType extends number | string
 >({
   downloadStream,
   store,
   lang,
   dbName,
-  table,
   toRecord,
   getId,
-  versionId,
   callback,
 }: {
   downloadStream: ReadableStream<DownloadEvent<EntryLine, DeletionLine>>;
   store: KanjiStore;
   lang: string;
   dbName: 'kanjidb' | 'bushudb';
-  table: Dexie.Table<RecordType, IdType>;
   toRecord: (e: EntryLine) => RecordType;
   getId: (e: DeletionLine) => IdType;
-  versionId: 1 | 2;
   callback: UpdateCallback;
 }) {
   if (inProgressUpdates.has(store)) {
@@ -141,19 +131,11 @@ async function update<
 
     callback({ type: 'finishdownload', version: currentVersion });
 
-    const versionRecord: DatabaseVersionRecord = {
-      id: versionId,
-      ...currentVersion,
-    };
-
-    await store.transaction('rw', table, store.dbVersion, async () => {
-      if (!partialVersion) {
-        await table.clear();
-      } else {
-        await table.bulkDelete(recordsToDelete);
-      }
-      await table.bulkPut(recordsToPut);
-      await store.dbVersion.put(versionRecord);
+    await store.bulkUpdateTable({
+      table: dbName === 'kanjidb' ? 'kanji' : 'bushu',
+      put: recordsToPut,
+      drop: partialVersion ? recordsToDelete : '*',
+      version: currentVersion,
     });
 
     recordsToPut = [];

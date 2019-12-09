@@ -45,7 +45,7 @@ describe('updateKanji', function() {
   });
 
   afterEach(() => {
-    return store.delete();
+    return store.destroy();
   });
 
   it('should produce startdownload/finishdownload actions after reading the version', async () => {
@@ -76,11 +76,8 @@ describe('updateKanji', function() {
 
     await updateKanji({ downloadStream, lang: 'en', store, callback });
 
-    const dbVersion = await store.dbVersion.get(1);
-    assert.deepEqual(dbVersion, {
-      id: 1,
-      ...VERSION_1_0_0,
-    });
+    const dbVersion = await store.getDbVersion('kanji');
+    assert.deepEqual(dbVersion, VERSION_1_0_0);
   });
 
   it('should add entries to the kanji table', async () => {
@@ -125,8 +122,8 @@ describe('updateKanji', function() {
 
     await updateKanji({ downloadStream, lang: 'en', store, callback });
 
-    const firstChar = await store.kanji.get(13314);
-    assert.deepEqual(firstChar, {
+    const chars = await store.getKanji([13314, 13318]);
+    assert.deepEqual(chars[0], {
       c: 13314,
       r: {},
       m: [],
@@ -135,8 +132,7 @@ describe('updateKanji', function() {
       misc: { sc: 6 },
     });
 
-    const secondChar = await store.kanji.get(13318);
-    assert.deepEqual(secondChar, {
+    assert.deepEqual(chars[1], {
       c: 13318,
       r: {},
       m: [
@@ -154,22 +150,29 @@ describe('updateKanji', function() {
   });
 
   it('should delete entries from the kanji table', async () => {
-    await store.kanji.put({
-      c: 13314,
-      r: {},
-      m: [],
-      rad: { x: 1 },
-      refs: { nelson_c: 265, halpern_njecd: 2028 },
-      misc: { sc: 6 },
-    });
-    // Put an extra record just to ensure we don't delete EVERYTHING
-    await store.kanji.put({
-      c: 13318,
-      r: {},
-      m: ['to follow'],
-      rad: { x: 4 },
-      refs: {},
-      misc: { sc: 6 },
+    await store.bulkUpdateTable({
+      table: 'kanji',
+      put: [
+        {
+          c: 13314,
+          r: {},
+          m: [],
+          rad: { x: 1 },
+          refs: { nelson_c: 265, halpern_njecd: 2028 },
+          misc: { sc: 6 },
+        },
+        // Put an extra record just to ensure we don't delete EVERYTHING
+        {
+          c: 13318,
+          r: {},
+          m: ['to follow'],
+          rad: { x: 4 },
+          refs: {},
+          misc: { sc: 6 },
+        },
+      ],
+      drop: [],
+      version: VERSION_1_0_0,
     });
 
     const versionEvent: VersionEvent = {
@@ -192,11 +195,9 @@ describe('updateKanji', function() {
 
     await updateKanji({ downloadStream, lang: 'en', store, callback });
 
-    const deletedChar = await store.kanji.get(13314);
-    assert.isUndefined(deletedChar);
-
-    const remainingChar = await store.kanji.get(13318);
-    assert.isDefined(remainingChar);
+    const result = await store.getKanji([13314, 13318]);
+    assert.lengthOf(result, 1);
+    assert.equal(result[0].c, 13318);
   });
 
   it('should echo progress events', async () => {
@@ -324,7 +325,7 @@ describe('updateKanji', function() {
 
     await updateKanji({ downloadStream, lang: 'en', store, callback });
 
-    assert.deepEqual(await store.kanji.toArray(), [
+    assert.deepEqual(await store.getKanji([13314, 13318, 13356, 13358]), [
       {
         c: 13314,
         r: {},
@@ -409,7 +410,7 @@ describe('updateKanji', function() {
 
     await updateKanji({ downloadStream, lang: 'en', store, callback });
 
-    assert.deepEqual(await store.kanji.toArray(), [
+    assert.deepEqual(await store.getKanji([13314, 13318]), [
       {
         c: 13318,
         r: {},
