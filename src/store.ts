@@ -81,9 +81,7 @@ export class KanjiStore {
     }
 
     if (this.state === 'deleting') {
-      throw new Error(
-        'Trying to open a database while it is still being deleted'
-      );
+      await this.deletePromise!;
     }
 
     this.state = 'opening';
@@ -119,7 +117,6 @@ export class KanjiStore {
         });
       },
       blocked() {
-        // TODO: At very least we should be logging this
         console.log('Opening blocked');
       },
       blocking() {
@@ -148,9 +145,7 @@ export class KanjiStore {
     return this.db!;
   }
 
-  async destroy() {
-    // TODO: This should destroy the database even if it is not open.
-
+  async close() {
     if (this.state === 'idle') {
       return;
     }
@@ -165,18 +160,18 @@ export class KanjiStore {
 
     this.db!.close();
     this.db = undefined;
+    this.state = 'idle';
+  }
+
+  async destroy() {
+    await this.close();
 
     this.state = 'deleting';
 
-    // For error / open
-
     this.deletePromise = deleteDB('KanjiStore', {
       blocked() {
-        // TODO: Log this
         console.log('Deletion blocked');
       },
-    }).then(() => {
-      this.state = 'idle';
     });
 
     await this.deletePromise;
