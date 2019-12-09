@@ -124,11 +124,14 @@ export class KanjiStore {
       blocking() {
         // TODO: At very least we should be logging this
       },
+    }).then(db => {
+      this.db = db;
+      this.state = 'open';
+      return db;
     });
 
     try {
-      this.db = await this.openPromise;
-      this.state = 'open';
+      await this.openPromise;
     } catch (e) {
       this.state = 'error';
       throw e;
@@ -137,7 +140,7 @@ export class KanjiStore {
       this.openPromise = undefined;
     }
 
-    return this.db;
+    return this.db!;
   }
 
   async destroy() {
@@ -161,12 +164,13 @@ export class KanjiStore {
       blocked() {
         // TODO: Log this
       },
+    }).then(() => {
+      this.db = undefined;
+      this.openPromise = undefined;
     });
 
     await this.deletePromise;
 
-    this.db = undefined;
-    this.openPromise = undefined;
     this.deletePromise = undefined;
   }
 
