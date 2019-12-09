@@ -86,7 +86,7 @@ export class KanjiStore {
 
     this.state = 'opening';
 
-    this.openPromise = openDB<KanjiSchema>('KanjiStore', 1, {
+    this.openPromise = openDB<KanjiSchema>('KanjiStore', 10, {
       upgrade(
         db: IDBPDatabase<KanjiSchema>,
         oldVersion: number,
