@@ -131,9 +131,6 @@ async function update<
 
     callback({ type: 'finishdownload', version: currentVersion });
 
-    // XXX Work out where to use kanjidb vs kanji
-    // XXX Work out if we really want to keep referring to tables instead of
-    //     object stores
     await store.bulkUpdateTable({
       table: dbName === 'kanjidb' ? 'kanji' : 'bushu',
       put: recordsToPut,
