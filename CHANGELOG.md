@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.5.0](https://github.com/birchill/hikibiki-data/compare/v1.4.1...v1.5.0) (2019-12-09)
+
+
+### Features
+
+* Replace dexie with idb ([3beaa22](https://github.com/birchill/hikibiki-data/commit/3beaa22c0728f7f204fe6ac230e06b7781511c63))
+
 ### [1.4.1](https://github.com/birchill/hikibiki-data/compare/v1.4.0...v1.4.1) (2019-12-04)
 
 
