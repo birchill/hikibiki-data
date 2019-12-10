@@ -1,4 +1,11 @@
-import { DBSchema, deleteDB, IDBPDatabase, IDBPTransaction, openDB } from 'idb';
+import {
+  DBSchema,
+  deleteDB,
+  IDBPDatabase,
+  IDBPTransaction,
+  openDB,
+  unwrap,
+} from 'idb';
 
 import { RadicalEntryLine, RadicalDeletionLine } from './bushudb';
 import { DatabaseVersion } from './common';
@@ -226,37 +233,84 @@ export class KanjiStore {
     drop: Array<KanjiSchema[Name]['key']> | '*';
     version: DatabaseVersion;
   }) {
-    await this.open();
+    try {
+      await this.open();
+    } catch (e) {
+      if (e === null) {
+        console.log('Opening database threw null');
+      }
+      throw e;
+    }
 
     const tx = this.db!.transaction([table, 'dbVersion'], 'readwrite');
     const targetTable = tx.objectStore(table);
 
-    if (drop === '*') {
-      await targetTable.clear();
-    } else {
-      for (const id of drop) {
-        // We could possibly skip waiting on the result of this like we do
-        // below, but we don't normally delete a lot of records so it seems
-        // safest to wait for now.
-        await targetTable.delete(id);
+    try {
+      if (drop === '*') {
+        await targetTable.clear();
+      } else {
+        for (const id of drop) {
+          // We could possibly skip waiting on the result of this like we do
+          // below, but we don't normally delete a lot of records so it seems
+          // safest to wait for now.
+          await targetTable.delete(id);
+        }
       }
+    } catch (e) {
+      if (e === null) {
+        console.log('Deleting threw null');
+        console.log(JSON.stringify(drop));
+      }
+      throw e;
     }
 
-    for (const record of put) {
-      // The important thing here is NOT to wait on the result of put.
-      // This speeds up the operation by an order of magnitude or two and
-      // is basically Dexie's secret sauce.
-      //
-      // See: https://jsfiddle.net/birtles/vx4urLkw/17/
-      targetTable.put(record);
+    try {
+      for (const record of put) {
+        // The important thing here is NOT to wait on the result of put.
+        // This speeds up the operation by an order of magnitude or two and
+        // is basically Dexie's secret sauce.
+        //
+        // See: https://jsfiddle.net/birtles/vx4urLkw/17/
+        targetTable.put(record);
+      }
+    } catch (e) {
+      if (e === null) {
+        console.log('Putting threw null');
+        console.log(JSON.stringify(put));
+      }
+      throw e;
     }
 
-    const dbVersionTable = tx.objectStore('dbVersion');
-    dbVersionTable.put({
-      id: table === 'kanji' ? 1 : 2,
-      ...version,
-    });
+    try {
+      const dbVersionTable = tx.objectStore('dbVersion');
+      await dbVersionTable.put({
+        id: table === 'kanji' ? 1 : 2,
+        ...version,
+      });
+    } catch (e) {
+      if (e === null) {
+        console.log('Putting version threw null');
+        console.log(JSON.stringify(version));
+      }
+      throw e;
+    }
 
-    await tx.done;
+    try {
+      const unwrappedTx = unwrap(tx);
+      if (unwrappedTx) {
+        unwrappedTx.addEventListener('abort', evt => {
+          console.log('Aborted transaction');
+          console.log(JSON.stringify(evt));
+        });
+      } else {
+        console.log('Failed to unwrap transaction');
+      }
+      await tx.done;
+    } catch (e) {
+      if (e === null) {
+        console.log('Waiting on transaction threw null');
+      }
+      throw e;
+    }
   }
 }
