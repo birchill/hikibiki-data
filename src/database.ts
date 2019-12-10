@@ -305,7 +305,7 @@ export class KanjiDatabase {
 
       reducer({ type: 'finish', checkDate });
     } catch (e) {
-      if (e.message === 'AbortError') {
+      if (e?.message === 'AbortError') {
         // We should only update the last-check date if we actually made some
         // sort of update.
         reducer({

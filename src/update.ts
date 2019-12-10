@@ -131,12 +131,19 @@ async function update<
 
     callback({ type: 'finishdownload', version: currentVersion });
 
-    await store.bulkUpdateTable({
-      table: dbName === 'kanjidb' ? 'kanji' : 'bushu',
-      put: recordsToPut,
-      drop: partialVersion ? recordsToDelete : '*',
-      version: currentVersion,
-    });
+    try {
+      await store.bulkUpdateTable({
+        table: dbName === 'kanjidb' ? 'kanji' : 'bushu',
+        put: recordsToPut,
+        drop: partialVersion ? recordsToDelete : '*',
+        version: currentVersion,
+      });
+    } catch (e) {
+      console.log('Got error while updating tables');
+      console.log(e);
+      console.log(JSON.stringify(currentVersion));
+      throw e;
+    }
 
     recordsToPut = [];
     recordsToDelete = [];
