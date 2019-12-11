@@ -203,7 +203,6 @@ export class KanjiStore {
           result.push(record);
         }
       }
-      await tx.done;
     }
 
     return result;
