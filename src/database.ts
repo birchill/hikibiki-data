@@ -384,6 +384,7 @@ export class KanjiDatabase {
     // to clobber the database (and in fact doing so could confuse clients who
     // are simply trying to set the initially preferred language).
     if (this.state !== DatabaseState.Empty || hadUpdate) {
+      console.log(`Clobbering database to change lang to ${lang}`);
       await this.destroy();
     }
 
