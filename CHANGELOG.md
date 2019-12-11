@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.5.4](https://github.com/birchill/hikibiki-data/compare/v1.5.3...v1.5.4) (2019-12-11)
+
+
+### Bug Fixes
+
+* Don't wait for transaction end for write transactions ([86e649c](https://github.com/birchill/hikibiki-data/commit/86e649c78627f83a9d6504c342b96f633d377209))
+* Tighten up bulk add method error handling ([5c14c36](https://github.com/birchill/hikibiki-data/commit/5c14c3662c40cd9b702f4378230a7f46388ab945))
+
 ### [1.5.3](https://github.com/birchill/hikibiki-data/compare/v1.5.2...v1.5.3) (2019-12-10)
 
 
