@@ -1,11 +1,4 @@
-import {
-  DBSchema,
-  deleteDB,
-  IDBPDatabase,
-  IDBPTransaction,
-  openDB,
-  unwrap,
-} from 'idb';
+import { DBSchema, deleteDB, IDBPDatabase, IDBPTransaction, openDB } from 'idb';
 
 import { RadicalEntryLine, RadicalDeletionLine } from './bushudb';
 import { DatabaseVersion } from './common';
@@ -257,27 +250,31 @@ export class KanjiStore {
         }
       }
     } catch (e) {
-      if (e === null) {
-        console.log('Deleting threw null');
-        console.log(JSON.stringify(drop));
-      }
+      console.log('Error during delete portion of bulk update');
+      console.log(JSON.stringify(drop));
+      // Ignore the abort from the transaction
+      tx.done.catch(() => {});
+      tx.abort();
       throw e;
     }
 
     try {
+      const putPromises: Array<Promise<KanjiSchema[Name]['key']>> = [];
       for (const record of put) {
         // The important thing here is NOT to wait on the result of put.
         // This speeds up the operation by an order of magnitude or two and
-        // is basically Dexie's secret sauce.
+        // is Dexie's secret sauce.
         //
         // See: https://jsfiddle.net/birtles/vx4urLkw/17/
-        targetTable.put(record);
+        putPromises.push(targetTable.put(record));
       }
+      await Promise.all(putPromises);
     } catch (e) {
-      if (e === null) {
-        console.log('Putting threw null');
-        console.log(JSON.stringify(put));
-      }
+      console.log('Error during put portion of bulk update');
+      console.log(JSON.stringify(put));
+      // Ignore the abort from the transaction
+      tx.done.catch(() => {});
+      tx.abort();
       throw e;
     }
 
@@ -288,29 +285,14 @@ export class KanjiStore {
         ...version,
       });
     } catch (e) {
-      if (e === null) {
-        console.log('Putting version threw null');
-        console.log(JSON.stringify(version));
-      }
+      console.log('Error during version update portion of bulk update');
+      console.log(JSON.stringify(version));
+      // Ignore the abort from the transaction
+      tx.done.catch(() => {});
+      tx.abort();
       throw e;
     }
 
-    try {
-      const unwrappedTx = unwrap(tx);
-      if (unwrappedTx) {
-        unwrappedTx.addEventListener('abort', evt => {
-          console.log('Aborted transaction');
-          console.log(JSON.stringify(evt));
-        });
-      } else {
-        console.log('Failed to unwrap transaction');
-      }
-      await tx.done;
-    } catch (e) {
-      if (e === null) {
-        console.log('Waiting on transaction threw null');
-      }
-      throw e;
-    }
+    await tx.done;
   }
 }
