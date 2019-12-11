@@ -145,6 +145,10 @@ async function update<
       throw e;
     }
 
+    // TODO: Remove this
+    console.log('Successfully updated tables');
+    console.log(JSON.stringify(currentVersion));
+
     recordsToPut = [];
     recordsToDelete = [];
 
