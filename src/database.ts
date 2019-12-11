@@ -335,6 +335,9 @@ export class KanjiDatabase {
       await this.getRadicals();
       await this.store.destroy();
     }
+    if (this.inProgressUpdate) {
+      console.log('Destroying database while there is an in-progress update');
+    }
     this.store = new KanjiStore();
     this.state = DatabaseState.Empty;
     this.updateState = { state: 'idle', lastCheck: null };
