@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.5.5](https://github.com/birchill/hikibiki-data/compare/v1.5.4...v1.5.5) (2019-12-11)
+
+
+### Bug Fixes
+
+* Add some more logging ([d714fa2](https://github.com/birchill/hikibiki-data/commit/d714fa2df9b153ff97877c751d427a1f75c72199))
+
 ### [1.5.4](https://github.com/birchill/hikibiki-data/compare/v1.5.3...v1.5.4) (2019-12-11)
 
 
