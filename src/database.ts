@@ -78,9 +78,11 @@ export class KanjiDatabase {
   private radicalsPromise: Promise<Map<string, RadicalRecord>> | undefined;
   private charToRadicalMap: Map<string, string> = new Map();
   private retrySetTimeoutHandle: number | null = null;
+  private verbose: boolean = false;
 
-  constructor() {
+  constructor({ verbose = false }: { verbose?: boolean } = {}) {
     this.store = new KanjiStore();
+    this.verbose = verbose;
 
     // Check initial state
     this.readyPromise = (async () => {
@@ -156,8 +158,9 @@ export class KanjiDatabase {
     }
 
     if (this.inProgressUpdate) {
-      // TODO(logging): Remove.
-      console.log('Detected overlapping updates. Re-using existing update.');
+      if (this.verbose) {
+        console.log('Detected overlapping updates. Re-using existing update.');
+      }
       return this.inProgressUpdate;
     }
 
@@ -226,8 +229,9 @@ export class KanjiDatabase {
               return;
             }
 
-            // TODO(logging): Remove
-            console.log('Running automatic re-try of update');
+            if (this.verbose) {
+              console.log('Running automatic re-try of update...');
+            }
             this.update().catch(() => {
               // Ignore. The client will be notified of errors via the onChange
               // callback.
@@ -339,8 +343,7 @@ export class KanjiDatabase {
       await this.getRadicals();
       await this.store.destroy();
     }
-    if (this.inProgressUpdate) {
-      // TODO(logging): Remove.
+    if (this.verbose && this.inProgressUpdate) {
       console.log('Destroying database while there is an in-progress update');
     }
     this.store = new KanjiStore();
@@ -392,8 +395,9 @@ export class KanjiDatabase {
     // to clobber the database (and in fact doing so could confuse clients who
     // are simply trying to set the initially preferred language).
     if (this.state !== DatabaseState.Empty || hadUpdate) {
-      // TODO(logging): Remove.
-      console.log(`Clobbering database to change lang to ${lang}`);
+      if (this.verbose) {
+        console.log(`Clobbering database to change lang to ${lang}`);
+      }
       await this.destroy();
     }
 
