@@ -228,9 +228,6 @@ export class KanjiStore {
     try {
       await this.open();
     } catch (e) {
-      if (e === null) {
-        console.log('Opening database threw null');
-      }
       throw e;
     }
 

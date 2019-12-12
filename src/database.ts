@@ -285,6 +285,14 @@ export class KanjiDatabase {
     try {
       reducer({ type: 'start', dbName });
 
+      if (this.verbose) {
+        console.log(
+          `Requesting download stream for ${dbName} db with current version ${JSON.stringify(
+            this.dbVersions[dbName] || undefined
+          )}`
+        );
+      }
+
       const downloadStream = await download({
         dbName,
         lang,

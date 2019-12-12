@@ -86,6 +86,7 @@ export interface UpdateOptions<EntryLine, DeletionLine> {
   lang: string;
   store: KanjiStore;
   callback: UpdateCallback;
+  verbose?: boolean;
 }
 
 async function update<
@@ -101,6 +102,7 @@ async function update<
   toRecord,
   getId,
   callback,
+  verbose = false,
 }: {
   downloadStream: ReadableStream<DownloadEvent<EntryLine, DeletionLine>>;
   store: KanjiStore;
@@ -109,6 +111,7 @@ async function update<
   toRecord: (e: EntryLine) => RecordType;
   getId: (e: DeletionLine) => IdType;
   callback: UpdateCallback;
+  verbose?: boolean;
 }) {
   if (inProgressUpdates.has(store)) {
     throw new Error('Overlapping calls to update');
@@ -139,15 +142,18 @@ async function update<
         version: currentVersion,
       });
     } catch (e) {
-      console.log('Got error while updating tables');
-      console.log(e);
-      console.log(JSON.stringify(currentVersion));
+      if (verbose) {
+        console.log('Got error while updating tables');
+        console.log(e);
+        console.log(JSON.stringify(currentVersion));
+      }
       throw e;
     }
 
-    // TODO: Remove this
-    console.log('Successfully updated tables');
-    console.log(JSON.stringify(currentVersion));
+    if (verbose) {
+      console.log('Successfully updated tables');
+      console.log(JSON.stringify(currentVersion));
+    }
 
     recordsToPut = [];
     recordsToDelete = [];
