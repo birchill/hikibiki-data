@@ -226,6 +226,8 @@ export class KanjiDatabase {
               return;
             }
 
+            // TODO(logging): Remove
+            console.log('Running automatic re-try of update');
             this.update().catch(() => {
               // Ignore. The client will be notified of errors via the onChange
               // callback.
