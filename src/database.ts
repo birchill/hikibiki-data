@@ -150,12 +150,14 @@ export class KanjiDatabase {
     this.notifyChanged();
   }
 
-  async update() {
+  update(): Promise<void> {
     if (this.state === DatabaseState.Unavailable) {
       throw new Error('Trying to update unavailable database');
     }
 
     if (this.inProgressUpdate) {
+      // TODO(logging): Remove.
+      console.log('Detected overlapping updates. Re-using existing update.');
       return this.inProgressUpdate;
     }
 
@@ -167,7 +169,7 @@ export class KanjiDatabase {
     // If we are offline, wait until we're online again.
     if (!navigator.onLine) {
       if (this.updateState.state === 'offline') {
-        return;
+        return Promise.resolve();
       }
       addEventListener(
         'online',
@@ -186,56 +188,56 @@ export class KanjiDatabase {
       );
       this.updateState = updateReducer(this.updateState, { type: 'offline' });
       this.notifyChanged();
-      return;
+      return Promise.resolve();
     }
 
     this.inProgressUpdate = (async () => {
-      const lang = this.preferredLang || (await this.getDbLang()) || 'en';
+      try {
+        const lang = this.preferredLang || (await this.getDbLang()) || 'en';
 
-      await this.doUpdate({
-        dbName: 'kanjidb',
-        lang,
-        forceFetch: true,
-        isEntryLine: isKanjiEntryLine,
-        isDeletionLine: isKanjiDeletionLine,
-        update: updateKanji,
-      });
+        await this.doUpdate({
+          dbName: 'kanjidb',
+          lang,
+          forceFetch: true,
+          isEntryLine: isKanjiEntryLine,
+          isDeletionLine: isKanjiDeletionLine,
+          update: updateKanji,
+        });
 
-      await this.doUpdate({
-        dbName: 'bushudb',
-        lang,
-        isEntryLine: isRadicalEntryLine,
-        isDeletionLine: isRadicalDeletionLine,
-        update: updateRadicals,
-      });
+        await this.doUpdate({
+          dbName: 'bushudb',
+          lang,
+          isEntryLine: isRadicalEntryLine,
+          isDeletionLine: isRadicalDeletionLine,
+          update: updateRadicals,
+        });
+      } finally {
+        this.inProgressUpdate = undefined;
+
+        // If we encountered some sort of retry-able error, schedule a retry.
+        if (
+          this.updateState.state === 'error' &&
+          this.updateState.retryIntervalMs
+        ) {
+          this.retrySetTimeoutHandle = (setTimeout(() => {
+            // Check we're still in the error state. Who knows maybe someone
+            // updated us and forgot to clear the setTimeout handle.
+            if (this.updateState.state !== 'error') {
+              return;
+            }
+
+            this.update().catch(() => {
+              // Ignore. The client will be notified of errors via the onChange
+              // callback.
+            });
+          }, this.updateState.retryIntervalMs) as unknown) as number;
+        }
+
+        this.notifyChanged();
+      }
     })();
 
-    try {
-      await this.inProgressUpdate;
-    } finally {
-      this.inProgressUpdate = undefined;
-
-      // If we encountered some sort of retry-able error, schedule a retry.
-      if (
-        this.updateState.state === 'error' &&
-        this.updateState.retryIntervalMs
-      ) {
-        this.retrySetTimeoutHandle = (setTimeout(() => {
-          // Check we're still in the error state. Who knows maybe someone
-          // updated us and forgot to clear the setTimeout handle.
-          if (this.updateState.state !== 'error') {
-            return;
-          }
-
-          this.update().catch(() => {
-            // Ignore. The client will be notified of errors via the onChange
-            // callback.
-          });
-        }, this.updateState.retryIntervalMs) as unknown) as number;
-      }
-
-      this.notifyChanged();
-    }
+    return this.inProgressUpdate;
   }
 
   private async doUpdate<EntryLine, DeletionLine>({
@@ -336,6 +338,7 @@ export class KanjiDatabase {
       await this.store.destroy();
     }
     if (this.inProgressUpdate) {
+      // TODO(logging): Remove.
       console.log('Destroying database while there is an in-progress update');
     }
     this.store = new KanjiStore();
@@ -387,6 +390,7 @@ export class KanjiDatabase {
     // to clobber the database (and in fact doing so could confuse clients who
     // are simply trying to set the initially preferred language).
     if (this.state !== DatabaseState.Empty || hadUpdate) {
+      // TODO(logging): Remove.
       console.log(`Clobbering database to change lang to ${lang}`);
       await this.destroy();
     }
