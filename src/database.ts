@@ -84,7 +84,7 @@ export class KanjiDatabase {
     this.store = new KanjiStore();
     this.verbose = verbose;
 
-    // Check initial state
+    // Fetch initial state
     this.readyPromise = (async () => {
       try {
         const kanjiDbVersion = await this.store.getDbVersion('kanji');
@@ -93,18 +93,17 @@ export class KanjiDatabase {
         const bushuDbVersion = await this.store.getDbVersion('bushu');
         this.updateDbVersion('bushudb', bushuDbVersion);
       } catch (e) {
-        console.error('IndexedDB not available');
+        console.error('Failed to open IndexedDB');
         console.error(e);
 
         this.dbVersions = { kanjidb: null, bushudb: null };
         this.state = DatabaseState.Unavailable;
 
+        throw e;
+      } finally {
         this.notifyChanged();
       }
     })();
-
-    // Let observers know once the initial state has been resolved.
-    this.readyPromise.then(() => this.notifyChanged());
 
     // Pre-fetch the radical information (but don't block on this)
     this.getRadicals().catch(() => {
