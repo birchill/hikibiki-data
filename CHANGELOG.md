@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.6.1](https://github.com/birchill/hikibiki-data/compare/v1.6.0...v1.6.1) (2019-12-12)
+
+
+### Bug Fixes
+
+* Pass verbose flag to update ([903fccc](https://github.com/birchill/hikibiki-data/commit/903fccc9c986227045a1f70133e0885a6bc69060))
+
 ## [1.6.0](https://github.com/birchill/hikibiki-data/compare/v1.5.6...v1.6.0) (2019-12-12)
 
 
