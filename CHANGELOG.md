@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.6.0](https://github.com/birchill/hikibiki-data/compare/v1.5.6...v1.6.0) (2019-12-12)
+
+
+### Features
+
+* Hide logging behind a verbose option ([69cea4a](https://github.com/birchill/hikibiki-data/commit/69cea4a03e39488b39e722f340b2f4daffde2888))
+
 ### [1.5.6](https://github.com/birchill/hikibiki-data/compare/v1.5.5...v1.5.6) (2019-12-12)
 
 
