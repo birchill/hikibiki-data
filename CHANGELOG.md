@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.5.6](https://github.com/birchill/hikibiki-data/compare/v1.5.5...v1.5.6) (2019-12-12)
+
+
+### Bug Fixes
+
+* Add logging for re-used updates and tighten up update promises ([24cee2a](https://github.com/birchill/hikibiki-data/commit/24cee2a952fcb1252837a50166a282665505f9ed))
+* Moar logging ([4b22043](https://github.com/birchill/hikibiki-data/commit/4b22043ab62a610f3b85c047169a6f1c685621df))
+
 ### [1.5.5](https://github.com/birchill/hikibiki-data/compare/v1.5.4...v1.5.5) (2019-12-11)
 
 
