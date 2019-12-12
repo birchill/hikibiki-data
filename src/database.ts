@@ -313,6 +313,7 @@ export class KanjiDatabase {
         lang,
         store: this.store,
         callback: reducer,
+        verbose: this.verbose,
       });
 
       if (!this.inProgressUpdate) {
