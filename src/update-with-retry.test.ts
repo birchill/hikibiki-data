@@ -1,4 +1,5 @@
-import { assert } from 'chai';
+import chai, { assert } from 'chai';
+import chaiDateTime from 'chai-datetime';
 import fetchMock from 'fetch-mock';
 import sinon from 'sinon';
 
@@ -6,6 +7,7 @@ import { KanjiDatabase } from './database';
 import { updateWithRetry } from './update-with-retry';
 
 mocha.setup('bdd');
+chai.use(chaiDateTime);
 
 const VERSION_1_0_0 = {
   kanjidb: {
@@ -120,13 +122,15 @@ describe('updateWithRetry', function() {
       shouldAdvanceTime: true,
     });
 
-    const errors: Array<Error> = [];
+    const errors: Array<{ e: Error; nextRetry?: Date }> = [];
+    const updateStart = new Date();
+
     await new Promise((resolve, reject) => {
       updateWithRetry({
         db,
         onUpdateComplete: resolve,
-        onUpdateError: e => {
-          errors.push(e);
+        onUpdateError: (e, info) => {
+          errors.push({ e, nextRetry: info.nextRetry });
           clock.next();
         },
       });
@@ -135,11 +139,22 @@ describe('updateWithRetry', function() {
     clock.restore();
 
     assert.lengthOf(errors, 1);
-    assert.equal(errors[0].name, 'DownloadError');
+    assert.equal(errors[0].e.name, 'DownloadError');
+
+    const { nextRetry } = errors[0];
+    assert.instanceOf(nextRetry, Date);
+    // If this turns out to be flaky, we shoud work out how to use sinon fake
+    // timers properly.
+    assert.withinTime(
+      nextRetry!,
+      new Date(updateStart.getTime() + 1000),
+      new Date(updateStart.getTime() + 10 * 1000)
+    );
   });
 
   /*
   it('should wait until it is online', async () => {
+    sinon.replace(navigator, 'onLine', false);
   });
 
   it('should wait until it is online even when re-trying a network error', async () => {
@@ -158,5 +173,5 @@ describe('updateWithRetry', function() {
   });
   */
 
-  // XXX Test force updates
+  // XXX Test forced updates
 });
