@@ -104,7 +104,7 @@ describe('database', function() {
     const updateEnd = new Date();
 
     assert.deepEqual(db.updateState.state, 'idle');
-    assert.isDefined(db.updateState.lastCheck);
+    assert.isNotNull(db.updateState.lastCheck);
     assert.withinTime(db.updateState.lastCheck!, updateStart, updateEnd);
   });
 

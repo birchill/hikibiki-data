@@ -3,7 +3,6 @@ import {
   CheckingUpdateState,
   DownloadingUpdateState,
   IdleUpdateState,
-  OfflineUpdateState,
   UpdatingDbUpdateState,
   UpdateState,
 } from './update-state';
@@ -28,7 +27,6 @@ export type CloneableUpdateState =
   | CheckingUpdateState
   | DownloadingUpdateState
   | IdleUpdateState
-  | OfflineUpdateState
   | UpdatingDbUpdateState
   | CloneableErrorUpdateState;
 

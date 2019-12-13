@@ -1,9 +1,5 @@
 import { DatabaseVersion } from './common';
 
-export type OfflineAction = {
-  type: 'offline';
-};
-
 export type StartAction = {
   type: 'start';
   dbName: 'kanjidb' | 'bushudb';
@@ -43,7 +39,6 @@ export type ErrorAction = {
 };
 
 export type UpdateAction =
-  | OfflineAction
   | StartAction
   | StartDownloadAction
   | ProgressAction
