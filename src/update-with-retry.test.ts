@@ -152,11 +152,55 @@ describe('updateWithRetry', function() {
     );
   });
 
-  /*
   it('should wait until it is online', async () => {
-    sinon.replace(navigator, 'onLine', false);
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.mock(
+      'end:kanjidb-rc-en-1.0.0-full.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+`
+    );
+    fetchMock.mock(
+      'end:bushudb-rc-en-1.0.0-full.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+`
+    );
+
+    // TODO: This needs to be re-done. We're not really testing anything here.
+    // We need to detect that the offline-ness stopped the update somehow.
+    // That probably means we need some sort of OfflineError event or something
+    // to be thrown. Then we should catch that in the onUpdateError handler,
+    // then dispatch the event there, and tweak a local value so that the
+    // stubbed getter returns true instead.
+
+    const dispatchOnlineEvent = () => {
+      window.dispatchEvent(new Event('online'));
+    };
+
+    let onlineCallCount = 0;
+    sinon.replaceGetter(
+      navigator,
+      'onLine',
+      sinon.fake(() => {
+        onlineCallCount++;
+        if (onlineCallCount == 1) {
+          setTimeout(dispatchOnlineEvent, 0);
+          return false;
+        }
+
+        return true;
+      })
+    );
+
+    await new Promise((resolve, reject) => {
+      updateWithRetry({
+        db,
+        onUpdateComplete: resolve,
+        onUpdateError: reject,
+      });
+    });
   });
 
+  /*
   it('should wait until it is online even when re-trying a network error', async () => {
   });
 
