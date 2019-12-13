@@ -1,5 +1,6 @@
 import { assert } from 'chai';
 import fetchMock from 'fetch-mock';
+import sinon from 'sinon';
 
 import { KanjiDatabase } from './database';
 import { updateWithRetry } from './update-with-retry';
@@ -37,6 +38,7 @@ describe('updateWithRetry', function() {
 
   afterEach(async () => {
     fetchMock.restore();
+    sinon.restore();
     if (db) {
       await db.destroy();
     }
@@ -78,9 +80,9 @@ describe('updateWithRetry', function() {
     );
 
     // Force an error to occur
-    db.update = () => {
+    sinon.replace(db, 'update', () => {
       throw new Error('Forced error');
-    };
+    });
 
     try {
       await new Promise((resolve, reject) => {
@@ -99,10 +101,44 @@ describe('updateWithRetry', function() {
     }
   });
 
-  /*
   it('should retry a network error', async () => {
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.once('end:.ljson', 404);
+    fetchMock.mock(
+      'end:kanjidb-rc-en-1.0.0-full.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+`
+    );
+    fetchMock.mock(
+      'end:bushudb-rc-en-1.0.0-full.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+`
+    );
+
+    const clock = sinon.useFakeTimers({
+      toFake: ['setTimeout'],
+      shouldAdvanceTime: true,
+    });
+
+    const errors: Array<Error> = [];
+    await new Promise((resolve, reject) => {
+      updateWithRetry({
+        db,
+        onUpdateComplete: resolve,
+        onUpdateError: e => {
+          errors.push(e);
+          clock.next();
+        },
+      });
+    });
+
+    clock.restore();
+
+    assert.lengthOf(errors, 1);
+    assert.equal(errors[0].name, 'DownloadError');
   });
 
+  /*
   it('should wait until it is online', async () => {
   });
 
