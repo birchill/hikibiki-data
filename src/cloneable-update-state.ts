@@ -19,8 +19,6 @@ export type CloneableErrorUpdateState = {
     code?: number;
   };
   lastCheck: Date | null;
-  nextRetry?: Date;
-  retryIntervalMs?: number;
 };
 
 export type CloneableUpdateState =
