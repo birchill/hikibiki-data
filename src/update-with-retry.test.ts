@@ -117,10 +117,7 @@ describe('updateWithRetry', function() {
 `
     );
 
-    const clock = sinon.useFakeTimers({
-      toFake: ['setTimeout'],
-      shouldAdvanceTime: true,
-    });
+    const clock = sinon.useFakeTimers({ toFake: ['setTimeout'] });
 
     const errors: Array<{
       e: Error;
@@ -200,10 +197,76 @@ describe('updateWithRetry', function() {
     assert.isTrue(gotOfflineError);
   });
 
-  /*
   it('should wait until it is online even when re-trying a network error', async () => {
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.mock('end:.ljson', 404, { repeat: 2 });
+    fetchMock.mock(
+      'end:kanjidb-rc-en-1.0.0-full.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+`
+    );
+    fetchMock.mock(
+      'end:bushudb-rc-en-1.0.0-full.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+`
+    );
+
+    const clock = sinon.useFakeTimers({ toFake: ['setTimeout'] });
+
+    let isOnline: boolean = true;
+    sinon.replaceGetter(
+      navigator,
+      'onLine',
+      sinon.fake(() => isOnline)
+    );
+
+    const errors: Array<{
+      e: Error;
+      nextRetry?: Date;
+      retryCount?: number;
+    }> = [];
+
+    await new Promise((resolve, reject) => {
+      updateWithRetry({
+        db,
+        onUpdateComplete: resolve,
+        onUpdateError: (e, info) => {
+          errors.push({
+            e,
+            nextRetry: info.nextRetry,
+            retryCount: info.retryCount,
+          });
+
+          if (e.name === 'OfflineError') {
+            isOnline = true;
+            window.dispatchEvent(new Event('online'));
+            return;
+          }
+
+          if (info.retryCount && info.retryCount >= 1) {
+            isOnline = false;
+          }
+
+          clock.next();
+        },
+      });
+    });
+
+    clock.restore();
+
+    assert.lengthOf(errors, 3);
+
+    assert.equal(errors[0].e.name, 'DownloadError');
+    assert.strictEqual(errors[0].retryCount, 0);
+
+    assert.equal(errors[1].e.name, 'DownloadError');
+    assert.strictEqual(errors[1].retryCount, 1);
+
+    assert.equal(errors[2].e.name, 'OfflineError');
+    assert.strictEqual(errors[2].retryCount, undefined);
   });
 
+  /*
   it('should coalesce overlapping requests', async () => {
   });
 
