@@ -122,7 +122,11 @@ describe('updateWithRetry', function() {
       shouldAdvanceTime: true,
     });
 
-    const errors: Array<{ e: Error; nextRetry?: Date }> = [];
+    const errors: Array<{
+      e: Error;
+      nextRetry?: Date;
+      retryCount?: number;
+    }> = [];
     const updateStart = new Date();
 
     await new Promise((resolve, reject) => {
@@ -130,7 +134,11 @@ describe('updateWithRetry', function() {
         db,
         onUpdateComplete: resolve,
         onUpdateError: (e, info) => {
-          errors.push({ e, nextRetry: info.nextRetry });
+          errors.push({
+            e,
+            nextRetry: info.nextRetry,
+            retryCount: info.retryCount,
+          });
           clock.next();
         },
       });
@@ -141,7 +149,7 @@ describe('updateWithRetry', function() {
     assert.lengthOf(errors, 1);
     assert.equal(errors[0].e.name, 'DownloadError');
 
-    const { nextRetry } = errors[0];
+    const { nextRetry, retryCount } = errors[0];
     assert.instanceOf(nextRetry, Date);
     // If this turns out to be flaky, we shoud work out how to use sinon fake
     // timers properly.
@@ -150,6 +158,7 @@ describe('updateWithRetry', function() {
       new Date(updateStart.getTime() + 1000),
       new Date(updateStart.getTime() + 10 * 1000)
     );
+    assert.strictEqual(retryCount, 0);
   });
 
   it('should wait until it is online', async () => {
