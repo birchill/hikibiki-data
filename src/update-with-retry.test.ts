@@ -165,39 +165,30 @@ describe('updateWithRetry', function() {
 `
     );
 
-    // TODO: This needs to be re-done. We're not really testing anything here.
-    // We need to detect that the offline-ness stopped the update somehow.
-    // That probably means we need some sort of OfflineError event or something
-    // to be thrown. Then we should catch that in the onUpdateError handler,
-    // then dispatch the event there, and tweak a local value so that the
-    // stubbed getter returns true instead.
+    let isOnline: boolean = false;
 
-    const dispatchOnlineEvent = () => {
-      window.dispatchEvent(new Event('online'));
-    };
-
-    let onlineCallCount = 0;
     sinon.replaceGetter(
       navigator,
       'onLine',
-      sinon.fake(() => {
-        onlineCallCount++;
-        if (onlineCallCount == 1) {
-          setTimeout(dispatchOnlineEvent, 0);
-          return false;
-        }
-
-        return true;
-      })
+      sinon.fake(() => isOnline)
     );
+
+    let gotOfflineError: boolean = false;
 
     await new Promise((resolve, reject) => {
       updateWithRetry({
         db,
         onUpdateComplete: resolve,
-        onUpdateError: reject,
+        onUpdateError: e => {
+          assert.equal(e.name, 'OfflineError');
+          gotOfflineError = true;
+          isOnline = true;
+          window.dispatchEvent(new Event('online'));
+        },
       });
     });
+
+    assert.isTrue(gotOfflineError);
   });
 
   /*

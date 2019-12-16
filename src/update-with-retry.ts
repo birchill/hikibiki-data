@@ -11,6 +11,19 @@ interface RetryStatus {
 
 const inProgressUpdates: Map<KanjiDatabase, RetryStatus> = new Map();
 
+export class OfflineError extends Error {
+  constructor(...params: any[]) {
+    super(...params);
+    Object.setPrototypeOf(this, OfflineError.prototype);
+
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, OfflineError);
+    }
+
+    this.name = 'OfflineError';
+  }
+}
+
 export type UpdateCompleteCallback = () => void;
 export type UpdateErrorCallback = (
   e: Error,
@@ -132,7 +145,10 @@ async function doUpdate({
 
     setInProgressUpdate(db, { onlineCallback });
 
-    // TODO: Should we report something to the client here?
+    if (onUpdateError) {
+      onUpdateError(new OfflineError(), {});
+    }
+
     return;
   }
 

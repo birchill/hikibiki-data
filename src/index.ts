@@ -1,5 +1,6 @@
 export { DatabaseVersion } from './common';
 export {
+  AbortError,
   ChangeCallback,
   ChangeTopic,
   DatabaseState,
@@ -15,8 +16,9 @@ export {
   UpdatingDbUpdateState,
 } from './update-state';
 export {
+  cancelUpdateWithRetry,
+  OfflineError,
   UpdateCompleteCallback,
   UpdateErrorCallback,
   updateWithRetry,
-  cancelUpdateWithRetry,
 } from './update-with-retry';
