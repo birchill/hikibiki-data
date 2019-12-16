@@ -27,15 +27,9 @@ export type FinishAction = {
   checkDate: Date;
 };
 
-export type AbortAction = {
-  type: 'abort';
-  checkDate: Date | null;
-};
-
 export type ErrorAction = {
   type: 'error';
-  dbName: 'kanjidb' | 'bushudb';
-  error: Error;
+  checkDate: Date | null;
 };
 
 export type UpdateAction =
@@ -44,5 +38,4 @@ export type UpdateAction =
   | ProgressAction
   | FinishDownloadAction
   | FinishAction
-  | AbortAction
   | ErrorAction;

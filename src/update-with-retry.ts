@@ -6,6 +6,7 @@ interface RetryStatus {
   changeCallback: ChangeCallback;
   setTimeoutHandle?: number;
   retryIntervalMs?: number;
+  retryCount?: number;
 }
 
 const inProgressUpdates: Map<KanjiDatabase, RetryStatus> = new Map();
@@ -13,7 +14,7 @@ const inProgressUpdates: Map<KanjiDatabase, RetryStatus> = new Map();
 export type UpdateCompleteCallback = () => void;
 export type UpdateErrorCallback = (
   e: Error,
-  info: { nextRetry?: Date }
+  info: { nextRetry?: Date; retryCount?: number }
 ) => void;
 
 export async function updateWithRetry({
@@ -62,10 +63,11 @@ export async function updateWithRetry({
 
       // And even if we have a timeout, if we are currently running the update,
       // just let it run but reset the timeout.
-      if (db.updateState.state !== 'idle' && db.updateState.state !== 'error') {
+      if (db.updateState.state !== 'idle') {
         inProgressUpdates.set(db, {
           ...currentRetryStatus,
           retryIntervalMs: undefined,
+          retryCount: 0,
         });
         if (db.verbose) {
           console.log('Skipping forced update. Already updating.');
@@ -162,6 +164,7 @@ async function doUpdate({
     const wasCanceled = !inProgressUpdates.has(db);
 
     let retryIntervalMs: number | undefined;
+    let retryCount: number | undefined;
     let nextRetry: Date | undefined;
 
     if (isNetworkError && !wasCanceled) {
@@ -170,6 +173,7 @@ async function doUpdate({
       const currentRetryStatus = inProgressUpdates.get(db);
       if (currentRetryStatus) {
         retryIntervalMs = currentRetryStatus.retryIntervalMs;
+        retryCount = currentRetryStatus.retryCount;
       }
 
       if (retryIntervalMs) {
@@ -179,6 +183,7 @@ async function doUpdate({
         // Randomize the initial interval to somewhere between 3s ~ 6s.
         retryIntervalMs = 3000 + Math.random() * 3000;
       }
+      retryCount = typeof retryCount === 'number' ? retryCount + 1 : 0;
 
       if (db.verbose) {
         console.log(`Scheduling retry of update in ${retryIntervalMs}ms`);
@@ -198,13 +203,17 @@ async function doUpdate({
 
       nextRetry = new Date(Date.now() + retryIntervalMs);
 
-      setInProgressUpdate(db, { setTimeoutHandle, retryIntervalMs });
+      setInProgressUpdate(db, {
+        setTimeoutHandle,
+        retryIntervalMs,
+        retryCount,
+      });
     } else {
       deleteInProgressUpdate(db);
     }
 
     if (onUpdateError) {
-      onUpdateError(e, { nextRetry });
+      onUpdateError(e, { nextRetry, retryCount });
     }
   }
 }
@@ -215,6 +224,7 @@ function setInProgressUpdate(
     onlineCallback,
     setTimeoutHandle,
     retryIntervalMs,
+    retryCount,
   }: Omit<RetryStatus, 'changeCallback'>
 ) {
   let changeCallback: ChangeCallback;
@@ -232,6 +242,7 @@ function setInProgressUpdate(
     changeCallback,
     setTimeoutHandle,
     retryIntervalMs,
+    retryCount,
   });
 }
 

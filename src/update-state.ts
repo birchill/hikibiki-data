@@ -36,17 +36,8 @@ export type UpdatingDbUpdateState = {
   lastCheck: Date | null;
 };
 
-// Encountered an error on the previous attempt to update.
-export type ErrorUpdateState = {
-  state: 'error';
-  dbName: 'kanjidb' | 'bushudb';
-  error: Error;
-  lastCheck: Date | null;
-};
-
 export type UpdateState =
   | IdleUpdateState
   | CheckingUpdateState
   | DownloadingUpdateState
-  | UpdatingDbUpdateState
-  | ErrorUpdateState;
+  | UpdatingDbUpdateState;

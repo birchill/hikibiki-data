@@ -55,16 +55,7 @@ export function reducer(state: UpdateState, action: UpdateAction): UpdateState {
     case 'finish':
       return { state: 'idle', lastCheck: action.checkDate };
 
-    case 'abort':
+    case 'error':
       return { state: 'idle', lastCheck: action.checkDate || state.lastCheck };
-
-    case 'error': {
-      return {
-        state: 'error',
-        dbName: action.dbName,
-        error: action.error,
-        lastCheck: state.lastCheck,
-      };
-    }
   }
 }

@@ -61,6 +61,19 @@ export interface KanjiResult
   }>;
 }
 
+export class AbortError extends Error {
+  constructor(...params: any[]) {
+    super(...params);
+    Object.setPrototypeOf(this, AbortError.prototype);
+
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, AbortError);
+    }
+
+    this.name = 'AbortError';
+  }
+}
+
 export type ChangeTopic = 'stateupdated' | 'deleted';
 export type ChangeCallback = (topic: ChangeTopic) => void;
 
@@ -236,8 +249,8 @@ export class KanjiDatabase {
 
     // Check if we have been canceled while waiting to become ready
     if (!this.inProgressUpdate) {
-      reducer({ type: 'abort', checkDate: null });
-      throw new Error('AbortError');
+      reducer({ type: 'error', checkDate: null });
+      throw new AbortError();
     }
 
     const checkDate = new Date();
@@ -265,7 +278,7 @@ export class KanjiDatabase {
       });
 
       if (!this.inProgressUpdate) {
-        throw new Error('AbortError');
+        throw new AbortError();
       }
 
       await update({
@@ -277,21 +290,17 @@ export class KanjiDatabase {
       });
 
       if (!this.inProgressUpdate) {
-        throw new Error('AbortError');
+        throw new AbortError();
       }
 
       reducer({ type: 'finish', checkDate });
     } catch (e) {
-      if (e?.message === 'AbortError') {
-        // We should only update the last-check date if we actually made some
-        // sort of update.
-        reducer({
-          type: 'abort',
-          checkDate: wroteSomething ? checkDate : null,
-        });
-      } else {
-        reducer({ type: 'error', dbName, error: e });
-      }
+      // We should only update the last-check date if we actually made some
+      // sort of update.
+      reducer({
+        type: 'error',
+        checkDate: wroteSomething ? checkDate : null,
+      });
       throw e;
     }
   }

@@ -1,8 +1,3 @@
-export {
-  CloneableErrorUpdateState,
-  CloneableUpdateState,
-  toCloneableUpdateState,
-} from './cloneable-update-state';
 export { DatabaseVersion } from './common';
 export {
   ChangeCallback,
@@ -15,7 +10,6 @@ export { DownloadError, DownloadErrorCode } from './download';
 export {
   CheckingUpdateState,
   DownloadingUpdateState,
-  ErrorUpdateState,
   IdleUpdateState,
   UpdateState,
   UpdatingDbUpdateState,

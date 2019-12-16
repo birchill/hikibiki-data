@@ -4,7 +4,6 @@ import fetchMock from 'fetch-mock';
 
 import { DownloadError, DownloadErrorCode } from './download';
 import { DatabaseState, KanjiDatabase } from './database';
-import { ErrorUpdateState } from './update-state';
 import { stripFields } from './utils';
 
 mocha.setup('bdd');
@@ -133,7 +132,7 @@ describe('database', function() {
     );
   });
 
-  it('should update the error state accordingly', async () => {
+  it('should handle error actions', async () => {
     fetchMock.mock('end:jpdict-rc-en-version.json', 404);
 
     let exception;
@@ -155,13 +154,7 @@ describe('database', function() {
     );
 
     // Check update state
-    assert.equal(db.updateState.state, 'error');
-    assert.isTrue(
-      isVersionFileNotFoundError((db.updateState as ErrorUpdateState).error),
-      `Update state should have a VersionFileNotFound error. Got: ${
-        (db.updateState as ErrorUpdateState).error
-      }`
-    );
+    assert.equal(db.updateState.state, 'idle');
   });
 
   it('should allow canceling the update', async () => {
@@ -187,7 +180,7 @@ describe('database', function() {
     }
 
     assert.isDefined(exception);
-    assert.equal(exception.message, 'AbortError');
+    assert.equal(exception.name, 'AbortError');
 
     assert.deepEqual(db.updateState, { state: 'idle', lastCheck: null });
 
@@ -221,7 +214,7 @@ describe('database', function() {
     }
 
     assert.isDefined(exception);
-    assert.equal(exception.message, 'AbortError');
+    assert.equal(exception.name, 'AbortError');
 
     assert.deepEqual(db.updateState, { state: 'idle', lastCheck: null });
 
@@ -262,7 +255,7 @@ describe('database', function() {
     }
 
     assert.isDefined(exception);
-    assert.equal(exception.message, 'AbortError');
+    assert.equal(exception.name, 'AbortError');
 
     assert.equal(db.updateState.state, 'idle');
     assert.isDefined(db.updateState.lastCheck);
