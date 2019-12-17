@@ -445,10 +445,67 @@ describe('updateWithRetry', function() {
     assert.isFalse(completeCalled);
   });
 
-  /*
   it('should reset the timeout after each successful download', async () => {
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.mock('end:.ljson', 404, { repeat: 2 });
+    fetchMock.mock(
+      'end:kanjidb-rc-en-1.0.0-full.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+`
+    );
+
+    // Make bushudb file fail only once
+    let callCount = 0;
+    fetchMock.mock('end:bushudb-rc-en-1.0.0-full.ljson', () => {
+      if (callCount++) {
+        return `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+`;
+      } else {
+        return 404;
+      }
+    });
+
+    const clock = sinon.useFakeTimers({ toFake: ['setTimeout'] });
+
+    const errors: Array<{
+      e: Error;
+      retryInterval?: number;
+      retryCount?: number;
+    }> = [];
+
+    await new Promise((resolve, reject) => {
+      updateWithRetry({
+        db,
+        onUpdateComplete: resolve,
+        onUpdateError: (e, info) => {
+          errors.push({
+            e,
+            retryInterval: info.nextRetry
+              ? info.nextRetry.getTime() - Date.now()
+              : undefined,
+            retryCount: info.retryCount,
+          });
+          clock.next();
+        },
+      });
+    });
+
+    clock.restore();
+
+    assert.lengthOf(errors, 3);
+
+    // The first two failures should have increasing retry intervals
+    assert.isBelow(errors[0].retryInterval!, errors[1].retryInterval!);
+    // The third failure should have a less (or equal) interval to the second
+    // one
+    assert.isAtMost(errors[2].retryInterval!, errors[1].retryInterval!);
+
+    // The retry count should be reset too
+    assert.deepEqual(
+      errors.map(e => e.retryCount),
+      [0, 1, 0]
+    );
   });
-  */
 });
 
 function waitForAnimationFrames(frameCount: number): Promise<void> {
