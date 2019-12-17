@@ -151,7 +151,7 @@ export class KanjiDatabase {
   private notifyChanged(topic: ChangeTopic) {
     const changeListeners = [...this.changeListeners];
     for (const callback of changeListeners) {
-      callback('stateupdated');
+      callback(topic);
     }
   }
 
