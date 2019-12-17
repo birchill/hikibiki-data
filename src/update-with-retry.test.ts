@@ -266,10 +266,95 @@ describe('updateWithRetry', function() {
     assert.strictEqual(errors[2].retryCount, undefined);
   });
 
-  /*
   it('should coalesce overlapping requests', async () => {
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.once('end:.ljson', 404);
+    fetchMock.mock(
+      'end:kanjidb-rc-en-1.0.0-full.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+`
+    );
+    fetchMock.mock(
+      'end:bushudb-rc-en-1.0.0-full.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+`
+    );
+
+    const clock = sinon.useFakeTimers({ toFake: ['setTimeout'] });
+
+    const firstInvocation = new Promise((resolve, reject) => {
+      updateWithRetry({
+        db,
+        onUpdateComplete: resolve,
+        onUpdateError: () => {
+          clock.next();
+        },
+      });
+    });
+
+    let secondCompletionCallbackCalled = false;
+    const secondInvocation = new Promise((resolve, reject) => {
+      updateWithRetry({
+        db,
+        onUpdateComplete: () => {
+          secondCompletionCallbackCalled = true;
+          resolve();
+        },
+        onUpdateError: reject,
+      });
+    });
+
+    await Promise.race([firstInvocation, secondInvocation]);
+
+    clock.restore();
+
+    assert.isFalse(secondCompletionCallbackCalled);
   });
 
+  it('should NOT coalesce overlapping requests when the forceUpdate flag is set', async () => {
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.once('end:.ljson', 404);
+    fetchMock.mock(
+      'end:kanjidb-rc-en-1.0.0-full.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+`
+    );
+    fetchMock.mock(
+      'end:bushudb-rc-en-1.0.0-full.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+`
+    );
+
+    // Wait for the first invocation to error
+
+    let firstInvocation;
+    const firstError = new Promise(firstErrorResolve => {
+      firstInvocation = new Promise((_, reject) => {
+        updateWithRetry({
+          db,
+          onUpdateComplete: reject,
+          onUpdateError: firstErrorResolve,
+        });
+      });
+    });
+
+    await firstError;
+
+    // Then try again while it is waiting
+
+    const secondInvocation = new Promise((resolve, reject) => {
+      updateWithRetry({
+        db,
+        forceUpdate: true,
+        onUpdateComplete: resolve,
+        onUpdateError: reject,
+      });
+    });
+
+    await Promise.race([firstInvocation, secondInvocation]);
+  });
+
+  /*
   it('should allow canceling the retries', async () => {
   });
 
@@ -279,6 +364,4 @@ describe('updateWithRetry', function() {
   it('should reset the timeout after each successful download', async () => {
   });
   */
-
-  // XXX Test forced updates
 });

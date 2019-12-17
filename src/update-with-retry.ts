@@ -30,6 +30,27 @@ export type UpdateErrorCallback = (
   info: { nextRetry?: Date; retryCount?: number }
 ) => void;
 
+// Updates the passed-in database and retries in the case of failure due to
+// network failures or being offline.
+//
+// Note that if there is an existing calling to this function in action
+// (including waiting to retry) the existing call will be re-used.
+// As a result, if the passed-in callback functions differ between invocations,
+// only the originally passed-in callback functions will be called.
+//
+// (This is fixable but it introduces complexity and currently all clients
+// have a single point where they call into this so it is not necessary to try
+// and store a list of callback functions.)
+//
+// If the `forceUpdate` parameter is set then an existing call to this function
+// will be canceled first UNLESS it is already running or blocked due to being
+// offline. That is, the `forceUpdate` flag is purely meant to say, "Update now
+// if you are not already."
+//
+// Furthermore, note that if an invocation is canceled there is no abort
+// callback or AbortError or anything of the sort. (Again, this is fixable but
+// it requires store the callbacks passed-in, and currently no client needs
+// this.)
 export async function updateWithRetry({
   db,
   forceUpdate = false,
@@ -49,8 +70,8 @@ export async function updateWithRetry({
       // in-progress update.
       if (!forceUpdate) {
         if (db.verbose) {
-          console.log(
-            'Overlapping calls to updateWithRetry. Re-using existing invocation.'
+          console.info(
+            'Overlapping calls to updateWithRetry. Re-using existing invocation. This could be problematic if different callback functions were passed on each invocation.'
           );
         }
         return;
@@ -60,7 +81,7 @@ export async function updateWithRetry({
       // are online (at which point we will retry immediately).
       if (currentRetryStatus.onlineCallback) {
         if (db.verbose) {
-          console.log('Deferring forced update. Currently offline.');
+          console.info('Deferring forced update. Currently offline.');
         }
         return;
       }
@@ -69,7 +90,7 @@ export async function updateWithRetry({
       // (or are retrying rapidly) then use the existing update.
       if (!currentRetryStatus.retryIntervalMs) {
         if (db.verbose) {
-          console.log('Ignoring forced update. Already retrying presently.');
+          console.info('Ignoring forced update. Already retrying presently.');
         }
         return;
       }
@@ -83,7 +104,7 @@ export async function updateWithRetry({
           retryCount: undefined,
         });
         if (db.verbose) {
-          console.log('Skipping forced update. Already updating.');
+          console.info('Skipping forced update. Already updating.');
         }
         return;
       }
