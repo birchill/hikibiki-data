@@ -4,7 +4,7 @@ import fetchMock from 'fetch-mock';
 import sinon from 'sinon';
 
 import { KanjiDatabase } from './database';
-import { updateWithRetry } from './update-with-retry';
+import { cancelUpdateWithRetry, updateWithRetry } from './update-with-retry';
 
 mocha.setup('bdd');
 chai.use(chaiDateTime);
@@ -354,10 +354,54 @@ describe('updateWithRetry', function() {
     await Promise.race([firstInvocation, secondInvocation]);
   });
 
-  /*
   it('should allow canceling the retries', async () => {
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.once('end:.ljson', 404);
+    fetchMock.mock(
+      'end:kanjidb-rc-en-1.0.0-full.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+`
+    );
+    fetchMock.mock(
+      'end:bushudb-rc-en-1.0.0-full.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+`
+    );
+
+    // Wait for first error
+
+    const clock = sinon.useFakeTimers({
+      toFake: ['setTimeout', 'clearTimeout'],
+    });
+
+    let completeCalled = false;
+    await new Promise(resolve => {
+      updateWithRetry({
+        db,
+        onUpdateComplete: () => {
+          completeCalled = true;
+        },
+        onUpdateError: resolve,
+      });
+    });
+
+    // Then cancel
+
+    await cancelUpdateWithRetry(db);
+
+    // Then make sure that the completion doesn't happen
+
+    clock.next();
+    clock.restore();
+
+    // It turns out we need to wait quiet a few frames to be sure the completion
+    // would happen if we hadn't canceled things.
+    await waitForAnimationFrames(8);
+
+    assert.isFalse(completeCalled);
   });
 
+  /*
   it('should cancel the retries when the database is deleted', async () => {
   });
 
@@ -365,3 +409,16 @@ describe('updateWithRetry', function() {
   });
   */
 });
+
+function waitForAnimationFrames(frameCount: number): Promise<void> {
+  return new Promise(resolve => {
+    function handleFrame() {
+      if (--frameCount <= 0) {
+        resolve();
+      } else {
+        requestAnimationFrame(handleFrame);
+      }
+    }
+    requestAnimationFrame(handleFrame);
+  });
+}
