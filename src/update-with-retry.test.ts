@@ -1,5 +1,6 @@
 import chai, { assert } from 'chai';
 import chaiDateTime from 'chai-datetime';
+import chaiAsPromised from 'chai-as-promised';
 import fetchMock from 'fetch-mock';
 import sinon from 'sinon';
 
@@ -8,6 +9,7 @@ import { cancelUpdateWithRetry, updateWithRetry } from './update-with-retry';
 
 mocha.setup('bdd');
 chai.use(chaiDateTime);
+chai.use(chaiAsPromised);
 
 const VERSION_1_0_0 = {
   kanjidb: {
@@ -86,21 +88,14 @@ describe('updateWithRetry', function() {
       throw new Error('Forced error');
     });
 
-    try {
-      await new Promise((resolve, reject) => {
-        updateWithRetry({
-          db,
-          onUpdateComplete: resolve,
-          onUpdateError: reject,
-        });
+    const retryPromise = new Promise((resolve, reject) => {
+      updateWithRetry({
+        db,
+        onUpdateComplete: resolve,
+        onUpdateError: reject,
       });
-      assert.fail('Should have thrown');
-    } catch (e) {
-      // TODO: Introduce chai-as-promised so we don't need to do this
-      if (e.name === 'AssertionError') {
-        throw e;
-      }
-    }
+    });
+    return assert.isRejected(retryPromise, /Forced error/);
   });
 
   it('should retry a network error', async () => {
