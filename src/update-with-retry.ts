@@ -80,7 +80,7 @@ export async function updateWithRetry({
         inProgressUpdates.set(db, {
           ...currentRetryStatus,
           retryIntervalMs: undefined,
-          retryCount: 0,
+          retryCount: undefined,
         });
         if (db.verbose) {
           console.log('Skipping forced update. Already updating.');
@@ -288,6 +288,7 @@ function onDatabaseChange(db: KanjiDatabase, topic: ChangeTopic) {
     inProgressUpdates.set(db, {
       ...currentRetryStatus,
       retryIntervalMs: undefined,
+      retryCount: undefined,
     });
   }
 }
