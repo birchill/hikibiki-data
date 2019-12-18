@@ -248,9 +248,17 @@ export class KanjiStore {
     } catch (e) {
       console.log('Error during delete portion of bulk update');
       console.log(JSON.stringify(drop));
+
       // Ignore the abort from the transaction
       tx.done.catch(() => {});
-      tx.abort();
+      try {
+        tx.abort();
+      } catch (_) {
+        // Ignore exceptions from aborting the transaction.
+        // This can happen is the transaction has already been aborted by this
+        // point.
+      }
+
       throw e;
     }
 
@@ -268,9 +276,15 @@ export class KanjiStore {
     } catch (e) {
       console.log('Error during put portion of bulk update');
       console.log(JSON.stringify(put));
+
       // Ignore the abort from the transaction
       tx.done.catch(() => {});
-      tx.abort();
+      try {
+        tx.abort();
+      } catch (_) {
+        // As above, ignore exceptions from aborting the transaction.
+      }
+
       throw e;
     }
 
@@ -283,9 +297,15 @@ export class KanjiStore {
     } catch (e) {
       console.log('Error during version update portion of bulk update');
       console.log(JSON.stringify(version));
+
       // Ignore the abort from the transaction
       tx.done.catch(() => {});
-      tx.abort();
+      try {
+        tx.abort();
+      } catch (_) {
+        // As above, ignore exceptions from aborting the transaction.
+      }
+
       throw e;
     }
 
