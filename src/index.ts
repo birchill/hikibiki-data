@@ -8,6 +8,7 @@ export {
   KanjiResult,
 } from './database';
 export { DownloadError, DownloadErrorCode } from './download';
+export { UpdateErrorState, toUpdateErrorState } from './update-error-state';
 export {
   CheckingUpdateState,
   DownloadingUpdateState,

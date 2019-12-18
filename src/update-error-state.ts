@@ -5,7 +5,7 @@ import { DownloadError } from './download';
 // For convenience, it includes retry information for when it is used in
 // automatic retry scenarios.
 
-export interface ErrorState {
+export interface UpdateErrorState {
   name: string;
   message: string;
   code?: number;
@@ -14,7 +14,7 @@ export interface ErrorState {
   retryCount?: number;
 }
 
-export function toErrorState({
+export function toUpdateErrorState({
   error,
   nextRetry,
   retryCount,
@@ -22,7 +22,7 @@ export function toErrorState({
   error: Error;
   nextRetry?: Date;
   retryCount?: number;
-}): ErrorState {
+}): UpdateErrorState {
   return {
     name: error.name,
     message: error.message,
