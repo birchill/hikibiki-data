@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0](https://github.com/birchill/hikibiki-data/compare/v1.6.1...v2.0.0) (2019-12-18)
+
+
+### Features
+
+* Factor retry functionality into a separate utility method ([13b89f2](https://github.com/birchill/hikibiki-data/commit/13b89f22627f88ad095f853d3bbd9bff82667dca))
+
+
+### Bug Fixes
+
+* Cancel retries when the database is deleted ([96a3742](https://github.com/birchill/hikibiki-data/commit/96a374215cc8254a604c17144c842602b16a0df9))
+* Consistently reset retryCount ([86e16b1](https://github.com/birchill/hikibiki-data/commit/86e16b1617d5eb0833ff46edff1912ff579a0fa1))
+* Drop no-longer-available retry-related members from CloneableErrorUpdateState ([2282dfe](https://github.com/birchill/hikibiki-data/commit/2282dfe7650d6487dcd70c61f454a5c0a06be3b9))
+* Ignore exceptions from aborting an already aborted transaction ([3088527](https://github.com/birchill/hikibiki-data/commit/308852701c27c402f80124ff1471b22506f9bfb4))
+* Report offline status ([d60a283](https://github.com/birchill/hikibiki-data/commit/d60a28376ed8df3ef0e34fd69e5cbbe48dc5df23))
+
 ### [1.6.1](https://github.com/birchill/hikibiki-data/compare/v1.6.0...v1.6.1) (2019-12-12)
 
 
