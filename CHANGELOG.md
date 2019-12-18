@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.1.0](https://github.com/birchill/hikibiki-data/compare/v2.0.0...v2.1.0) (2019-12-18)
+
+
+### Features
+
+* Rename and expose ErrorState as UpdateErrorState ([29a9609](https://github.com/birchill/hikibiki-data/commit/29a9609e77998f318abd3fc57ab9d91a8f2468d1))
+
+
+### Bug Fixes
+
+* Make all parameters to onUpdateError be included in option bag ([682abd0](https://github.com/birchill/hikibiki-data/commit/682abd04153dea1c9f3628f97243b74751665227))
+
 ## [2.0.0](https://github.com/birchill/hikibiki-data/compare/v1.6.1...v2.0.0) (2019-12-18)
 
 
