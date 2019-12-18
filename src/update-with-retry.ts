@@ -25,10 +25,11 @@ export class OfflineError extends Error {
 }
 
 export type UpdateCompleteCallback = () => void;
-export type UpdateErrorCallback = (
-  e: Error,
-  info: { nextRetry?: Date; retryCount?: number }
-) => void;
+export type UpdateErrorCallback = (params: {
+  error: Error;
+  nextRetry?: Date;
+  retryCount?: number;
+}) => void;
 
 // Updates the passed-in database and retries in the case of failure due to
 // network failures or being offline.
@@ -158,7 +159,7 @@ async function doUpdate({
             'Error while scheduling update retry after coming online'
           );
           const error = e instanceof Error ? e : new Error(String(e));
-          onUpdateError(error, {});
+          onUpdateError({ error });
         }
       }
     };
@@ -167,7 +168,7 @@ async function doUpdate({
     setInProgressUpdate(db, { onlineCallback });
 
     if (onUpdateError) {
-      onUpdateError(new OfflineError(), {});
+      onUpdateError({ error: new OfflineError() });
     }
 
     return;
@@ -250,7 +251,7 @@ async function doUpdate({
     }
 
     if (onUpdateError) {
-      onUpdateError(e, { nextRetry, retryCount });
+      onUpdateError({ error: e, nextRetry, retryCount });
     }
   }
 }

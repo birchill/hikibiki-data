@@ -65,7 +65,7 @@ describe('updateWithRetry', function() {
       updateWithRetry({
         db,
         onUpdateComplete: resolve,
-        onUpdateError: reject,
+        onUpdateError: ({ error }) => reject(error),
       });
     });
   });
@@ -92,7 +92,7 @@ describe('updateWithRetry', function() {
       updateWithRetry({
         db,
         onUpdateComplete: resolve,
-        onUpdateError: reject,
+        onUpdateError: ({ error }) => reject(error),
       });
     });
     return assert.isRejected(retryPromise, /Forced error/);
@@ -115,7 +115,7 @@ describe('updateWithRetry', function() {
     const clock = sinon.useFakeTimers({ toFake: ['setTimeout'] });
 
     const errors: Array<{
-      e: Error;
+      error: Error;
       nextRetry?: Date;
       retryCount?: number;
     }> = [];
@@ -125,12 +125,8 @@ describe('updateWithRetry', function() {
       updateWithRetry({
         db,
         onUpdateComplete: resolve,
-        onUpdateError: (e, info) => {
-          errors.push({
-            e,
-            nextRetry: info.nextRetry,
-            retryCount: info.retryCount,
-          });
+        onUpdateError: params => {
+          errors.push(params);
           clock.next();
         },
       });
@@ -139,7 +135,7 @@ describe('updateWithRetry', function() {
     clock.restore();
 
     assert.lengthOf(errors, 1);
-    assert.equal(errors[0].e.name, 'DownloadError');
+    assert.equal(errors[0].error.name, 'DownloadError');
 
     const { nextRetry, retryCount } = errors[0];
     assert.instanceOf(nextRetry, Date);
@@ -180,8 +176,8 @@ describe('updateWithRetry', function() {
       updateWithRetry({
         db,
         onUpdateComplete: resolve,
-        onUpdateError: e => {
-          assert.equal(e.name, 'OfflineError');
+        onUpdateError: ({ error }) => {
+          assert.equal(error.name, 'OfflineError');
           gotOfflineError = true;
           isOnline = true;
           window.dispatchEvent(new Event('online'));
@@ -216,7 +212,7 @@ describe('updateWithRetry', function() {
     );
 
     const errors: Array<{
-      e: Error;
+      error: Error;
       nextRetry?: Date;
       retryCount?: number;
     }> = [];
@@ -225,20 +221,20 @@ describe('updateWithRetry', function() {
       updateWithRetry({
         db,
         onUpdateComplete: resolve,
-        onUpdateError: (e, info) => {
+        onUpdateError: ({ error, nextRetry, retryCount }) => {
           errors.push({
-            e,
-            nextRetry: info.nextRetry,
-            retryCount: info.retryCount,
+            error,
+            nextRetry,
+            retryCount,
           });
 
-          if (e.name === 'OfflineError') {
+          if (error.name === 'OfflineError') {
             isOnline = true;
             window.dispatchEvent(new Event('online'));
             return;
           }
 
-          if (info.retryCount && info.retryCount >= 1) {
+          if (retryCount && retryCount >= 1) {
             isOnline = false;
           }
 
@@ -251,13 +247,13 @@ describe('updateWithRetry', function() {
 
     assert.lengthOf(errors, 3);
 
-    assert.equal(errors[0].e.name, 'DownloadError');
+    assert.equal(errors[0].error.name, 'DownloadError');
     assert.strictEqual(errors[0].retryCount, 0);
 
-    assert.equal(errors[1].e.name, 'DownloadError');
+    assert.equal(errors[1].error.name, 'DownloadError');
     assert.strictEqual(errors[1].retryCount, 1);
 
-    assert.equal(errors[2].e.name, 'OfflineError');
+    assert.equal(errors[2].error.name, 'OfflineError');
     assert.strictEqual(errors[2].retryCount, undefined);
   });
 
@@ -295,7 +291,7 @@ describe('updateWithRetry', function() {
           secondCompletionCallbackCalled = true;
           resolve();
         },
-        onUpdateError: reject,
+        onUpdateError: ({ error }) => reject(error),
       });
     });
 
@@ -342,7 +338,7 @@ describe('updateWithRetry', function() {
         db,
         forceUpdate: true,
         onUpdateComplete: resolve,
-        onUpdateError: reject,
+        onUpdateError: ({ error }) => reject(error),
       });
     });
 
@@ -463,7 +459,7 @@ describe('updateWithRetry', function() {
     const clock = sinon.useFakeTimers({ toFake: ['setTimeout'] });
 
     const errors: Array<{
-      e: Error;
+      error: Error;
       retryInterval?: number;
       retryCount?: number;
     }> = [];
@@ -472,13 +468,13 @@ describe('updateWithRetry', function() {
       updateWithRetry({
         db,
         onUpdateComplete: resolve,
-        onUpdateError: (e, info) => {
+        onUpdateError: ({ error, nextRetry, retryCount }) => {
           errors.push({
-            e,
-            retryInterval: info.nextRetry
-              ? info.nextRetry.getTime() - Date.now()
+            error,
+            retryInterval: nextRetry
+              ? nextRetry.getTime() - Date.now()
               : undefined,
-            retryCount: info.retryCount,
+            retryCount,
           });
           clock.next();
         },
