@@ -542,14 +542,20 @@ describe('updateWithRetry', function() {
     const constraintError = new Error('Constraint error');
     constraintError.name = 'ConstraintError';
 
-    const stub = sinon.stub(db, 'update');
+    // We need to actually stub out the store method since we want the DB
+    // update state to reach 'upadtingdb' since we want to test that when
+    // we reach that condition we DON'T clear the retryCount.
+    const stub = sinon.stub(db.store, 'bulkUpdateTable');
     stub.throws(constraintError);
+
+    const errors: Array<Error> = [];
 
     const updateResult = new Promise((resolve, reject) => {
       updateWithRetry({
         db,
         onUpdateComplete: resolve,
         onUpdateError: ({ error, nextRetry }) => {
+          errors.push(error);
           if (!nextRetry) {
             reject(error);
           }
@@ -557,7 +563,12 @@ describe('updateWithRetry', function() {
       });
     });
 
-    return assert.isRejected(updateResult, constraintError);
+    await assert.isRejected(updateResult, constraintError);
+
+    // Wait a moment to check there are no further errors reported
+    await waitForAnimationFrames(1);
+
+    assert.lengthOf(errors, 1);
   });
 });
 

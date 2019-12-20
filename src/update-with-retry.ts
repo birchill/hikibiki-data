@@ -350,8 +350,16 @@ function onDatabaseChange(db: KanjiDatabase, topic: ChangeTopic) {
   }
 
   // If we successfully downloaded *something*, reset the retry interval.
+  //
+  // We should only do this if there is a retry interval set, however, since
+  // we DON'T want to reset the retry count if we are retrying due to a database
+  // error (i.e. in the phase AFTER 'updatingdb').
   const currentRetryStatus = inProgressUpdates.get(db);
-  if (currentRetryStatus && db.updateState.state === 'updatingdb') {
+  if (
+    currentRetryStatus &&
+    currentRetryStatus.retryIntervalMs &&
+    db.updateState.state === 'updatingdb'
+  ) {
     inProgressUpdates.set(db, {
       ...currentRetryStatus,
       retryIntervalMs: undefined,
