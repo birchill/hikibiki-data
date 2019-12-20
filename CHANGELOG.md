@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.2.1](https://github.com/birchill/hikibiki-data/compare/v2.2.0...v2.2.1) (2019-12-20)
+
+
+### Bug Fixes
+
+* Don't reset the retryCount on successful download if we failed due to a database update ([cdd7b3f](https://github.com/birchill/hikibiki-data/commit/cdd7b3f71ebc9e9609de32cc759bfd0a35285dbc))
+* Don't update the database version until we have successfully committed the data ([1b220b5](https://github.com/birchill/hikibiki-data/commit/1b220b5ac26aeb6757e3fcf44d95b2c92c00fc7f))
+
 ## [2.2.0](https://github.com/birchill/hikibiki-data/compare/v2.1.0...v2.2.0) (2019-12-20)
 
 
