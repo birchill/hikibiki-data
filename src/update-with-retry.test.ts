@@ -497,6 +497,68 @@ describe('updateWithRetry', function() {
       [0, 1, 0]
     );
   });
+
+  it('should retry when saving to the database fails', async () => {
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.mock(
+      'end:kanjidb-rc-en-1.0.0-full.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+{"c":"㐂","r":{},"m":[],"rad":{"x":1},"refs":{"nelson_c":265,"halpern_njecd":2028},"misc":{"sc":6}}
+`
+    );
+    fetchMock.mock(
+      'end:bushudb-rc-en-1.0.0-full.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+`
+    );
+
+    const stub = sinon.stub(db, 'update');
+    stub.onFirstCall().throws('ConstraintError');
+    stub.onSecondCall().throws('ConstraintError');
+
+    await new Promise((resolve, reject) => {
+      updateWithRetry({
+        db,
+        onUpdateComplete: resolve,
+        onUpdateError: ({ error }) => reject(error),
+      });
+    });
+  });
+
+  it('should give up after saving to the database fails too many times', async () => {
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.mock(
+      'end:kanjidb-rc-en-1.0.0-full.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+{"c":"㐂","r":{},"m":[],"rad":{"x":1},"refs":{"nelson_c":265,"halpern_njecd":2028},"misc":{"sc":6}}
+`
+    );
+    fetchMock.mock(
+      'end:bushudb-rc-en-1.0.0-full.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+`
+    );
+
+    const constraintError = new Error('Constraint error');
+    constraintError.name = 'ConstraintError';
+
+    const stub = sinon.stub(db, 'update');
+    stub.throws(constraintError);
+
+    const updateResult = new Promise((resolve, reject) => {
+      updateWithRetry({
+        db,
+        onUpdateComplete: resolve,
+        onUpdateError: ({ error, nextRetry }) => {
+          if (!nextRetry) {
+            reject(error);
+          }
+        },
+      });
+    });
+
+    return assert.isRejected(updateResult, constraintError);
+  });
 });
 
 function waitForAnimationFrames(frameCount: number): Promise<void> {

@@ -1,10 +1,15 @@
 import { ChangeCallback, ChangeTopic, KanjiDatabase } from './database';
 import { DownloadError } from './download';
+import {
+  requestIdleCallback,
+  cancelIdleCallback,
+} from './request-idle-callback';
 
 interface RetryStatus {
   onlineCallback?: () => any;
   changeCallback: ChangeCallback;
   setTimeoutHandle?: number;
+  requestIdleCallbackHandle?: number;
   retryIntervalMs?: number;
   retryCount?: number;
 }
@@ -198,17 +203,17 @@ async function doUpdate({
       console.log(e);
     }
 
+    // Retry network errors at descreasing intervals
     const isNetworkError = e instanceof DownloadError;
-    const wasCanceled = !inProgressUpdates.has(db);
+    const currentRetryStatus = inProgressUpdates.get(db);
+    const wasCanceled = !currentRetryStatus;
 
     let retryIntervalMs: number | undefined;
     let retryCount: number | undefined;
     let nextRetry: Date | undefined;
+    let suppressError: boolean = false;
 
     if (isNetworkError && !wasCanceled) {
-      // We read/store the retryIntervalMs in the retry status so we can reset
-      // it when we get a forced request.
-      const currentRetryStatus = inProgressUpdates.get(db);
       if (currentRetryStatus) {
         retryIntervalMs = currentRetryStatus.retryIntervalMs;
         retryCount = currentRetryStatus.retryCount;
@@ -246,12 +251,50 @@ async function doUpdate({
         retryIntervalMs,
         retryCount,
       });
+    } else if (
+      e &&
+      e.name === 'ConstraintError' &&
+      (!currentRetryStatus ||
+        !currentRetryStatus.retryCount ||
+        currentRetryStatus.retryCount < 2)
+    ) {
+      if (currentRetryStatus) {
+        retryCount = currentRetryStatus.retryCount;
+      }
+      retryCount = typeof retryCount === 'number' ? retryCount + 1 : 0;
+
+      if (db.verbose) {
+        console.log('Retrying update momentarily');
+      }
+
+      const requestIdleCallbackHandle = requestIdleCallback(
+        () => {
+          if (db.verbose) {
+            console.log('Running automatic retry of update...');
+          }
+
+          doUpdate({
+            db,
+            onUpdateComplete,
+            onUpdateError,
+          });
+        },
+        { timeout: 2000 }
+      );
+
+      setInProgressUpdate(db, {
+        requestIdleCallbackHandle,
+        retryCount,
+      });
+
+      suppressError = true;
     } else {
       deleteInProgressUpdate(db);
     }
 
-    if (onUpdateError) {
-      onUpdateError({ error: e, nextRetry, retryCount });
+    if (!suppressError && onUpdateError) {
+      const error = e instanceof Error ? e : new Error(String(e));
+      onUpdateError({ error, nextRetry, retryCount });
     }
   }
 }
@@ -261,6 +304,7 @@ function setInProgressUpdate(
   {
     onlineCallback,
     setTimeoutHandle,
+    requestIdleCallbackHandle,
     retryIntervalMs,
     retryCount,
   }: Omit<RetryStatus, 'changeCallback'>
@@ -279,6 +323,7 @@ function setInProgressUpdate(
     onlineCallback,
     changeCallback,
     setTimeoutHandle,
+    requestIdleCallbackHandle,
     retryIntervalMs,
     retryCount,
   });
@@ -321,10 +366,17 @@ export async function cancelUpdateWithRetry(db: KanjiDatabase) {
     return;
   }
 
-  const { setTimeoutHandle, onlineCallback } = currentRetryStatus;
+  const {
+    setTimeoutHandle,
+    requestIdleCallbackHandle,
+    onlineCallback,
+  } = currentRetryStatus;
 
   if (setTimeoutHandle) {
     clearTimeout(setTimeoutHandle);
+  }
+  if (requestIdleCallbackHandle) {
+    cancelIdleCallback(requestIdleCallbackHandle);
   }
   if (onlineCallback) {
     removeEventListener('online', onlineCallback);
