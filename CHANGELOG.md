@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.2.0](https://github.com/birchill/hikibiki-data/compare/v2.1.0...v2.2.0) (2019-12-20)
+
+
+### Features
+
+* Add auto-retry on ConstraintErrors ([d40b241](https://github.com/birchill/hikibiki-data/commit/d40b241a9ecef2bded8e3587c364294289b3b720))
+
 ## [2.1.0](https://github.com/birchill/hikibiki-data/compare/v2.0.0...v2.1.0) (2019-12-18)
 
 
