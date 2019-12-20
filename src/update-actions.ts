@@ -22,6 +22,11 @@ export type FinishDownloadAction = {
   version: DatabaseVersion;
 };
 
+export type FinishPatchAction = {
+  type: 'finishpatch';
+  version: DatabaseVersion;
+};
+
 export type FinishAction = {
   type: 'finish';
   checkDate: Date;
@@ -37,5 +42,6 @@ export type UpdateAction =
   | StartDownloadAction
   | ProgressAction
   | FinishDownloadAction
+  | FinishPatchAction
   | FinishAction
   | ErrorAction;

@@ -62,6 +62,7 @@ describe('updateKanji', function() {
     assert.deepEqual(actions, [
       { type: 'startdownload', dbName: 'kanjidb', version: VERSION_1_0_0 },
       { type: 'finishdownload', version: VERSION_1_0_0 },
+      { type: 'finishpatch', version: VERSION_1_0_0 },
     ]);
   });
 
@@ -242,6 +243,7 @@ describe('updateKanji', function() {
       { type: 'progress', loaded: 0, total: 1 },
       { type: 'progress', loaded: 1, total: 1 },
       { type: 'finishdownload', version: VERSION_1_0_0 },
+      { type: 'finishpatch', version: VERSION_1_0_0 },
     ]);
   });
 

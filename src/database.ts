@@ -240,7 +240,7 @@ export class KanjiDatabase {
 
     const reducer = (action: UpdateAction) => {
       this.updateState = updateReducer(this.updateState, action);
-      if (action.type === 'finishdownload') {
+      if (action.type === 'finishpatch') {
         wroteSomething = true;
         this.updateDbVersion(dbName, action.version);
       }

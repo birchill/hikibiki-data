@@ -158,8 +158,12 @@ async function update<
     recordsToPut = [];
     recordsToDelete = [];
 
+    const appliedVersion = currentVersion;
+
     currentVersion = undefined;
     partialVersion = false;
+
+    callback({ type: 'finishpatch', version: appliedVersion });
   };
 
   while (true) {

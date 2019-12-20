@@ -1,6 +1,7 @@
 import chai, { assert } from 'chai';
 import chaiDateTime from 'chai-datetime';
 import fetchMock from 'fetch-mock';
+import sinon from 'sinon';
 
 import { DownloadError, DownloadErrorCode } from './download';
 import { DatabaseState, KanjiDatabase } from './database';
@@ -43,6 +44,7 @@ describe('database', function() {
 
   afterEach(async () => {
     fetchMock.restore();
+    sinon.restore();
     if (db) {
       await db.destroy();
     }
@@ -259,6 +261,38 @@ describe('database', function() {
 
     assert.equal(db.updateState.state, 'idle');
     assert.isDefined(db.updateState.lastCheck);
+  });
+
+  it('should not update the database version if the update failed', async () => {
+    await db.ready;
+    assert.isNull(db.dbVersions.kanjidb);
+
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.mock(
+      'end:kanjidb-rc-en-1.0.0-full.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+`
+    );
+    fetchMock.mock(
+      'end:bushudb-rc-en-1.0.0-full.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+`
+    );
+
+    const constraintError = new Error('Constraint error');
+    constraintError.name = 'ConstraintError';
+
+    const stub = sinon.stub(db.store, 'bulkUpdateTable');
+    stub.throws(constraintError);
+
+    try {
+      await db.update();
+    } catch (e) {
+      // Ignore
+    }
+
+    assert.strictEqual(db.dbVersions.kanjidb, null);
+    assert.equal(db.state, DatabaseState.Empty);
   });
 
   it('should fetch kanji', async () => {
