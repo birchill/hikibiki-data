@@ -95,8 +95,8 @@ export class DownloadError extends Error {
     super(...params);
     Object.setPrototypeOf(this, DownloadError.prototype);
 
-    if (typeof Error.captureStackTrace === 'function') {
-      Error.captureStackTrace(this, DownloadError);
+    if (typeof (Error as any).captureStackTrace === 'function') {
+      (Error as any).captureStackTrace(this, DownloadError);
     }
 
     this.name = 'DownloadError';

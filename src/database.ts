@@ -66,8 +66,8 @@ export class AbortError extends Error {
     super(...params);
     Object.setPrototypeOf(this, AbortError.prototype);
 
-    if (typeof Error.captureStackTrace === 'function') {
-      Error.captureStackTrace(this, AbortError);
+    if (typeof (Error as any).captureStackTrace === 'function') {
+      (Error as any).captureStackTrace(this, AbortError);
     }
 
     this.name = 'AbortError';
