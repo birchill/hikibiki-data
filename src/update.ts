@@ -179,9 +179,7 @@ async function update<
       throw e;
     }
 
-    const { done, value } = readResult;
-
-    if (done) {
+    if (readResult.done) {
       if (inProgressUpdates.has(store)) {
         inProgressUpdates.delete(store);
         if (currentVersion) {
@@ -192,6 +190,8 @@ async function update<
       }
       return;
     }
+
+    const value = readResult.value;
 
     switch (value.type) {
       case 'version':
