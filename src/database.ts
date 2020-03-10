@@ -537,16 +537,76 @@ export class KanjiDatabase {
     const result: Array<KanjiResult['comp']> = [];
     for (const record of kanjiRecords) {
       const comp: KanjiResult['comp'] = [];
+
+      // Get the radical record so we can compare any components that should be
+      // pointing to the radical variant.
+      const radical = radicals.get(radicalIdForKanji(record));
+
       for (const c of record.comp ? [...record.comp] : []) {
         if (radicalMap.has(c)) {
-          const radicalRecord = radicals.get(radicalMap.get(c)!);
+          let radicalRecord = radicals.get(radicalMap.get(c)!);
           if (radicalRecord) {
-            comp.push({
-              c,
-              na: radicalRecord.na,
-              m: radicalRecord.m,
-              m_lang: radicalRecord.m_lang || lang,
-            });
+            // Handle radical variants. There are three cases here:
+            //
+            // (a) One is that we have a radical variant but there is no
+            //     separate unicode codepoint for it, hence we'd end up
+            //     displaying the base radical if we don't take care to look up
+            //     the variant.
+            //
+            //     e.g. We have 引 where the radical is 57-hen i.e. ゆみへん but
+            //     the component simply has ⼸⼁.
+            //
+            //     Typically we'd look up ⼸ in the character to radical mapping
+            //     and get back the base radical. However, we have enough
+            //     information here to do better. Since we know ⼸ represents
+            //     the same radical as the character's radical, we can use the
+            //     variant specified for the character.
+            //
+            // (b) A similar case is where we have something like 胸 where the
+            //     radical is 130-2 (i.e. にくづき from 肉) but where the
+            //     component itself is ⽉. ⽉would normally match against
+            //     radical 74 (つき) but since we know the radical also has
+            //     character ⽉, we can just use the radical which we'll mean we
+            //     get the correct component.
+            //
+            // (c) The other is where we have a specific 'compvar' record
+            //     telling us which variant to use for certain components.
+
+            // Case (a) or (b)
+            if (
+              radical &&
+              ((radical.b && radical.b === radicalRecord.b) ||
+                (radical.k && radical.k === radicalRecord.k))
+            ) {
+              radicalRecord = radical;
+            }
+            // Case (c)
+            else if (record.compvar) {
+              // We do this the slow way -- looking up each variant one-by-one
+              // since this allows us to match on _characters_ (which we need in
+              // order to associate ⽉ with にくづき) and saves us from having
+              // to parse the variant selector.
+              for (const variantId of record.compvar) {
+                const variant = radicals.get(variantId);
+                if (
+                  variant &&
+                  ((variant.b && variant.b === radicalRecord.b) ||
+                    (variant.k && variant.k === radicalRecord.k))
+                ) {
+                  radicalRecord = variant;
+                  break;
+                }
+              }
+            }
+
+            if (radicalRecord) {
+              comp.push({
+                c,
+                na: radicalRecord.na,
+                m: radicalRecord.m,
+                m_lang: radicalRecord.m_lang || lang,
+              });
+            }
           }
         } else if (kanjiMap.has(c)) {
           const kanjiRecord = kanjiMap.get(c);
@@ -659,6 +719,15 @@ export class KanjiDatabase {
         }
         if (radical.r !== baseRadical.r) {
           throw new Error('Radicals out of order--ID mismatch');
+        }
+        // Skip 130-2. This one is special. It's にくづき which has the same
+        // unicode codepoint as つき but we don't want to clobber that record
+        // (which we'll end up doing because they have different base radicals).
+        //
+        // Instead, we'll take care to pick up variants like this in
+        // getComponentsForKanji.
+        if (radical.id === '130-2') {
+          continue;
         }
         if (radical.b && radical.b !== baseRadical.b) {
           mapping.set(radical.b, radical.id);
