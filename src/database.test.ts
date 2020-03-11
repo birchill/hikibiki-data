@@ -22,8 +22,8 @@ const VERSION_1_0_0 = {
     },
   },
   bushudb: {
-    '1': {
-      major: 1,
+    '2': {
+      major: 2,
       minor: 0,
       patch: 0,
       snapshot: 0,
@@ -70,8 +70,8 @@ describe('database', function() {
 `
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+      'end:bushudb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `
     );
 
@@ -95,8 +95,8 @@ describe('database', function() {
 `
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+      'end:bushudb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `
     );
 
@@ -117,8 +117,8 @@ describe('database', function() {
 `
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+      'end:bushudb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `
     );
 
@@ -166,8 +166,8 @@ describe('database', function() {
       `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}`
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+      'end:bushudb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `
     );
 
@@ -274,8 +274,8 @@ describe('database', function() {
 `
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+      'end:bushudb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `
     );
 
@@ -307,8 +307,8 @@ describe('database', function() {
 `
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":3}
+      'end:bushudb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":3}
 {"id":"002","r":2,"b":"⼁","k":"｜","s":1,"na":["たてぼう","ぼう"],"m":["stick"]}
 {"id":"057","r":57,"b":"⼸","k":"弓","s":3,"na":["ゆみ"],"m":["bow","bow (archery, violin)"]}
 {"id":"057-hen","r":57,"b":"⼸","k":"弓","pua":59218,"s":3,"na":["ゆみへん"],"m":["bow","bow (archery, violin)"],"posn":"hen"}
@@ -391,8 +391,8 @@ describe('database', function() {
 `
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":4}
+      'end:bushudb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":4}
 {"id":"101","r":101,"b":"⽤","k":"用","s":5,"na":["もちいる"],"m":["utilize","business","service","use","employ"]}
 {"id":"162","r":162,"b":"⾡","k":"辵","s":3,"na":["しんにょう","しんにゅう"],"m":["road","walk","to advance","move ahead"]}
 {"id":"162-nyou","r":162,"b":"⻌","k":"辶","s":3,"na":["しんにょう","しんにゅう"],"m":["road","walk","to advance","move ahead"],"posn":"nyou"}
@@ -440,8 +440,8 @@ describe('database', function() {
 `
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":5}
+      'end:bushudb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":5}
 {"id":"020","r":20,"b":"⼓","k":"勹","s":2,"na":["つつみがまえ","くがまえ"],"m":["wrapping"],"posn":"kamae"}
 {"id":"074","r":74,"b":"⽉","k":"月","s":4,"na":["つき"],"m":["month","moon"]}
 {"id":"074-hen","r":74,"b":"⺝","s":4,"na":["つきへん"],"m":["month","moon"],"posn":"hen"}
@@ -521,8 +521,8 @@ describe('database', function() {
 `
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":7}
+      'end:bushudb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":7}
 {"id":"019","r":19,"b":"⼒","k":"力","s":2,"na":["ちから"],"m":["power","strength","strong","strain","bear up","exert"]}
 {"id":"074","r":74,"b":"⽉","k":"月","s":4,"na":["つき"],"m":["month","moon"]}
 {"id":"074-hen","r":74,"b":"⺝","s":4,"na":["つきへん"],"m":["month","moon"],"posn":"hen"}

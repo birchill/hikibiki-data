@@ -20,7 +20,7 @@ import {
 } from './update';
 
 const KANJIDB_MAJOR_VERSION = 1;
-const BUSHUDB_MAJOR_VERSION = 1;
+const BUSHUDB_MAJOR_VERSION = 2;
 
 export const enum DatabaseState {
   // We don't know yet if we have a database or not

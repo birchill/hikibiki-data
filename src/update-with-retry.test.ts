@@ -23,8 +23,8 @@ const VERSION_1_0_0 = {
     },
   },
   bushudb: {
-    '1': {
-      major: 1,
+    '2': {
+      major: 2,
       minor: 0,
       patch: 0,
       snapshot: 0,
@@ -56,8 +56,8 @@ describe('updateWithRetry', function() {
 `
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+      'end:bushudb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `
     );
 
@@ -78,8 +78,8 @@ describe('updateWithRetry', function() {
 `
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+      'end:bushudb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `
     );
 
@@ -107,8 +107,8 @@ describe('updateWithRetry', function() {
 `
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+      'end:bushudb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `
     );
 
@@ -157,8 +157,8 @@ describe('updateWithRetry', function() {
 `
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+      'end:bushudb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `
     );
 
@@ -197,8 +197,8 @@ describe('updateWithRetry', function() {
 `
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+      'end:bushudb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `
     );
 
@@ -266,8 +266,8 @@ describe('updateWithRetry', function() {
 `
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+      'end:bushudb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `
     );
 
@@ -311,8 +311,8 @@ describe('updateWithRetry', function() {
 `
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+      'end:bushudb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `
     );
 
@@ -354,8 +354,8 @@ describe('updateWithRetry', function() {
 `
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+      'end:bushudb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `
     );
 
@@ -401,8 +401,8 @@ describe('updateWithRetry', function() {
 `
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+      'end:bushudb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `
     );
 
@@ -447,9 +447,9 @@ describe('updateWithRetry', function() {
 
     // Make bushudb file fail only once
     let callCount = 0;
-    fetchMock.mock('end:bushudb-rc-en-1.0.0-full.ljson', () => {
+    fetchMock.mock('end:bushudb-rc-en-2.0.0-full.ljson', () => {
       if (callCount++) {
-        return `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+        return `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `;
       } else {
         return 404;
@@ -507,8 +507,8 @@ describe('updateWithRetry', function() {
 `
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+      'end:bushudb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `
     );
 
@@ -534,8 +534,8 @@ describe('updateWithRetry', function() {
 `
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+      'end:bushudb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `
     );
 
