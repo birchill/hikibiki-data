@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.3.0](https://github.com/birchill/hikibiki-data/compare/v2.2.2...v2.3.0) (2020-03-11)
+
+
+### Features
+
+* Add better handling of radical and component variants ([2323d91](https://github.com/birchill/hikibiki-data/commit/2323d91079b8f5beea6f5bda96606072293f7608))
+* Update to using bushu database version 2 ([a005e92](https://github.com/birchill/hikibiki-data/commit/a005e924dcd340e5e8f4f40077862361128661e9))
+
 ### [2.2.2](https://github.com/birchill/hikibiki-data/compare/v2.2.1...v2.2.2) (2020-02-24)
 
 ### [2.2.1](https://github.com/birchill/hikibiki-data/compare/v2.2.0...v2.2.1) (2019-12-20)
