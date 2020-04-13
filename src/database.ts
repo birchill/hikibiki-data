@@ -18,6 +18,7 @@ import {
   updateRadicals,
   UpdateOptions,
 } from './update';
+import { stripFields } from './utils';
 
 const KANJIDB_MAJOR_VERSION = 2;
 const BUSHUDB_MAJOR_VERSION = 2;
@@ -35,7 +36,7 @@ export const enum DatabaseState {
 }
 
 export interface KanjiResult
-  extends Omit<KanjiEntryLine, 'rad' | 'comp' | 'm_lang'> {
+  extends Omit<KanjiEntryLine, 'rad' | 'comp' | 'm_lang' | 'var' | 'cf'> {
   m_lang: string;
   rad: {
     x: number;
@@ -68,6 +69,7 @@ export interface KanjiResult
     m: Array<string>;
     m_lang: string;
   }>;
+  cf: Array<string>;
 }
 
 export class AbortError extends Error {
@@ -448,17 +450,19 @@ export class KanjiDatabase {
     }
 
     // Zip the arrays together
-    return kanjiRecords.map((record, i) => {
-      const result = {
-        ...record,
-        c: String.fromCodePoint(record.c),
-        m_lang: record.m_lang || lang,
-        rad: radicalResults[i],
-        comp: componentResults[i],
-      };
-      delete result.var;
-      return result;
-    });
+    return kanjiRecords.map((record, i) =>
+      stripFields(
+        {
+          ...record,
+          c: String.fromCodePoint(record.c),
+          m_lang: record.m_lang || lang,
+          rad: radicalResults[i],
+          comp: componentResults[i],
+          cf: record.cf ? [...record.cf] : [],
+        },
+        ['var']
+      )
+    );
   }
 
   private async getRadicalForKanji(

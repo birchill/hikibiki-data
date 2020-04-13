@@ -10,6 +10,7 @@ export interface KanjiEntryLine {
   misc: Misc;
   comp?: string;
   var?: string | Array<string>;
+  cf?: string;
 }
 
 interface Readings {

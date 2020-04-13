@@ -380,6 +380,7 @@ describe('database', function () {
           },
         ],
         m_lang: 'en',
+        cf: [],
       },
     ];
 
@@ -513,6 +514,7 @@ describe('database', function () {
           },
         ],
         m_lang: 'en',
+        cf: [],
       },
     ];
 
@@ -598,6 +600,7 @@ describe('database', function () {
           },
         ],
         m_lang: 'en',
+        cf: [],
       },
     ];
 
