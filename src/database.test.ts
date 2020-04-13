@@ -364,9 +364,16 @@ describe('database', function () {
         },
         misc: { sc: 4, gr: 2, freq: 218, jlpt: 3, kk: 9 },
         comp: [
-          { c: '⼁', na: ['たてぼう', 'ぼう'], m: ['stick'], m_lang: 'en' },
+          {
+            c: '⼁',
+            k: '｜',
+            na: ['たてぼう', 'ぼう'],
+            m: ['stick'],
+            m_lang: 'en',
+          },
           {
             c: '⼸',
+            k: '弓',
             na: ['ゆみへん'],
             m: ['bow', 'bow (archery, violin)'],
             m_lang: 'en',
@@ -414,12 +421,14 @@ describe('database', function () {
       },
       {
         c: '⽤',
+        k: '用',
         na: ['もちいる'],
         m: ['utilize', 'business', 'service', 'use', 'employ'],
         m_lang: 'en',
       },
       {
         c: '⻌',
+        k: '辵',
         na: ['しんにょう', 'しんにゅう'],
         m: ['road', 'walk', 'to advance', 'move ahead'],
         m_lang: 'en',
@@ -488,9 +497,10 @@ describe('database', function () {
         },
         misc: { sc: 10, gr: 6, freq: 1144, jlpt: 2, kk: 5 },
         comp: [
-          { c: '⽉', na: ['にくづき'], m: ['meat'], m_lang: 'en' },
+          { c: '⽉', k: '肉', na: ['にくづき'], m: ['meat'], m_lang: 'en' },
           {
             c: '⼓',
+            k: '勹',
             na: ['つつみがまえ', 'くがまえ'],
             m: ['wrapping'],
             m_lang: 'en',
@@ -573,13 +583,15 @@ describe('database', function () {
         comp: [
           {
             c: '⺮',
+            k: '竹',
             na: ['たけかんむり'],
             m: ['bamboo'],
             m_lang: 'en',
           },
-          { c: '⽉', na: ['にくづき'], m: ['meat'], m_lang: 'en' },
+          { c: '⽉', k: '肉', na: ['にくづき'], m: ['meat'], m_lang: 'en' },
           {
             c: '⼒',
+            k: '力',
             na: ['ちから'],
             m: ['power', 'strength', 'strong', 'strain', 'bear up', 'exert'],
             m_lang: 'en',

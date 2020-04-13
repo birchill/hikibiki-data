@@ -56,6 +56,15 @@ export interface KanjiResult
   comp: Array<{
     c: string;
     na: Array<string>;
+    // An optional field indicating the kanji character to link to.
+    //
+    // For example, if the component is ⺮, one might want to look up other
+    // kanji with that component, but they also might want to look up the
+    // corresponding kanji for the component, i.e. 竹.
+    //
+    // For kanji / katakana components this is empty. For radical components
+    // this is the kanji of the base radical, if any.
+    k?: string;
     m: Array<string>;
     m_lang: string;
   }>;
@@ -531,8 +540,26 @@ export class KanjiDatabase {
       );
     }
 
-    // Now fill out the information
+    // Setup a utility for dealing with radicals
     const radicals = await this.getRadicals();
+    const createComponentFromRadical = (
+      c: string,
+      radicalRecord: RadicalRecord
+    ): KanjiResult['comp'][0] => {
+      const result: KanjiResult['comp'][0] = {
+        c,
+        na: radicalRecord.na,
+        m: radicalRecord.m,
+        m_lang: radicalRecord.m_lang || lang,
+      };
+      const baseRadical = radicals.get(formatRadicalId(radicalRecord.r));
+      if (baseRadical && baseRadical.k) {
+        result.k = baseRadical.k;
+      }
+      return result;
+    };
+
+    // Now fill out the information
     const result: Array<KanjiResult['comp']> = [];
     for (const record of kanjiRecords) {
       const comp: KanjiResult['comp'] = [];
@@ -547,32 +574,29 @@ export class KanjiDatabase {
         // a) An ASCII string identifying a radical variant.
         //    e.g. 130-2, 118-kanmuri.
         //
-        // b) A CJK character representing a radical, kanji, or even katakana
-        //    character.
-        //    e.g. ⼒ (radical), 斉 (kanji), ム (katakana)
+        // b) A CJK character representing:
+        //
+        //    i) a radical, e.g. ⼒
+        //    ii) a kanji character, e.g. 斉
+        //    iii) or even a katakana character, e.g. ム
         //
         const firstCodePoint = c.codePointAt(0)!;
         if (firstCodePoint >= 48 && firstCodePoint <= 57) {
           const radicalRecord = radicals.get(c);
           if (radicalRecord) {
-            comp.push({
-              c: (radicalRecord.b || radicalRecord.k)!,
-              na: radicalRecord.na,
-              m: radicalRecord.m,
-              m_lang: radicalRecord.m_lang || lang,
-            });
+            comp.push(
+              createComponentFromRadical(
+                (radicalRecord.b || radicalRecord.k)!,
+                radicalRecord
+              )
+            );
           } else {
             this.logWarningMessage(`Couldn't find radical record ${c}`);
           }
         } else if (radicalMap.has(c)) {
           const radicalRecord = radicals.get(radicalMap.get(c)!);
           if (radicalRecord) {
-            comp.push({
-              c,
-              na: radicalRecord.na,
-              m: radicalRecord.m,
-              m_lang: radicalRecord.m_lang || lang,
-            });
+            comp.push(createComponentFromRadical(c, radicalRecord));
           } else {
             this.logWarningMessage(`Couldn't find radical record for ${c}`);
           }
@@ -721,8 +745,12 @@ export class KanjiDatabase {
   }
 }
 
+function formatRadicalId(id: number): string {
+  return id.toString().padStart(3, '0');
+}
+
 function baseRadicalIdForKanji(record: KanjiRecord): string {
-  return record.rad.x.toString().padStart(3, '0');
+  return formatRadicalId(record.rad.x);
 }
 
 function radicalIdForKanji(record: KanjiRecord): string {
