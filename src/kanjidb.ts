@@ -8,8 +8,7 @@ export interface KanjiEntryLine {
   rad: Radical;
   refs: References;
   misc: Misc;
-  comp?: string;
-  compvar?: Array<string>;
+  comp?: Array<string>;
 }
 
 interface Readings {
@@ -84,9 +83,7 @@ export function isKanjiEntryLine(a: any): a is KanjiEntryLine {
     (typeof a.misc.jlpt === 'undefined' || typeof a.misc.jlpt === 'number') &&
     (typeof a.misc.kk === 'undefined' || typeof a.misc.kk === 'number') &&
     // comp
-    (typeof a.comp === 'undefined' || typeof a.comp === 'string') &&
-    // compvar
-    (typeof a.compvar === 'undefined' || isArrayOfStrings(a.compvar)) &&
+    (typeof a.comp === 'undefined' || isArrayOfStrings(a.comp)) &&
     // deleted (should NOT be present)
     typeof a.deleted === 'undefined'
   );

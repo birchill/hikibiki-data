@@ -10,10 +10,10 @@ import { stripFields } from './utils';
 mocha.setup('bdd');
 chai.use(chaiDateTime);
 
-const VERSION_1_0_0 = {
+const VERSION_2_0_0 = {
   kanjidb: {
-    '1': {
-      major: 1,
+    '2': {
+      major: 2,
       minor: 0,
       patch: 0,
       snapshot: 0,
@@ -32,7 +32,7 @@ const VERSION_1_0_0 = {
   },
 };
 
-describe('database', function() {
+describe('database', function () {
   let db: KanjiDatabase;
 
   // We seem to be timing out on Chrome recently
@@ -63,10 +63,10 @@ describe('database', function() {
     await db.ready;
     assert.isNull(db.dbVersions.kanjidb);
 
-    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_2_0_0);
     fetchMock.mock(
-      'end:kanjidb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+      'end:kanjidb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
 `
     );
     fetchMock.mock(
@@ -79,7 +79,7 @@ describe('database', function() {
 
     assert.deepEqual(
       stripFields(db.dbVersions.kanjidb!, ['lang']),
-      stripFields(VERSION_1_0_0.kanjidb['1'], ['snapshot'])
+      stripFields(VERSION_2_0_0.kanjidb['2'], ['snapshot'])
     );
     assert.equal(db.state, DatabaseState.Ok);
   });
@@ -88,10 +88,10 @@ describe('database', function() {
     await db.ready;
     assert.deepEqual(db.updateState, { state: 'idle', lastCheck: null });
 
-    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_2_0_0);
     fetchMock.mock(
-      'end:kanjidb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+      'end:kanjidb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
 `
     );
     fetchMock.mock(
@@ -110,10 +110,10 @@ describe('database', function() {
   });
 
   it('should ignore redundant calls to update', async () => {
-    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_2_0_0);
     fetchMock.mock(
-      'end:kanjidb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+      'end:kanjidb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
 `
     );
     fetchMock.mock(
@@ -128,7 +128,7 @@ describe('database', function() {
     await Promise.all([firstUpdate, secondUpdate]);
 
     assert.equal(
-      fetchMock.calls('end:kanjidb-rc-en-1.0.0-full.ljson').length,
+      fetchMock.calls('end:kanjidb-rc-en-2.0.0-full.ljson').length,
       1,
       'Should only fetch things once'
     );
@@ -160,10 +160,10 @@ describe('database', function() {
   });
 
   it('should allow canceling the update', async () => {
-    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_2_0_0);
     fetchMock.mock(
-      'end:kanjidb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}`
+      'end:kanjidb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}`
     );
     fetchMock.mock(
       'end:bushudb-rc-en-2.0.0-full.ljson',
@@ -193,15 +193,15 @@ describe('database', function() {
   it('should allow canceling the update mid-stream', async () => {
     fetchMock.mock('end:jpdict-rc-en-version.json', {
       kanjidb: {
-        '1': {
-          ...VERSION_1_0_0.kanjidb['1'],
+        '2': {
+          ...VERSION_2_0_0.kanjidb['2'],
           patch: 1,
         },
       },
     });
     // (We need to cancel from this second request, otherwise we don't seem to
     // exercise the code path where we actually cancel the reader.)
-    fetchMock.mock('end:kanjidb-rc-en-1.0.0-full.ljson', () => {
+    fetchMock.mock('end:kanjidb-rc-en-2.0.0-full.ljson', () => {
       db.cancelUpdate();
       return '';
     });
@@ -221,7 +221,7 @@ describe('database', function() {
     assert.deepEqual(db.updateState, { state: 'idle', lastCheck: null });
 
     assert.isFalse(
-      fetchMock.called('end:kanjidb-rc-en-1.0.1-patch.ljson'),
+      fetchMock.called('end:kanjidb-rc-en-2.0.1-patch.ljson'),
       'Should not download next data file'
     );
   });
@@ -229,20 +229,20 @@ describe('database', function() {
   it('should update the last check time if we wrote something', async () => {
     fetchMock.mock('end:jpdict-rc-en-version.json', {
       kanjidb: {
-        '1': {
-          ...VERSION_1_0_0.kanjidb['1'],
+        '2': {
+          ...VERSION_2_0_0.kanjidb['2'],
           patch: 1,
         },
       },
     });
     fetchMock.mock(
-      'end:kanjidb-rc-en-1.0.0-full.ljson',
+      'end:kanjidb-rc-en-2.0.0-full.ljson',
       `
-{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"2019-173","dateOfCreation":"2019-06-22"},"records":1}
+{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"2019-173","dateOfCreation":"2019-06-22"},"records":1}
 {"c":"㐂","r":{},"m":[],"rad":{"x":1},"refs":{"nelson_c":265,"halpern_njecd":2028},"misc":{"sc":6}}
 `
     );
-    fetchMock.mock('end:kanjidb-rc-en-1.0.1-patch.ljson', () => {
+    fetchMock.mock('end:kanjidb-rc-en-2.0.1-patch.ljson', () => {
       db.cancelUpdate();
       return '';
     });
@@ -267,10 +267,10 @@ describe('database', function() {
     await db.ready;
     assert.isNull(db.dbVersions.kanjidb);
 
-    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_2_0_0);
     fetchMock.mock(
-      'end:kanjidb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+      'end:kanjidb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
 `
     );
     fetchMock.mock(
@@ -299,11 +299,11 @@ describe('database', function() {
     await db.ready;
     assert.isNull(db.dbVersions.kanjidb);
 
-    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_2_0_0);
     fetchMock.mock(
-      'end:kanjidb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":1}
-{"c":"引","r":{"on":["イン"],"kun":["ひ.く","ひ.ける"],"na":["いな","ひき","ひけ","びき"]},"m":["pull","tug","jerk","admit","install","quote","refer to"],"rad":{"x":57,"var":"hen"},"refs":{"nelson_c":1562,"nelson_n":1681,"halpern_njecd":181,"halpern_kkld":133,"halpern_kkld_2ed":160,"heisig":1232,"heisig6":1318,"henshall":77,"sh_kk":216,"sh_kk2":216,"kanji_in_context":257,"busy_people":"3.2","kodansha_compact":605,"skip":"1-3-1","sh_desc":"3h1.1","conning":422},"misc":{"sc":4,"gr":2,"freq":218,"jlpt":3,"kk":9},"comp":"⼁⼸"}
+      'end:kanjidb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":1}
+{"c":"引","r":{"on":["イン"],"kun":["ひ.く","ひ.ける"],"na":["いな","ひき","ひけ","びき"]},"m":["pull","tug","jerk","admit","install","quote","refer to"],"rad":{"x":57,"var":"hen"},"refs":{"nelson_c":1562,"nelson_n":1681,"halpern_njecd":181,"halpern_kkld":133,"halpern_kkld_2ed":160,"heisig":1232,"heisig6":1318,"henshall":77,"sh_kk":216,"sh_kk2":216,"kanji_in_context":257,"busy_people":"3.2","kodansha_compact":605,"skip":"1-3-1","sh_desc":"3h1.1","conning":422},"misc":{"sc":4,"gr":2,"freq":218,"jlpt":3,"kk":9},"comp":["⼁","057-hen"]}
 `
     );
     fetchMock.mock(
@@ -383,11 +383,11 @@ describe('database', function() {
     await db.ready;
     assert.isNull(db.dbVersions.kanjidb);
 
-    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_2_0_0);
     fetchMock.mock(
-      'end:kanjidb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":1}
-{"c":"通","r":{"on":["ツウ","ツ"],"kun":["とお.る","とお.り","-とお.り","-どお.り","とお.す","とお.し","-どお.し","かよ.う"],"na":["とん","どうし","どおり","みち"]},"m":["traffic","pass through","avenue","commute","counter for letters, notes, documents, etc."],"rad":{"x":162,"var":"nyou"},"refs":{"nelson_c":4703,"nelson_n":6063,"halpern_njecd":3109,"halpern_kkld":1982,"halpern_kkld_2ed":2678,"heisig":1408,"heisig6":1511,"henshall":176,"sh_kk":150,"sh_kk2":150,"kanji_in_context":204,"busy_people":"3.11","kodansha_compact":695,"skip":"3-3-7","sh_desc":"2q7.18","conning":159},"misc":{"sc":9,"gr":2,"freq":80,"jlpt":3,"kk":9},"comp":"マ⽤⻌"}
+      'end:kanjidb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":1}
+{"c":"通","r":{"on":["ツウ","ツ"],"kun":["とお.る","とお.り","-とお.り","-どお.り","とお.す","とお.し","-どお.し","かよ.う"],"na":["とん","どうし","どおり","みち"]},"m":["traffic","pass through","avenue","commute","counter for letters, notes, documents, etc."],"rad":{"x":162,"var":"nyou"},"refs":{"nelson_c":4703,"nelson_n":6063,"halpern_njecd":3109,"halpern_kkld":1982,"halpern_kkld_2ed":2678,"heisig":1408,"heisig6":1511,"henshall":176,"sh_kk":150,"sh_kk2":150,"kanji_in_context":204,"busy_people":"3.11","kodansha_compact":695,"skip":"3-3-7","sh_desc":"2q7.18","conning":159},"misc":{"sc":9,"gr":2,"freq":80,"jlpt":3,"kk":9},"comp":["マ","⽤","⻌"]}
 `
     );
     fetchMock.mock(
@@ -431,12 +431,12 @@ describe('database', function() {
     await db.ready;
     assert.isNull(db.dbVersions.kanjidb);
 
-    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_2_0_0);
     fetchMock.mock(
-      'end:kanjidb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":2}
-{"c":"凶","r":{"on":["キョウ"]},"m":["villain","evil","bad luck","disaster"],"rad":{"x":17},"refs":{"nelson_c":663,"nelson_n":442,"halpern_njecd":2961,"halpern_kkld":1877,"halpern_kkld_2ed":2557,"heisig":1490,"heisig6":1603,"henshall":1159,"sh_kk":1280,"sh_kk2":1354,"kanji_in_context":1812,"kodansha_compact":172,"skip":"3-2-2","sh_desc":"0a4.19","conning":296},"misc":{"sc":4,"gr":8,"freq":1673,"jlpt":1,"kk":4},"comp":"⼂⼃⼐"}
-{"c":"胸","r":{"on":["キョウ"],"kun":["むね","むな-"]},"m":["bosom","breast","chest","heart","feelings"],"rad":{"x":130,"var":"2"},"refs":{"nelson_c":3768,"nelson_n":4811,"halpern_njecd":951,"halpern_kkld":647,"halpern_kkld_2ed":858,"heisig":1491,"heisig6":1604,"henshall":840,"sh_kk":1283,"sh_kk2":1357,"kanji_in_context":1086,"kodansha_compact":1030,"skip":"1-4-6","sh_desc":"4b6.9","conning":1971},"misc":{"sc":10,"gr":6,"freq":1144,"jlpt":2,"kk":5},"comp":"⽉⼓凶"}
+      'end:kanjidb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":2}
+{"c":"凶","r":{"on":["キョウ"]},"m":["villain","evil","bad luck","disaster"],"rad":{"x":17},"refs":{"nelson_c":663,"nelson_n":442,"halpern_njecd":2961,"halpern_kkld":1877,"halpern_kkld_2ed":2557,"heisig":1490,"heisig6":1603,"henshall":1159,"sh_kk":1280,"sh_kk2":1354,"kanji_in_context":1812,"kodansha_compact":172,"skip":"3-2-2","sh_desc":"0a4.19","conning":296},"misc":{"sc":4,"gr":8,"freq":1673,"jlpt":1,"kk":4},"comp":["⼂","⼃","⼐"]}
+{"c":"胸","r":{"on":["キョウ"],"kun":["むね","むな-"]},"m":["bosom","breast","chest","heart","feelings"],"rad":{"x":130,"var":"2"},"refs":{"nelson_c":3768,"nelson_n":4811,"halpern_njecd":951,"halpern_kkld":647,"halpern_kkld_2ed":858,"heisig":1491,"heisig6":1604,"henshall":840,"sh_kk":1283,"sh_kk2":1357,"kanji_in_context":1086,"kodansha_compact":1030,"skip":"1-4-6","sh_desc":"4b6.9","conning":1971},"misc":{"sc":10,"gr":6,"freq":1144,"jlpt":2,"kk":5},"comp":["130-2","⼓","凶"]}
 `
     );
     fetchMock.mock(
@@ -513,11 +513,11 @@ describe('database', function() {
     await db.ready;
     assert.isNull(db.dbVersions.kanjidb);
 
-    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_2_0_0);
     fetchMock.mock(
-      'end:kanjidb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":1}
-{"c":"筋","r":{"on":["キン"],"kun":["すじ"]},"m":["muscle","sinew","tendon","fiber","plot","plan","descent"],"rad":{"x":118,"var":"kanmuri"},"refs":{"nelson_c":3395,"nelson_n":4286,"halpern_njecd":2678,"halpern_kkld":1719,"halpern_kkld_2ed":2337,"heisig":941,"heisig6":1012,"henshall":843,"sh_kk":1090,"sh_kk2":1141,"kanji_in_context":1059,"kodansha_compact":1476,"skip":"2-6-6","sh_desc":"6f6.4","conning":392},"misc":{"sc":12,"gr":6,"freq":744,"jlpt":1,"kk":5},"comp":"⺮⽉⼒","compvar":["130-2"]}
+      'end:kanjidb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":1}
+{"c":"筋","r":{"on":["キン"],"kun":["すじ"]},"m":["muscle","sinew","tendon","fiber","plot","plan","descent"],"rad":{"x":118,"var":"kanmuri"},"refs":{"nelson_c":3395,"nelson_n":4286,"halpern_njecd":2678,"halpern_kkld":1719,"halpern_kkld_2ed":2337,"heisig":941,"heisig6":1012,"henshall":843,"sh_kk":1090,"sh_kk2":1141,"kanji_in_context":1059,"kodansha_compact":1476,"skip":"2-6-6","sh_desc":"6f6.4","conning":392},"misc":{"sc":12,"gr":6,"freq":744,"jlpt":1,"kk":5},"comp":["118-kanmuri","130-2","⼒"]}
 `
     );
     fetchMock.mock(
@@ -571,7 +571,12 @@ describe('database', function() {
         },
         misc: { sc: 12, gr: 6, freq: 744, jlpt: 1, kk: 5 },
         comp: [
-          { c: '⺮', na: ['たけかんむり'], m: ['bamboo'], m_lang: 'en' },
+          {
+            c: '⺮',
+            na: ['たけかんむり'],
+            m: ['bamboo'],
+            m_lang: 'en',
+          },
           { c: '⽉', na: ['にくづき'], m: ['meat'], m_lang: 'en' },
           {
             c: '⼒',
@@ -580,7 +585,6 @@ describe('database', function() {
             m_lang: 'en',
           },
         ],
-        compvar: ['130-2'],
         m_lang: 'en',
       },
     ];

@@ -13,8 +13,8 @@ chai.use(chaiAsPromised);
 
 const VERSION_1_0_0 = {
   kanjidb: {
-    '1': {
-      major: 1,
+    '2': {
+      major: 2,
       minor: 0,
       patch: 0,
       snapshot: 0,
@@ -33,7 +33,7 @@ const VERSION_1_0_0 = {
   },
 };
 
-describe('updateWithRetry', function() {
+describe('updateWithRetry', function () {
   let db: KanjiDatabase;
 
   beforeEach(() => {
@@ -51,8 +51,8 @@ describe('updateWithRetry', function() {
   it('should call the onUpdateComplete callback easy success', async () => {
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
     fetchMock.mock(
-      'end:kanjidb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+      'end:kanjidb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
 `
     );
     fetchMock.mock(
@@ -73,8 +73,8 @@ describe('updateWithRetry', function() {
   it('should call the onUpdateError callback on complete failure', async () => {
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
     fetchMock.mock(
-      'end:kanjidb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+      'end:kanjidb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
 `
     );
     fetchMock.mock(
@@ -102,8 +102,8 @@ describe('updateWithRetry', function() {
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
     fetchMock.once('end:.ljson', 404);
     fetchMock.mock(
-      'end:kanjidb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+      'end:kanjidb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
 `
     );
     fetchMock.mock(
@@ -125,7 +125,7 @@ describe('updateWithRetry', function() {
       updateWithRetry({
         db,
         onUpdateComplete: resolve,
-        onUpdateError: params => {
+        onUpdateError: (params) => {
           errors.push(params);
           clock.next();
         },
@@ -152,8 +152,8 @@ describe('updateWithRetry', function() {
   it('should wait until it is online', async () => {
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
     fetchMock.mock(
-      'end:kanjidb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+      'end:kanjidb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
 `
     );
     fetchMock.mock(
@@ -192,8 +192,8 @@ describe('updateWithRetry', function() {
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
     fetchMock.mock('end:.ljson', 404, { repeat: 2 });
     fetchMock.mock(
-      'end:kanjidb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+      'end:kanjidb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
 `
     );
     fetchMock.mock(
@@ -261,8 +261,8 @@ describe('updateWithRetry', function() {
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
     fetchMock.once('end:.ljson', 404);
     fetchMock.mock(
-      'end:kanjidb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+      'end:kanjidb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
 `
     );
     fetchMock.mock(
@@ -306,8 +306,8 @@ describe('updateWithRetry', function() {
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
     fetchMock.once('end:.ljson', 404);
     fetchMock.mock(
-      'end:kanjidb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+      'end:kanjidb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
 `
     );
     fetchMock.mock(
@@ -319,7 +319,7 @@ describe('updateWithRetry', function() {
     // Wait for the first invocation to error
 
     let firstInvocation;
-    const firstError = new Promise(firstErrorResolve => {
+    const firstError = new Promise((firstErrorResolve) => {
       firstInvocation = new Promise((_, reject) => {
         updateWithRetry({
           db,
@@ -349,8 +349,8 @@ describe('updateWithRetry', function() {
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
     fetchMock.once('end:.ljson', 404);
     fetchMock.mock(
-      'end:kanjidb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+      'end:kanjidb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
 `
     );
     fetchMock.mock(
@@ -366,7 +366,7 @@ describe('updateWithRetry', function() {
     });
 
     let completeCalled = false;
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       updateWithRetry({
         db,
         onUpdateComplete: () => {
@@ -396,8 +396,8 @@ describe('updateWithRetry', function() {
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
     fetchMock.once('end:.ljson', 404);
     fetchMock.mock(
-      'end:kanjidb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+      'end:kanjidb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
 `
     );
     fetchMock.mock(
@@ -413,7 +413,7 @@ describe('updateWithRetry', function() {
     });
 
     let completeCalled = false;
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       updateWithRetry({
         db,
         onUpdateComplete: () => {
@@ -440,8 +440,8 @@ describe('updateWithRetry', function() {
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
     fetchMock.mock('end:.ljson', 404, { repeat: 2 });
     fetchMock.mock(
-      'end:kanjidb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+      'end:kanjidb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
 `
     );
 
@@ -493,7 +493,7 @@ describe('updateWithRetry', function() {
 
     // The retry count should be reset too
     assert.deepEqual(
-      errors.map(e => e.retryCount),
+      errors.map((e) => e.retryCount),
       [0, 1, 0]
     );
   });
@@ -501,8 +501,8 @@ describe('updateWithRetry', function() {
   it('should retry when saving to the database fails', async () => {
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
     fetchMock.mock(
-      'end:kanjidb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+      'end:kanjidb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
 {"c":"㐂","r":{},"m":[],"rad":{"x":1},"refs":{"nelson_c":265,"halpern_njecd":2028},"misc":{"sc":6}}
 `
     );
@@ -528,8 +528,8 @@ describe('updateWithRetry', function() {
   it('should give up after saving to the database fails too many times', async () => {
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
     fetchMock.mock(
-      'end:kanjidb-rc-en-1.0.0-full.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+      'end:kanjidb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
 {"c":"㐂","r":{},"m":[],"rad":{"x":1},"refs":{"nelson_c":265,"halpern_njecd":2028},"misc":{"sc":6}}
 `
     );
@@ -573,7 +573,7 @@ describe('updateWithRetry', function() {
 });
 
 function waitForAnimationFrames(frameCount: number): Promise<void> {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     function handleFrame() {
       if (--frameCount <= 0) {
         resolve();
