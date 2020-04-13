@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.4.0](https://github.com/birchill/hikibiki-data/compare/v2.3.0...v2.4.0) (2020-04-13)
+
+
+### Features
+
+* Export cf field from kanji records ([e16c235](https://github.com/birchill/hikibiki-data/commit/e16c23537d0098c63bd4efd2d49364cbcda411ca))
+* Expose base radical kanji (for linking) ([561b63f](https://github.com/birchill/hikibiki-data/commit/561b63ff9011ea8a147a567751cdf53927c0ce45))
+* Handle component variants array ([4207441](https://github.com/birchill/hikibiki-data/commit/42074413bc9f7e32c4592aae4c984339d5281161))
+
 ## [2.3.0](https://github.com/birchill/hikibiki-data/compare/v2.2.2...v2.3.0) (2020-03-11)
 
 
