@@ -8,7 +8,8 @@ export interface KanjiEntryLine {
   rad: Radical;
   refs: References;
   misc: Misc;
-  comp?: Array<string>;
+  comp?: string;
+  var?: string | Array<string>;
 }
 
 interface Readings {
@@ -22,7 +23,6 @@ interface Radical {
   x: number;
   nelson?: number;
   name?: Array<string>;
-  var?: string;
 }
 
 interface References {
@@ -69,7 +69,6 @@ export function isKanjiEntryLine(a: any): a is KanjiEntryLine {
     typeof a.rad.x === 'number' &&
     (typeof a.rad.nelson === 'undefined' || typeof a.rad.nelson === 'number') &&
     (typeof a.rad.name === 'undefined' || isArrayOfStrings(a.rad.name)) &&
-    (typeof a.rad.var === 'undefined' || typeof a.rad.var === 'string') &&
     // refs
     typeof a.refs === 'object' &&
     a.refs !== null &&
@@ -83,7 +82,11 @@ export function isKanjiEntryLine(a: any): a is KanjiEntryLine {
     (typeof a.misc.jlpt === 'undefined' || typeof a.misc.jlpt === 'number') &&
     (typeof a.misc.kk === 'undefined' || typeof a.misc.kk === 'number') &&
     // comp
-    (typeof a.comp === 'undefined' || isArrayOfStrings(a.comp)) &&
+    (typeof a.comp === 'undefined' || typeof a.comp === 'string') &&
+    // var
+    (typeof a.var === 'undefined' ||
+      typeof a.var === 'string' ||
+      isArrayOfStrings(a.var)) &&
     // deleted (should NOT be present)
     typeof a.deleted === 'undefined'
   );

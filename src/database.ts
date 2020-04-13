@@ -449,13 +449,15 @@ export class KanjiDatabase {
 
     // Zip the arrays together
     return kanjiRecords.map((record, i) => {
-      return {
+      const result = {
         ...record,
         c: String.fromCodePoint(record.c),
         m_lang: record.m_lang || lang,
         rad: radicalResults[i],
         comp: componentResults[i],
       };
+      delete result.var;
+      return result;
     });
   }
 
@@ -466,7 +468,10 @@ export class KanjiDatabase {
     const radicals = await this.getRadicals();
 
     return kanjiRecords.map((record) => {
-      const radicalVariant = radicals.get(radicalIdForKanji(record));
+      const variantId = getRadicalVariantId(record);
+      const baseId = formatRadicalId(record.rad.x);
+
+      const radicalVariant = radicals.get(variantId || baseId);
       let rad: KanjiResult['rad'];
       if (radicalVariant) {
         rad = {
@@ -485,7 +490,7 @@ export class KanjiDatabase {
         // But rather than crash fatally, just fill in some nonsense data
         // instead.
         this.logWarningMessage(
-          `Failed to find radical: ${radicalIdForKanji(record)}`
+          `Failed to find radical: ${variantId || baseId}`
         );
         rad = {
           ...record.rad,
@@ -500,8 +505,8 @@ export class KanjiDatabase {
       }
 
       // If this a variant, return the base radical information too
-      if (record.rad.var) {
-        const baseRadical = radicals.get(baseRadicalIdForKanji(record));
+      if (variantId) {
+        const baseRadical = radicals.get(baseId);
         if (baseRadical) {
           const { b, k, na, m, m_lang } = baseRadical;
           rad.base = { b, k, na, m, m_lang: m_lang || lang };
@@ -518,7 +523,8 @@ export class KanjiDatabase {
   ): Promise<Array<KanjiResult['comp']>> {
     // Collect all the characters together
     const components = kanjiRecords.reduce<Array<string>>(
-      (components, record) => components.concat(record.comp || []),
+      (components, record) =>
+        components.concat(record.comp ? [...record.comp] : []),
       []
     );
 
@@ -540,63 +546,42 @@ export class KanjiDatabase {
       );
     }
 
-    // Setup a utility for dealing with radicals
-    const radicals = await this.getRadicals();
-    const createComponentFromRadical = (
-      c: string,
-      radicalRecord: RadicalRecord
-    ): KanjiResult['comp'][0] => {
-      const result: KanjiResult['comp'][0] = {
-        c,
-        na: radicalRecord.na,
-        m: radicalRecord.m,
-        m_lang: radicalRecord.m_lang || lang,
-      };
-      const baseRadical = radicals.get(formatRadicalId(radicalRecord.r));
-      if (baseRadical && baseRadical.k) {
-        result.k = baseRadical.k;
-      }
-      return result;
-    };
-
     // Now fill out the information
+    const radicals = await this.getRadicals();
     const result: Array<KanjiResult['comp']> = [];
     for (const record of kanjiRecords) {
       const comp: KanjiResult['comp'] = [];
+      const variants = parseVariants(record);
 
-      for (const c of record.comp || []) {
-        if (!c.length) {
-          continue;
-        }
+      for (const c of record.comp ? [...record.comp] : []) {
+        if (radicalMap.has(c)) {
+          let radicalRecord = radicals.get(radicalMap.get(c)!);
+          if (radicalRecord) {
+            // Look for a matching variant
+            const variantId = popVariantForRadical(radicalRecord!.r, variants);
+            if (typeof variantId !== 'undefined') {
+              const variantRadical = radicals.get(variantId);
+              if (variantRadical) {
+                radicalRecord = variantRadical;
+              } else {
+                this.logWarningMessage(
+                  `Couldn't find radical record for variant ${variantId}`
+                );
+              }
+            }
 
-        // Components can be one of several types:
-        //
-        // a) An ASCII string identifying a radical variant.
-        //    e.g. 130-2, 118-kanmuri.
-        //
-        // b) A CJK character representing:
-        //
-        //    i) a radical, e.g. ⼒
-        //    ii) a kanji character, e.g. 斉
-        //    iii) or even a katakana character, e.g. ム
-        //
-        const firstCodePoint = c.codePointAt(0)!;
-        if (firstCodePoint >= 48 && firstCodePoint <= 57) {
-          const radicalRecord = radicals.get(c);
-          if (radicalRecord) {
-            comp.push(
-              createComponentFromRadical(
-                (radicalRecord.b || radicalRecord.k)!,
-                radicalRecord
-              )
-            );
-          } else {
-            this.logWarningMessage(`Couldn't find radical record ${c}`);
-          }
-        } else if (radicalMap.has(c)) {
-          const radicalRecord = radicals.get(radicalMap.get(c)!);
-          if (radicalRecord) {
-            comp.push(createComponentFromRadical(c, radicalRecord));
+            const component: KanjiResult['comp'][0] = {
+              c,
+              na: radicalRecord.na,
+              m: radicalRecord.m,
+              m_lang: radicalRecord.m_lang || lang,
+            };
+            const baseRadical = radicals.get(formatRadicalId(radicalRecord.r));
+            if (baseRadical && baseRadical.k) {
+              component.k = baseRadical.k;
+            }
+
+            comp.push(component);
           } else {
             this.logWarningMessage(`Couldn't find radical record for ${c}`);
           }
@@ -617,7 +602,7 @@ export class KanjiDatabase {
               m_lang: kanjiRecord.m_lang || lang,
             });
           }
-        } else if (firstCodePoint >= 0x30a1 && firstCodePoint <= 0x30fa) {
+        } else if (c.codePointAt(0)! >= 0x30a1 && c.codePointAt(0)! <= 0x30fa) {
           // NOTE: If we ever support languages that are not roman-based, or
           // where it doesn't make sense to convert katakana into a roman
           // equivalent we should detect that here.
@@ -719,7 +704,7 @@ export class KanjiDatabase {
         // (which we'll end up doing because they have different base radicals).
         //
         // Instead, we'll take care to pick up variants like this in
-        // getComponentsForKanji.
+        // getComponentsForKanji (or more specifically popVariantForRadical).
         if (radical.id === '130-2') {
           continue;
         }
@@ -749,16 +734,54 @@ function formatRadicalId(id: number): string {
   return id.toString().padStart(3, '0');
 }
 
-function baseRadicalIdForKanji(record: KanjiRecord): string {
-  return formatRadicalId(record.rad.x);
+type RadicalVariantArray = Array<{ radical: number; id: string }>;
+
+function parseVariants(record: KanjiRecord): RadicalVariantArray {
+  const variants: Array<{ radical: number; id: string }> = [];
+
+  if (record.var) {
+    const variantIdArray = Array.isArray(record.var)
+      ? record.var
+      : [record.var];
+    for (const variantId of variantIdArray) {
+      const matches = variantId.match(/^(\d+)-/);
+      if (matches) {
+        const [, radical] = matches;
+        variants.push({
+          radical: parseInt(radical, 10),
+          id: variantId,
+        });
+      }
+    }
+  }
+
+  return variants;
 }
 
-function radicalIdForKanji(record: KanjiRecord): string {
-  let id = baseRadicalIdForKanji(record);
-  if (record.rad.var) {
-    id += `-${record.rad.var}`;
+function popVariantForRadical(
+  radical: number,
+  variants: RadicalVariantArray
+): string | undefined {
+  // Add special handling so that if we are searching for a variant for 74 (⽉)
+  // but we find 130-2 (にくづき) we match that.
+  const variantIndex = variants.findIndex(
+    (a) => a.radical === radical || (radical === 74 && a.id === '130-2')
+  );
+
+  if (variantIndex === -1) {
+    return undefined;
   }
+
+  const id = variants[variantIndex].id;
+  variants.splice(variantIndex, 1);
+
   return id;
+}
+
+function getRadicalVariantId(record: KanjiRecord): string | undefined {
+  const variants = parseVariants(record);
+  const variant = variants.find((a) => a.radical === record.rad.x);
+  return variant?.id;
 }
 
 // NOTE: This is NOT meant to be a generic romaji utility. It does NOT
