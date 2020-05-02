@@ -35,6 +35,7 @@ interface Misc {
   sc: number;
   freq?: number;
   jlpt?: number;
+  jlptn?: number;
   kk?: number;
 }
 
@@ -81,6 +82,7 @@ export function isKanjiEntryLine(a: any): a is KanjiEntryLine {
     typeof a.misc.sc === 'number' &&
     (typeof a.misc.freq === 'undefined' || typeof a.misc.freq === 'number') &&
     (typeof a.misc.jlpt === 'undefined' || typeof a.misc.jlpt === 'number') &&
+    (typeof a.misc.jlptn === 'undefined' || typeof a.misc.jlptn === 'number') &&
     (typeof a.misc.kk === 'undefined' || typeof a.misc.kk === 'number') &&
     // comp
     (typeof a.comp === 'undefined' || typeof a.comp === 'string') &&
