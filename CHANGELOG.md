@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.5.0](https://github.com/birchill/hikibiki-data/compare/v2.4.0...v2.5.0) (2020-05-02)
+
+
+### Features
+
+* Support jlptn field ([ee30cd5](https://github.com/birchill/hikibiki-data/commit/ee30cd5ab93f7dd6075692fd9bb91bd5ea2a6ac1))
+
 ## [2.4.0](https://github.com/birchill/hikibiki-data/compare/v2.3.0...v2.4.0) (2020-04-13)
 
 
