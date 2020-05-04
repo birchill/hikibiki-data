@@ -13,7 +13,7 @@ export interface KanjiEntryLine {
   cf?: string;
 }
 
-interface Readings {
+export interface Readings {
   on?: Array<string>;
   kun?: Array<string>;
   na?: Array<string>;
@@ -30,7 +30,7 @@ interface References {
   [ref: string]: string | number;
 }
 
-interface Misc {
+export interface Misc {
   gr?: number;
   sc: number;
   freq?: number;

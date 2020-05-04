@@ -606,4 +606,69 @@ describe('database', function () {
 
     assert.deepEqual(result, expected);
   });
+
+  it('should fetch related kanji', async () => {
+    await db.ready;
+    assert.isNull(db.dbVersions.kanjidb);
+
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_2_0_0);
+    fetchMock.mock(
+      'end:kanjidb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":6}
+{"c":"構","r":{"py":["gou4"],"on":["コウ"],"kun":["かま.える","かま.う"],"na":["とち"]},"m":["posture","build","pretend"],"rad":{"x":75},"refs":{"nelson_c":2343,"nelson_n":2823,"halpern_njecd":1049,"halpern_kkld_2ed":962,"heisig6":1959,"henshall":675,"sh_kk2":1048,"kanji_in_context":991,"kodansha_compact":1108,"skip":"1-4-10","sh_desc":"4a10.10","conning":917},"misc":{"sc":14,"gr":5,"freq":316,"jlpt":2,"kk":6},"comp":"⽊冓","var":"075-hen","cf":"講"}
+{"c":"留","r":{"py":["liu2"],"on":["リュウ","ル"],"kun":["と.める","と.まる","とど.める","とど.まる","るうぶる"],"na":["とめ"]},"m":["detain","fasten","halt","stop"],"rad":{"x":102},"refs":{"nelson_c":3003,"nelson_n":3750,"halpern_njecd":2580,"halpern_kkld_2ed":2235,"heisig6":1527,"henshall":805,"sh_kk2":774,"kanji_in_context":432,"kodansha_compact":1341,"skip":"2-5-5","sh_desc":"5f5.4","conning":1170},"misc":{"sc":10,"gr":5,"freq":731,"jlpt":2,"kk":6},"comp":"⼛⼑⽥","cf":"貿溜"}
+{"c":"冓","r":{"py":["gou4"],"on":["コウ"],"kun":["かま.える"]},"m":["put together","inner palace"],"rad":{"x":13},"refs":{"nelson_n":396,"skip":"2-5-5","sh_desc":"0a10.14"},"misc":{"sc":10,"kk":1},"comp":"井再⼌"}
+{"c":"講","r":{"py":["jiang3"],"on":["コウ"]},"m":["lecture","club","association"],"rad":{"x":149},"refs":{"nelson_c":4425,"nelson_n":5689,"halpern_njecd":1619,"halpern_kkld_2ed":1463,"heisig6":1957,"henshall":676,"sh_kk2":797,"kanji_in_context":495,"kodansha_compact":1707,"skip":"1-7-10","sh_desc":"7a10.3","conning":918},"misc":{"sc":17,"gr":5,"freq":653,"jlpt":2,"kk":6},"comp":"訁冓井再⼌","var":"149-hen","cf":"構"}
+{"c":"貿","r":{"py":["mao4"],"on":["ボウ"]},"m":["trade","exchange"],"rad":{"x":154},"refs":{"nelson_c":4499,"nelson_n":5788,"halpern_njecd":2601,"halpern_kkld_2ed":2255,"heisig6":1529,"henshall":792,"sh_kk2":773,"kanji_in_context":433,"kodansha_compact":1733,"skip":"2-5-7","sh_desc":"7b5.8","conning":1169},"misc":{"sc":12,"gr":5,"freq":652,"jlpt":2,"kk":6},"comp":"⼛⼑⾙","cf":"留"}
+{"c":"溜","r":{"py":["liu1","liu4"],"on":["リュウ"],"kun":["た.まる","たま.る","た.める","したた.る","たまり","ため"]},"m":["collect","gather","be in arrears"],"rad":{"x":85},"refs":{"nelson_c":2658,"nelson_n":3276,"halpern_njecd":662,"halpern_kkld_2ed":608,"heisig6":2415,"skip":"1-3-10","sh_desc":"3a10.11","conning":1171},"misc":{"sc":13,"gr":9,"freq":2451,"kk":15},"comp":"⺡留⼛⼑⽥","var":"085-hen"}
+`
+    );
+    fetchMock.mock(
+      'end:bushudb-rc-en-2.0.0-full.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":6}
+{"id":"018","r":18,"b":"⼑","k":"刀","s":2,"na":["かたな"],"m":["sword","saber","knife"]}
+{"id":"028","r":28,"b":"⼛","k":"厶","s":2,"na":["む"],"m":["myself"]}
+{"id":"075","r":75,"b":"⽊","k":"木","s":4,"na":["き"],"m":["tree","wood"]}
+{"id":"075-2","r":75,"k":"朩","s":4,"na":["き"],"m":["tree","wood"]}
+{"id":"075-hen","r":75,"b":"⽊","k":"木","pua":59168,"s":4,"na":["きへん"],"m":["tree","wood"],"posn":"hen"}
+{"id":"102","r":102,"b":"⽥","k":"田","s":5,"na":["た"],"m":["rice field","rice paddy"]}
+`
+    );
+
+    await db.update();
+
+    assert.equal(db.state, DatabaseState.Ok);
+
+    const result = await db.getKanji(['構', '留']);
+
+    assert.deepEqual(result[0].cf, [
+      {
+        c: '講',
+        r: { py: ['jiang3'], on: ['コウ'] },
+        m: ['lecture', 'club', 'association'],
+        m_lang: 'en',
+        misc: { sc: 17, gr: 5, freq: 653, jlpt: 2, kk: 6 },
+      },
+    ]);
+    assert.deepEqual(result[1].cf, [
+      {
+        c: '貿',
+        r: { py: ['mao4'], on: ['ボウ'] },
+        m: ['trade', 'exchange'],
+        m_lang: 'en',
+        misc: { sc: 12, gr: 5, freq: 652, jlpt: 2, kk: 6 },
+      },
+      {
+        c: '溜',
+        r: {
+          py: ['liu1', 'liu4'],
+          on: ['リュウ'],
+          kun: ['た.まる', 'たま.る', 'た.める', 'したた.る', 'たまり', 'ため'],
+        },
+        m: ['collect', 'gather', 'be in arrears'],
+        m_lang: 'en',
+        misc: { sc: 13, gr: 9, freq: 2451, kk: 15 },
+      },
+    ]);
+  });
 });

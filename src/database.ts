@@ -5,6 +5,8 @@ import { DatabaseVersion } from './common';
 import { hasLanguage, download } from './download';
 import {
   KanjiEntryLine,
+  Misc,
+  Readings,
   isKanjiEntryLine,
   isKanjiDeletionLine,
 } from './kanjidb';
@@ -69,7 +71,15 @@ export interface KanjiResult
     m: Array<string>;
     m_lang: string;
   }>;
-  cf: Array<string>;
+  cf: Array<RelatedKanji>;
+}
+
+export interface RelatedKanji {
+  c: string;
+  r: Readings;
+  m: Array<string>;
+  m_lang: string;
+  misc: Misc;
 }
 
 export class AbortError extends Error {
@@ -449,6 +459,13 @@ export class KanjiDatabase {
       );
     }
 
+    const relatedResults = await this.getRelatedKanji(kanjiRecords, lang);
+    if (kanjiRecords.length !== relatedResults.length) {
+      throw new Error(
+        `There should be as many kanji records (${kanjiRecords.length}) as related kanji arrays (${relatedResults.length})`
+      );
+    }
+
     // Zip the arrays together
     return kanjiRecords.map((record, i) =>
       stripFields(
@@ -458,7 +475,7 @@ export class KanjiDatabase {
           m_lang: record.m_lang || lang,
           rad: radicalResults[i],
           comp: componentResults[i],
-          cf: record.cf ? [...record.cf] : [],
+          cf: relatedResults[i],
         },
         ['var']
       )
@@ -658,6 +675,48 @@ export class KanjiDatabase {
       }
 
       result.push(comp);
+    }
+
+    return result;
+  }
+
+  private async getRelatedKanji(
+    kanjiRecords: Array<KanjiRecord>,
+    lang: string
+  ): Promise<Array<Array<RelatedKanji>>> {
+    // Collect all the characters together
+    const cf = kanjiRecords.reduce<Array<number>>(
+      (cf, record) =>
+        cf.concat(
+          record.cf ? [...record.cf].map((c) => c.codePointAt(0) || 0) : []
+        ),
+      []
+    );
+    const kanjiToLookup = new Set<number>(cf);
+
+    // ... And look them up
+    let kanjiMap: Map<string, KanjiRecord> = new Map();
+    if (kanjiToLookup.size) {
+      const kanjiRecords = await this.store.getKanji([...kanjiToLookup]);
+      kanjiMap = new Map(
+        kanjiRecords.map((record) => [String.fromCodePoint(record.c), record])
+      );
+    }
+
+    // Now fill out the information
+    const result: Array<Array<RelatedKanji>> = [];
+    for (const record of kanjiRecords) {
+      const relatedKanji: Array<RelatedKanji> = [];
+      for (const cfChar of record.cf ? [...record.cf] : []) {
+        const kanji = kanjiMap.get(cfChar);
+        if (!kanji) {
+          continue;
+        }
+
+        const { r, m, m_lang, misc } = kanji;
+        relatedKanji.push({ c: cfChar, r, m, m_lang: m_lang || lang, misc });
+      }
+      result.push(relatedKanji);
     }
 
     return result;
