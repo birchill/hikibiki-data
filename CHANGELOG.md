@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.0.0](https://github.com/birchill/hikibiki-data/compare/v2.5.0...v3.0.0) (2020-05-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* cf is now an array of expanded kanji records
+
+### Features
+
+* Look up related kanji ([eac5e1e](https://github.com/birchill/hikibiki-data/commit/eac5e1ed9d211beebe86abab2f95c253aad726e5))
+
 ## [2.5.0](https://github.com/birchill/hikibiki-data/compare/v2.4.0...v2.5.0) (2020-05-02)
 
 
