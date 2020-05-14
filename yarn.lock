@@ -1955,10 +1955,10 @@ fast-json-stable-stringify@^2.0.0:
   resolved "https://registry.yarnpkg.com/fast-json-stable-stringify/-/fast-json-stable-stringify-2.0.0.tgz#d5142c0caee6b1189f87d3a76111064f86c8bbf2"
   integrity sha1-1RQsDK7msRifh9OnYREGT4bIu/I=
 
-fetch-mock@9.8.0:
-  version "9.8.0"
-  resolved "https://registry.yarnpkg.com/fetch-mock/-/fetch-mock-9.8.0.tgz#86c722182bf7b797e454235bfbf586f480bd4023"
-  integrity sha512-vXX8zTYP9vzAaPfTH6NJxbnX0t8yZnrgTAnHvsfq9nZhknWmpOtYlVLb4VDjjojp1nZ6z7ob0r7XGG77VqALLQ==
+fetch-mock@9.9.0:
+  version "9.9.0"
+  resolved "https://registry.yarnpkg.com/fetch-mock/-/fetch-mock-9.9.0.tgz#7042dad855f471172ca0e22ab4380a6b70cab265"
+  integrity sha512-2/0FJo23c6xTYQqBKhp2t1kEeJqWcoPCTMDShJx4CS3w0Vjdi2/VO6nKVrcMJyurQEIvZBHZpdIWYdHvLTiA4A==
   dependencies:
     babel-runtime "^6.26.0"
     core-js "^3.0.0"
