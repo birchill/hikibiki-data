@@ -52,7 +52,7 @@ const kanjiDownload = (options: KanjiDownloadOptions = {}) => {
 };
 
 describe('download', () => {
-  afterEach(fetchMock.restore);
+  afterEach(() => fetchMock.restore());
 
   it('should download the initial version information', async () => {
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
@@ -918,7 +918,7 @@ ${entry}
       }
     );
     const progressEvents = events.filter(
-      event => event.type === 'progress'
+      (event) => event.type === 'progress'
     ) as Array<ProgressEvent>;
     let previousPercent = null;
     let previousLoaded = null;
@@ -950,7 +950,7 @@ ${entry}
 function mockAllDataFilesWithEmpty() {
   // (This needs to be updated to ignore the language)
   const patchFileRegexp = /kanjidb-rc-en-(\d+).(\d+).(\d+)-(patch|full).ljson/;
-  fetchMock.mock(patchFileRegexp, url => {
+  fetchMock.mock(patchFileRegexp, (url) => {
     const matches = url.match(patchFileRegexp);
     assert.isNotNull(matches);
     assert.strictEqual(matches!.length, 5);
