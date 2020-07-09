@@ -137,11 +137,7 @@ export class JpdictStore {
     // exists, _every_ _single_ _time_.
     //
     // We don't bother waiting on it or reporting errors, however.
-    deleteDB('KanjiStore')
-      .then(() => {
-        console.log('Removed old store');
-      })
-      .catch(() => {});
+    deleteDB('KanjiStore').catch(() => {});
 
     return this.db!;
   }
