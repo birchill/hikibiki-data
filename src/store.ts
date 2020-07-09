@@ -132,6 +132,17 @@ export class JpdictStore {
       this.openPromise = undefined;
     }
 
+    // IndexedDB doesn't provide a way to check if a database exists
+    // so we just unconditionally try to delete the old database, in case it
+    // exists, _every_ _single_ _time_.
+    //
+    // We don't bother waiting on it or reporting errors, however.
+    deleteDB('KanjiStore')
+      .then(() => {
+        console.log('Removed old store');
+      })
+      .catch(() => {});
+
     return this.db!;
   }
 
