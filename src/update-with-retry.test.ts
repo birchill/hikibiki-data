@@ -4,17 +4,17 @@ import chaiAsPromised from 'chai-as-promised';
 import fetchMock from 'fetch-mock';
 import sinon from 'sinon';
 
-import { KanjiDatabase } from './database';
+import { JpdictDatabase } from './database';
 import { cancelUpdateWithRetry, updateWithRetry } from './update-with-retry';
 
 mocha.setup('bdd');
 chai.use(chaiDateTime);
 chai.use(chaiAsPromised);
 
-const VERSION_1_0_0 = {
-  kanjidb: {
-    '2': {
-      major: 2,
+const VERSION_3_0_0 = {
+  kanji: {
+    '3': {
+      major: 3,
       minor: 0,
       patch: 0,
       snapshot: 0,
@@ -22,9 +22,9 @@ const VERSION_1_0_0 = {
       dateOfCreation: '2019-07-09',
     },
   },
-  bushudb: {
-    '2': {
-      major: 2,
+  radicals: {
+    '3': {
+      major: 3,
       minor: 0,
       patch: 0,
       snapshot: 0,
@@ -34,10 +34,10 @@ const VERSION_1_0_0 = {
 };
 
 describe('updateWithRetry', function () {
-  let db: KanjiDatabase;
+  let db: JpdictDatabase;
 
   beforeEach(() => {
-    db = new KanjiDatabase();
+    db = new JpdictDatabase();
   });
 
   afterEach(async () => {
@@ -49,15 +49,15 @@ describe('updateWithRetry', function () {
   });
 
   it('should call the onUpdateComplete callback easy success', async () => {
-    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
     fetchMock.mock(
-      'end:kanjidb-rc-en-2.0.0-full.ljson',
-      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+      'end:kanji-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
 `
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-2.0.0-full.ljson',
-      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+      'end:radicals-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `
     );
 
@@ -71,15 +71,15 @@ describe('updateWithRetry', function () {
   });
 
   it('should call the onUpdateError callback on complete failure', async () => {
-    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
     fetchMock.mock(
-      'end:kanjidb-rc-en-2.0.0-full.ljson',
-      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+      'end:kanji-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
 `
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-2.0.0-full.ljson',
-      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+      'end:radicals-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `
     );
 
@@ -99,16 +99,16 @@ describe('updateWithRetry', function () {
   });
 
   it('should retry a network error', async () => {
-    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
     fetchMock.once('end:.ljson', 404);
     fetchMock.mock(
-      'end:kanjidb-rc-en-2.0.0-full.ljson',
-      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+      'end:kanji-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
 `
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-2.0.0-full.ljson',
-      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+      'end:radicals-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `
     );
 
@@ -150,15 +150,15 @@ describe('updateWithRetry', function () {
   });
 
   it('should wait until it is online', async () => {
-    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
     fetchMock.mock(
-      'end:kanjidb-rc-en-2.0.0-full.ljson',
-      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+      'end:kanji-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
 `
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-2.0.0-full.ljson',
-      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+      'end:radicals-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `
     );
 
@@ -189,16 +189,16 @@ describe('updateWithRetry', function () {
   });
 
   it('should wait until it is online even when re-trying a network error', async () => {
-    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
     fetchMock.mock('end:.ljson', 404, { repeat: 2 });
     fetchMock.mock(
-      'end:kanjidb-rc-en-2.0.0-full.ljson',
-      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+      'end:kanji-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
 `
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-2.0.0-full.ljson',
-      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+      'end:radicals-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `
     );
 
@@ -258,16 +258,16 @@ describe('updateWithRetry', function () {
   });
 
   it('should coalesce overlapping requests', async () => {
-    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
     fetchMock.once('end:.ljson', 404);
     fetchMock.mock(
-      'end:kanjidb-rc-en-2.0.0-full.ljson',
-      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+      'end:kanji-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
 `
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-2.0.0-full.ljson',
-      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+      'end:radicals-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `
     );
 
@@ -303,16 +303,16 @@ describe('updateWithRetry', function () {
   });
 
   it('should NOT coalesce overlapping requests when the forceUpdate flag is set', async () => {
-    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
     fetchMock.once('end:.ljson', 404);
     fetchMock.mock(
-      'end:kanjidb-rc-en-2.0.0-full.ljson',
-      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+      'end:kanji-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
 `
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-2.0.0-full.ljson',
-      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+      'end:radicals-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `
     );
 
@@ -346,16 +346,16 @@ describe('updateWithRetry', function () {
   });
 
   it('should allow canceling the retries', async () => {
-    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
     fetchMock.once('end:.ljson', 404);
     fetchMock.mock(
-      'end:kanjidb-rc-en-2.0.0-full.ljson',
-      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+      'end:kanji-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
 `
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-2.0.0-full.ljson',
-      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+      'end:radicals-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `
     );
 
@@ -393,16 +393,16 @@ describe('updateWithRetry', function () {
   });
 
   it('should cancel the retries when the database is deleted', async () => {
-    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
     fetchMock.once('end:.ljson', 404);
     fetchMock.mock(
-      'end:kanjidb-rc-en-2.0.0-full.ljson',
-      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+      'end:kanji-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
 `
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-2.0.0-full.ljson',
-      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+      'end:radicals-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `
     );
 
@@ -437,19 +437,19 @@ describe('updateWithRetry', function () {
   });
 
   it('should reset the timeout after each successful download', async () => {
-    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
     fetchMock.mock('end:.ljson', 404, { repeat: 2 });
     fetchMock.mock(
-      'end:kanjidb-rc-en-2.0.0-full.ljson',
-      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+      'end:kanji-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
 `
     );
 
-    // Make bushudb file fail only once
+    // Make radical file fail only once
     let callCount = 0;
-    fetchMock.mock('end:bushudb-rc-en-2.0.0-full.ljson', () => {
+    fetchMock.mock('end:radicals-rc-en-3.0.0-full.ljson', () => {
       if (callCount++) {
-        return `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+        return `{"type":"header","version":{"major":3,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `;
       } else {
         return 404;
@@ -499,16 +499,16 @@ describe('updateWithRetry', function () {
   });
 
   it('should retry when saving to the database fails', async () => {
-    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
     fetchMock.mock(
-      'end:kanjidb-rc-en-2.0.0-full.ljson',
-      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+      'end:kanji-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
 {"c":"㐂","r":{},"m":[],"rad":{"x":1},"refs":{"nelson_c":265,"halpern_njecd":2028},"misc":{"sc":6}}
 `
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-2.0.0-full.ljson',
-      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+      'end:radicals-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `
     );
 
@@ -526,16 +526,16 @@ describe('updateWithRetry', function () {
   });
 
   it('should give up after saving to the database fails too many times', async () => {
-    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
     fetchMock.mock(
-      'end:kanjidb-rc-en-2.0.0-full.ljson',
-      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+      'end:kanji-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
 {"c":"㐂","r":{},"m":[],"rad":{"x":1},"refs":{"nelson_c":265,"halpern_njecd":2028},"misc":{"sc":6}}
 `
     );
     fetchMock.mock(
-      'end:bushudb-rc-en-2.0.0-full.ljson',
-      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+      'end:radicals-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `
     );
 

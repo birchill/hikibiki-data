@@ -1,4 +1,4 @@
-export interface DatabaseVersion {
+export interface DataVersion {
   major: number;
   minor: number;
   patch: number;

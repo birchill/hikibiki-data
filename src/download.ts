@@ -1,4 +1,4 @@
-import { DatabaseVersion } from './common';
+import { DataVersion } from './data-version';
 
 // Produces a ReadableStream of DownloadEvents
 //
@@ -36,7 +36,7 @@ export type DownloadEvent<EntryLine, DeletionLine> =
   | DeletionEvent<DeletionLine>
   | ProgressEvent;
 
-const DEFAULT_BASE_URL = 'https://d1uxefubru78xw.cloudfront.net/';
+const DEFAULT_BASE_URL = 'https://d907hooix2fo8.cloudfront.net/';
 
 // How many percentage should change before we dispatch a new progress event.
 const DEFAULT_MAX_PROGRESS_RESOLUTION = 0.05;
@@ -52,7 +52,7 @@ interface VersionInfo {
 
 export type DownloadOptions<EntryLine, DeletionLine> = {
   baseUrl?: string;
-  dbName: string;
+  series: DataSeries;
   majorVersion: number;
   currentVersion?: {
     major: number;
@@ -107,12 +107,12 @@ export class DownloadError extends Error {
 
 export async function hasLanguage({
   baseUrl = DEFAULT_BASE_URL,
-  dbName,
+  series,
   majorVersion,
   lang,
 }: {
   baseUrl?: string;
-  dbName: string;
+  series: DataSeries;
   majorVersion: number;
   lang: string;
 }): Promise<boolean> {
@@ -121,7 +121,7 @@ export async function hasLanguage({
   try {
     await getVersionInfo({
       baseUrl,
-      dbName,
+      series,
       majorVersion,
       lang,
       signal: abortController.signal,
@@ -134,7 +134,7 @@ export async function hasLanguage({
 
 export function download<EntryLine, DeletionLine>({
   baseUrl = DEFAULT_BASE_URL,
-  dbName,
+  series,
   majorVersion,
   currentVersion,
   lang,
@@ -156,7 +156,7 @@ export function download<EntryLine, DeletionLine>({
       let versionInfo: VersionInfo;
       try {
         versionInfo = await getVersionInfo({
-          dbName,
+          series,
           majorVersion,
           baseUrl,
           lang,
@@ -211,7 +211,7 @@ export function download<EntryLine, DeletionLine>({
         try {
           for await (const event of getEvents({
             baseUrl,
-            dbName,
+            series,
             lang,
             maxProgressResolution,
             version: {
@@ -247,7 +247,7 @@ export function download<EntryLine, DeletionLine>({
         try {
           for await (const event of getEvents({
             baseUrl,
-            dbName,
+            series,
             lang,
             maxProgressResolution,
             version: {
@@ -323,14 +323,14 @@ let cachedVersionFile:
 async function getVersionInfo({
   baseUrl,
   majorVersion,
-  dbName,
+  series,
   lang,
   signal,
   forceFetch = false,
 }: {
   baseUrl: string;
   majorVersion: number;
-  dbName: string;
+  series: string;
   lang: string;
   signal: AbortSignal;
   forceFetch?: boolean;
@@ -377,9 +377,9 @@ async function getVersionInfo({
   }
 
   // Inspect and extract the database version information
-  const dbVersionInfo = getCurrentDbVersionInfo(
+  const dbVersionInfo = getCurrentVersionInfo(
     versionInfo,
-    dbName,
+    series,
     majorVersion
   );
   if (!dbVersionInfo) {
@@ -398,42 +398,42 @@ async function getVersionInfo({
   return dbVersionInfo;
 }
 
-function getCurrentDbVersionInfo(
+function getCurrentVersionInfo(
   a: any,
-  dbName: string,
+  series: string,
   majorVersion: number
 ): VersionInfo | null {
   if (!a || typeof a !== 'object') {
     return null;
   }
 
-  if (typeof a[dbName] !== 'object' || a[dbName] === null) {
+  if (typeof a[series] !== 'object' || a[series] === null) {
     return null;
   }
 
   if (
-    typeof a[dbName][majorVersion] !== 'object' ||
-    a[dbName][majorVersion] === null
+    typeof a[series][majorVersion] !== 'object' ||
+    a[series][majorVersion] === null
   ) {
     throw new DownloadError(
       { code: DownloadErrorCode.MajorVersionNotFound },
-      `No ${majorVersion}.x version information for ${dbName} database`
+      `No ${majorVersion}.x version information for ${series} data`
     );
   }
 
   if (
-    typeof a[dbName][majorVersion].major !== 'number' ||
-    typeof a[dbName][majorVersion].minor !== 'number' ||
-    typeof a[dbName][majorVersion].patch !== 'number' ||
-    typeof a[dbName][majorVersion].snapshot !== 'number' ||
-    (typeof a[dbName][majorVersion].databaseVersion !== 'string' &&
-      typeof a[dbName][majorVersion].databaseVersion !== 'undefined') ||
-    typeof a[dbName][majorVersion].dateOfCreation !== 'string'
+    typeof a[series][majorVersion].major !== 'number' ||
+    typeof a[series][majorVersion].minor !== 'number' ||
+    typeof a[series][majorVersion].patch !== 'number' ||
+    typeof a[series][majorVersion].snapshot !== 'number' ||
+    (typeof a[series][majorVersion].databaseVersion !== 'string' &&
+      typeof a[series][majorVersion].databaseVersion !== 'undefined') ||
+    typeof a[series][majorVersion].dateOfCreation !== 'string'
   ) {
     return null;
   }
 
-  const versionInfo = a[dbName][majorVersion] as VersionInfo;
+  const versionInfo = a[series][majorVersion] as VersionInfo;
 
   if (
     versionInfo.major < 1 ||
@@ -450,7 +450,7 @@ function getCurrentDbVersionInfo(
 
 type HeaderLine = {
   type: 'header';
-  version: Omit<DatabaseVersion, 'lang'>;
+  version: Omit<DataVersion, 'lang'>;
   records: number;
 };
 
@@ -473,7 +473,7 @@ function isHeaderLine(a: any): a is HeaderLine {
 
 async function* getEvents<EntryLine, DeletionLine>({
   baseUrl,
-  dbName,
+  series,
   lang,
   maxProgressResolution,
   version,
@@ -483,7 +483,7 @@ async function* getEvents<EntryLine, DeletionLine>({
   isDeletionLine,
 }: {
   baseUrl: string;
-  dbName: string;
+  series: DataSeries;
   lang: string;
   maxProgressResolution: number;
   version: Version;
@@ -492,7 +492,7 @@ async function* getEvents<EntryLine, DeletionLine>({
   isEntryLine: (a: any) => a is EntryLine;
   isDeletionLine: (a: any) => a is DeletionLine;
 }): AsyncIterableIterator<DownloadEvent<EntryLine, DeletionLine>> {
-  const url = `${baseUrl}${dbName}-rc-${lang}-${version.major}.${version.minor}.${version.patch}-${fileType}.ljson`;
+  const url = `${baseUrl}${series}-rc-${lang}-${version.major}.${version.minor}.${version.patch}-${fileType}.ljson`;
 
   // Fetch rejects the promise for network errors, but not for HTTP errors :(
   let response;

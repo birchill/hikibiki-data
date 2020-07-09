@@ -1,14 +1,14 @@
-import { DatabaseVersion } from './common';
+import { DataVersion } from './data-version';
 
 export type StartAction = {
   type: 'start';
-  dbName: 'kanjidb' | 'bushudb';
+  series: DataSeries;
 };
 
 export type StartDownloadAction = {
   type: 'startdownload';
-  dbName: 'kanjidb' | 'bushudb';
-  version: DatabaseVersion;
+  series: DataSeries;
+  version: DataVersion;
 };
 
 export type ProgressAction = {
@@ -19,12 +19,12 @@ export type ProgressAction = {
 
 export type FinishDownloadAction = {
   type: 'finishdownload';
-  version: DatabaseVersion;
+  version: DataVersion;
 };
 
 export type FinishPatchAction = {
   type: 'finishpatch';
-  version: DatabaseVersion;
+  version: DataVersion;
 };
 
 export type FinishAction = {

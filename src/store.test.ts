@@ -1,12 +1,12 @@
 import { assert } from 'chai';
 
-import { KanjiStore } from './store';
+import { JpdictStore } from './store';
 
 mocha.setup('bdd');
 
-describe('store', function() {
+describe('store', function () {
   it('should handle multiple simultaneous opens', async () => {
-    const store = new KanjiStore();
+    const store = new JpdictStore();
     const promise1 = store.open();
     const promise2 = store.open();
     const promise3 = store.open();
@@ -19,7 +19,7 @@ describe('store', function() {
   });
 
   it('should handle multiple simultaneous deletes', async () => {
-    const store = new KanjiStore();
+    const store = new JpdictStore();
     await store.open();
 
     const promise1 = store.destroy();
@@ -33,7 +33,7 @@ describe('store', function() {
   });
 
   it('should handle destroying while opening', async () => {
-    const store = new KanjiStore();
+    const store = new JpdictStore();
 
     // First add something to the database
     await store.open();

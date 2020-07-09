@@ -9,7 +9,7 @@ export interface KanjiEntryLine {
   refs: References;
   misc: Misc;
   comp?: string;
-  var?: string | Array<string>;
+  var?: Array<string>;
   cf?: string;
 }
 
@@ -37,6 +37,7 @@ export interface Misc {
   jlpt?: number;
   jlptn?: number;
   kk?: number;
+  meta?: Array<string>;
 }
 
 export interface KanjiDeletionLine {
@@ -84,12 +85,11 @@ export function isKanjiEntryLine(a: any): a is KanjiEntryLine {
     (typeof a.misc.jlpt === 'undefined' || typeof a.misc.jlpt === 'number') &&
     (typeof a.misc.jlptn === 'undefined' || typeof a.misc.jlptn === 'number') &&
     (typeof a.misc.kk === 'undefined' || typeof a.misc.kk === 'number') &&
+    (typeof a.misc.meta === 'undefined' || isArrayOfStrings(a.misc.meta)) &&
     // comp
     (typeof a.comp === 'undefined' || typeof a.comp === 'string') &&
     // var
-    (typeof a.var === 'undefined' ||
-      typeof a.var === 'string' ||
-      isArrayOfStrings(a.var)) &&
+    (typeof a.var === 'undefined' || isArrayOfStrings(a.var)) &&
     // deleted (should NOT be present)
     typeof a.deleted === 'undefined'
   );

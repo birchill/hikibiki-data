@@ -1,4 +1,4 @@
-import { ChangeCallback, ChangeTopic, KanjiDatabase } from './database';
+import { ChangeCallback, ChangeTopic, JpdictDatabase } from './database';
 import { DownloadError } from './download';
 import {
   requestIdleCallback,
@@ -14,7 +14,7 @@ interface RetryStatus {
   retryCount?: number;
 }
 
-const inProgressUpdates: Map<KanjiDatabase, RetryStatus> = new Map();
+const inProgressUpdates: Map<JpdictDatabase, RetryStatus> = new Map();
 
 export class OfflineError extends Error {
   constructor(...params: any[]) {
@@ -63,7 +63,7 @@ export async function updateWithRetry({
   onUpdateComplete,
   onUpdateError,
 }: {
-  db: KanjiDatabase;
+  db: JpdictDatabase;
   forceUpdate?: boolean;
   onUpdateComplete?: UpdateCompleteCallback;
   onUpdateError?: UpdateErrorCallback;
@@ -141,7 +141,7 @@ async function doUpdate({
   onUpdateComplete,
   onUpdateError,
 }: {
-  db: KanjiDatabase;
+  db: JpdictDatabase;
   onUpdateComplete?: UpdateCompleteCallback;
   onUpdateError?: UpdateErrorCallback;
 }) {
@@ -300,7 +300,7 @@ async function doUpdate({
 }
 
 function setInProgressUpdate(
-  db: KanjiDatabase,
+  db: JpdictDatabase,
   {
     onlineCallback,
     setTimeoutHandle,
@@ -329,7 +329,7 @@ function setInProgressUpdate(
   });
 }
 
-function deleteInProgressUpdate(db: KanjiDatabase) {
+function deleteInProgressUpdate(db: JpdictDatabase) {
   const currentRetryStatus = inProgressUpdates.get(db);
   if (!currentRetryStatus) {
     return;
@@ -340,7 +340,7 @@ function deleteInProgressUpdate(db: KanjiDatabase) {
   inProgressUpdates.delete(db);
 }
 
-function onDatabaseChange(db: KanjiDatabase, topic: ChangeTopic) {
+function onDatabaseChange(db: JpdictDatabase, topic: ChangeTopic) {
   // If the database was deleted, cancel any scheduled retries.
   if (topic === 'deleted') {
     // This is async, but no-one's waiting for us, so don't bother waiting on it
@@ -368,7 +368,7 @@ function onDatabaseChange(db: KanjiDatabase, topic: ChangeTopic) {
   }
 }
 
-export async function cancelUpdateWithRetry(db: KanjiDatabase) {
+export async function cancelUpdateWithRetry(db: JpdictDatabase) {
   const currentRetryStatus = inProgressUpdates.get(db);
   if (!currentRetryStatus) {
     return;

@@ -1,10 +1,10 @@
-export { DatabaseVersion } from './common';
+export { DataVersion } from './data-version';
 export {
   AbortError,
   ChangeCallback,
   ChangeTopic,
   DatabaseState,
-  KanjiDatabase,
+  JpdictDatabase,
   KanjiResult,
 } from './database';
 export { DownloadError, DownloadErrorCode } from './download';

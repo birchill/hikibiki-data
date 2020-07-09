@@ -1,4 +1,4 @@
-import { DatabaseVersion } from './common';
+import { DataVersion } from './data-version';
 
 // Last time we checked, if ever, we were up-to-date.
 // - The `lastCheck` value specifies when we last checked.
@@ -11,7 +11,7 @@ export type IdleUpdateState = {
 // or not we are up-to-date.
 export type CheckingUpdateState = {
   state: 'checking';
-  dbName: 'kanjidb' | 'bushudb';
+  series: DataSeries;
   lastCheck: Date | null;
 };
 
@@ -21,8 +21,8 @@ export type CheckingUpdateState = {
 // - The `progress` value specifies how far we are through the update.
 export type DownloadingUpdateState = {
   state: 'downloading';
-  dbName: 'kanjidb' | 'bushudb';
-  downloadVersion: DatabaseVersion;
+  series: DataSeries;
+  downloadVersion: DataVersion;
   progress: number;
   lastCheck: Date | null;
 };
@@ -31,8 +31,8 @@ export type DownloadingUpdateState = {
 // database.
 export type UpdatingDbUpdateState = {
   state: 'updatingdb';
-  dbName: 'kanjidb' | 'bushudb';
-  downloadVersion: DatabaseVersion;
+  series: DataSeries;
+  downloadVersion: DataVersion;
   lastCheck: Date | null;
 };
 

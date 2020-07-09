@@ -1,8 +1,8 @@
 import { DBSchema, deleteDB, IDBPDatabase, IDBPTransaction, openDB } from 'idb';
 
-import { RadicalEntryLine, RadicalDeletionLine } from './bushudb';
-import { DatabaseVersion } from './common';
-import { KanjiEntryLine, KanjiDeletionLine } from './kanjidb';
+import { DataVersion } from './data-version';
+import { KanjiEntryLine, KanjiDeletionLine } from './kanji';
+import { RadicalEntryLine, RadicalDeletionLine } from './radicals';
 import { stripFields } from './utils';
 
 // Define a variant on KanjiEntryLine that turns 'c' into a number
@@ -31,11 +31,11 @@ export function getIdForRadicalRecord(entry: RadicalDeletionLine): string {
   return entry.id;
 }
 
-export interface DatabaseVersionRecord extends DatabaseVersion {
+export interface DataVersionRecord extends DataVersion {
   id: 1 | 2;
 }
 
-interface KanjiSchema extends DBSchema {
+interface JpdictSchema extends DBSchema {
   kanji: {
     key: number;
     value: KanjiRecord;
@@ -43,35 +43,30 @@ interface KanjiSchema extends DBSchema {
       'r.on': Array<string>;
       'r.kun': Array<string>;
       'r.na': Array<string>;
-      'rad.x': number;
-      'misc.kk': number;
-      'misc.gr': number;
-      'misc.jlpt': number;
     };
   };
-  bushu: {
+  radicals: {
     key: string;
     value: RadicalRecord;
     indexes: {
       r: number;
       b: string;
       k: string;
-      na: Array<string>;
     };
   };
-  dbVersion: {
+  version: {
     key: number;
-    value: DatabaseVersionRecord;
+    value: DataVersionRecord;
   };
 }
 
-export class KanjiStore {
+export class JpdictStore {
   private state: 'idle' | 'opening' | 'open' | 'error' | 'deleting' = 'idle';
-  private db: IDBPDatabase<KanjiSchema> | undefined;
-  private openPromise: Promise<IDBPDatabase<KanjiSchema>> | undefined;
+  private db: IDBPDatabase<JpdictSchema> | undefined;
+  private openPromise: Promise<IDBPDatabase<JpdictSchema>> | undefined;
   private deletePromise: Promise<void> | undefined;
 
-  async open(): Promise<IDBPDatabase<KanjiSchema>> {
+  async open(): Promise<IDBPDatabase<JpdictSchema>> {
     if (this.state === 'open') {
       return this.db!;
     }
@@ -86,12 +81,12 @@ export class KanjiStore {
 
     this.state = 'opening';
 
-    this.openPromise = openDB<KanjiSchema>('KanjiStore', 10, {
+    this.openPromise = openDB<JpdictSchema>('jpdict', 1, {
       upgrade(
-        db: IDBPDatabase<KanjiSchema>,
+        db: IDBPDatabase<JpdictSchema>,
         oldVersion: number,
         newVersion: number | null,
-        transaction: IDBPTransaction<KanjiSchema>
+        transaction: IDBPTransaction<JpdictSchema>
       ) {
         const kanjiTable = db.createObjectStore<'kanji'>('kanji', {
           keyPath: 'c',
@@ -99,20 +94,15 @@ export class KanjiStore {
         kanjiTable.createIndex('r.on', 'r.on', { multiEntry: true });
         kanjiTable.createIndex('r.kun', 'r.kun', { multiEntry: true });
         kanjiTable.createIndex('r.na', 'r.na', { multiEntry: true });
-        kanjiTable.createIndex('rad.x', 'rad.x');
-        kanjiTable.createIndex('misc.kk', 'misc.kk');
-        kanjiTable.createIndex('misc.gr', 'misc.gr');
-        kanjiTable.createIndex('misc.jlpt', 'misc.jlpt');
 
-        const bushuTable = db.createObjectStore<'bushu'>('bushu', {
+        const radicalsTable = db.createObjectStore<'radicals'>('radicals', {
           keyPath: 'id',
         });
-        bushuTable.createIndex('r', 'r');
-        bushuTable.createIndex('b', 'b');
-        bushuTable.createIndex('k', 'k');
-        bushuTable.createIndex('na', 'na', { multiEntry: true });
+        radicalsTable.createIndex('r', 'r');
+        radicalsTable.createIndex('b', 'b');
+        radicalsTable.createIndex('k', 'k');
 
-        db.createObjectStore<'dbVersion'>('dbVersion', {
+        db.createObjectStore<'version'>('version', {
           keyPath: 'id',
         });
       },
@@ -126,7 +116,7 @@ export class KanjiStore {
           this.state = 'idle';
         }
       },
-    }).then(db => {
+    }).then((db) => {
       this.db = db;
       this.state = 'open';
       return db;
@@ -168,7 +158,7 @@ export class KanjiStore {
 
     this.state = 'deleting';
 
-    this.deletePromise = deleteDB('KanjiStore', {
+    this.deletePromise = deleteDB('jpdict', {
       blocked() {
         console.log('Deletion blocked');
       },
@@ -179,11 +169,11 @@ export class KanjiStore {
     this.deletePromise = undefined;
   }
 
-  async getDbVersion(db: 'kanji' | 'bushu'): Promise<DatabaseVersion | null> {
+  async getDataVersion(series: DataSeries): Promise<DataVersion | null> {
     await this.open();
 
-    const key = db === 'kanji' ? 1 : 2;
-    const versionDoc = await this.db!.get('dbVersion', key);
+    const key = series === 'kanji' ? 1 : 2;
+    const versionDoc = await this.db!.get('version', key);
     if (!versionDoc) {
       return null;
     }
@@ -211,19 +201,19 @@ export class KanjiStore {
   async getAllRadicals(): Promise<Array<RadicalRecord>> {
     await this.open();
 
-    return this.db!.getAll('bushu');
+    return this.db!.getAll('radicals');
   }
 
-  async bulkUpdateTable<Name extends 'kanji' | 'bushu'>({
+  async bulkUpdateTable<Name extends 'kanji' | 'radicals'>({
     table,
     put,
     drop,
     version,
   }: {
     table: Name;
-    put: Array<KanjiSchema[Name]['value']>;
-    drop: Array<KanjiSchema[Name]['key']> | '*';
-    version: DatabaseVersion;
+    put: Array<JpdictSchema[Name]['value']>;
+    drop: Array<JpdictSchema[Name]['key']> | '*';
+    version: DataVersion;
   }) {
     try {
       await this.open();
@@ -231,7 +221,7 @@ export class KanjiStore {
       throw e;
     }
 
-    const tx = this.db!.transaction([table, 'dbVersion'], 'readwrite');
+    const tx = this.db!.transaction([table, 'version'], 'readwrite');
     const targetTable = tx.objectStore(table);
 
     try {
@@ -263,7 +253,7 @@ export class KanjiStore {
     }
 
     try {
-      const putPromises: Array<Promise<KanjiSchema[Name]['key']>> = [];
+      const putPromises: Array<Promise<JpdictSchema[Name]['key']>> = [];
       for (const record of put) {
         // The important thing here is NOT to wait on the result of put.
         // This speeds up the operation by an order of magnitude or two and
@@ -289,7 +279,7 @@ export class KanjiStore {
     }
 
     try {
-      const dbVersionTable = tx.objectStore('dbVersion');
+      const dbVersionTable = tx.objectStore('version');
       await dbVersionTable.put({
         id: table === 'kanji' ? 1 : 2,
         ...version,

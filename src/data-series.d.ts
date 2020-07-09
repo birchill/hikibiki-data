@@ -1,0 +1,1 @@
+type DataSeries = 'kanji' | 'radicals';

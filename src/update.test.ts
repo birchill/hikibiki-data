@@ -1,6 +1,6 @@
 import { assert } from 'chai';
 
-import { DatabaseVersion } from './common';
+import { DataVersion } from './data-version';
 import {
   DeletionEvent,
   DownloadEvent,
@@ -9,14 +9,14 @@ import {
   VersionEvent,
   VersionEndEvent,
 } from './download';
-import { KanjiEntryLine, KanjiDeletionLine } from './kanjidb';
-import { KanjiStore } from './store';
+import { KanjiEntryLine, KanjiDeletionLine } from './kanji';
+import { JpdictStore } from './store';
 import { UpdateAction } from './update-actions';
 import { updateKanji } from './update';
 
 mocha.setup('bdd');
 
-const VERSION_1_0_0: DatabaseVersion = {
+const VERSION_1_0_0: DataVersion = {
   major: 1,
   minor: 0,
   patch: 0,
@@ -29,8 +29,8 @@ type KanjiEntryEvent = EntryEvent<KanjiEntryLine>;
 type KanjiDeletionEvent = DeletionEvent<KanjiDeletionLine>;
 type KanjiDownloadEvent = DownloadEvent<KanjiEntryLine, KanjiDeletionLine>;
 
-describe('updateKanji', function() {
-  let store: KanjiStore;
+describe('updateKanji', function () {
+  let store: JpdictStore;
   let actions: Array<UpdateAction> = [];
   const callback = (action: UpdateAction) => {
     actions.push(action);
@@ -41,7 +41,7 @@ describe('updateKanji', function() {
 
   beforeEach(() => {
     actions = [];
-    store = new KanjiStore();
+    store = new JpdictStore();
   });
 
   afterEach(() => {
@@ -60,7 +60,7 @@ describe('updateKanji', function() {
     await updateKanji({ downloadStream, lang: 'en', store, callback });
 
     assert.deepEqual(actions, [
-      { type: 'startdownload', dbName: 'kanjidb', version: VERSION_1_0_0 },
+      { type: 'startdownload', series: 'kanji', version: VERSION_1_0_0 },
       { type: 'finishdownload', version: VERSION_1_0_0 },
       { type: 'finishpatch', version: VERSION_1_0_0 },
     ]);
@@ -77,8 +77,8 @@ describe('updateKanji', function() {
 
     await updateKanji({ downloadStream, lang: 'en', store, callback });
 
-    const dbVersion = await store.getDbVersion('kanji');
-    assert.deepEqual(dbVersion, VERSION_1_0_0);
+    const dataVersion = await store.getDataVersion('kanji');
+    assert.deepEqual(dataVersion, VERSION_1_0_0);
   });
 
   it('should add entries to the kanji table', async () => {
@@ -239,7 +239,7 @@ describe('updateKanji', function() {
     await updateKanji({ downloadStream, lang: 'en', store, callback });
 
     assert.deepEqual(actions, [
-      { type: 'startdownload', dbName: 'kanjidb', version: VERSION_1_0_0 },
+      { type: 'startdownload', series: 'kanji', version: VERSION_1_0_0 },
       { type: 'progress', loaded: 0, total: 1 },
       { type: 'progress', loaded: 1, total: 1 },
       { type: 'finishdownload', version: VERSION_1_0_0 },

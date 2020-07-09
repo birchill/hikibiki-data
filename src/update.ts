@@ -1,13 +1,13 @@
-import { RadicalEntryLine, RadicalDeletionLine } from './bushudb';
-import { DatabaseVersion } from './common';
+import { DataVersion } from './data-version';
 import { DownloadEvent } from './download';
-import { KanjiEntryLine, KanjiDeletionLine } from './kanjidb';
+import { KanjiEntryLine, KanjiDeletionLine } from './kanji';
+import { RadicalEntryLine, RadicalDeletionLine } from './radicals';
 import {
   getIdForKanjiRecord,
   getIdForRadicalRecord,
   toKanjiRecord,
   toRadicalRecord,
-  KanjiStore,
+  JpdictStore,
   KanjiRecord,
   RadicalRecord,
 } from './store';
@@ -55,7 +55,7 @@ export type UpdateCallback = (action: UpdateAction) => void;
 // at a time to limit memory usage.
 
 const inProgressUpdates: Map<
-  KanjiStore,
+  JpdictStore,
   ReadableStreamDefaultReader<DownloadEvent<any, any>>
 > = new Map();
 
@@ -64,7 +64,7 @@ export async function updateKanji(
 ) {
   return update<KanjiEntryLine, KanjiDeletionLine, KanjiRecord, number>({
     ...options,
-    dbName: 'kanjidb',
+    series: 'kanji',
     toRecord: toKanjiRecord,
     getId: getIdForKanjiRecord,
   });
@@ -75,7 +75,7 @@ export async function updateRadicals(
 ) {
   return update<RadicalEntryLine, RadicalDeletionLine, RadicalRecord, string>({
     ...options,
-    dbName: 'bushudb',
+    series: 'radicals',
     toRecord: toRadicalRecord,
     getId: getIdForRadicalRecord,
   });
@@ -84,7 +84,7 @@ export async function updateRadicals(
 export interface UpdateOptions<EntryLine, DeletionLine> {
   downloadStream: ReadableStream<DownloadEvent<EntryLine, DeletionLine>>;
   lang: string;
-  store: KanjiStore;
+  store: JpdictStore;
   callback: UpdateCallback;
   verbose?: boolean;
 }
@@ -98,16 +98,16 @@ async function update<
   downloadStream,
   store,
   lang,
-  dbName,
+  series,
   toRecord,
   getId,
   callback,
   verbose = false,
 }: {
   downloadStream: ReadableStream<DownloadEvent<EntryLine, DeletionLine>>;
-  store: KanjiStore;
+  store: JpdictStore;
   lang: string;
-  dbName: 'kanjidb' | 'bushudb';
+  series: DataSeries;
   toRecord: (e: EntryLine) => RecordType;
   getId: (e: DeletionLine) => IdType;
   callback: UpdateCallback;
@@ -124,7 +124,7 @@ async function update<
   let recordsToPut: Array<RecordType> = [];
   let recordsToDelete: Array<IdType> = [];
 
-  let currentVersion: DatabaseVersion | undefined;
+  let currentVersion: DataVersion | undefined;
   let partialVersion: boolean = false;
 
   const finishCurrentVersion = async () => {
@@ -136,7 +136,7 @@ async function update<
 
     try {
       await store.bulkUpdateTable({
-        table: dbName === 'kanjidb' ? 'kanji' : 'bushu',
+        table: series,
         put: recordsToPut,
         drop: partialVersion ? recordsToDelete : '*',
         version: currentVersion,
@@ -208,7 +208,7 @@ async function update<
 
         callback({
           type: 'startdownload',
-          dbName,
+          series,
           version: currentVersion,
         });
         break;
@@ -252,7 +252,7 @@ async function update<
   }
 }
 
-export async function cancelUpdate(store: KanjiStore): Promise<boolean> {
+export async function cancelUpdate(store: JpdictStore): Promise<boolean> {
   const reader = inProgressUpdates.get(store);
   if (!reader) {
     return false;

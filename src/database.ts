@@ -1,7 +1,6 @@
 import { jsonEqualish } from '@birchill/json-equalish';
 
-import { isRadicalEntryLine, isRadicalDeletionLine } from './bushudb';
-import { DatabaseVersion } from './common';
+import { DataVersion } from './data-version';
 import { hasLanguage, download } from './download';
 import {
   KanjiEntryLine,
@@ -9,8 +8,9 @@ import {
   Readings,
   isKanjiEntryLine,
   isKanjiDeletionLine,
-} from './kanjidb';
-import { KanjiStore, KanjiRecord, RadicalRecord } from './store';
+} from './kanji';
+import { isRadicalEntryLine, isRadicalDeletionLine } from './radicals';
+import { JpdictStore, KanjiRecord, RadicalRecord } from './store';
 import { UpdateAction } from './update-actions';
 import { UpdateState } from './update-state';
 import { reducer as updateReducer } from './update-reducer';
@@ -22,8 +22,8 @@ import {
 } from './update';
 import { stripFields } from './utils';
 
-const KANJIDB_MAJOR_VERSION = 2;
-const BUSHUDB_MAJOR_VERSION = 2;
+const KANJI_MAJOR_VERSION = 3;
+const RADICAL_MAJOR_VERSION = 3;
 
 export const enum DatabaseState {
   // We don't know yet if we have a database or not
@@ -98,14 +98,14 @@ export class AbortError extends Error {
 export type ChangeTopic = 'stateupdated' | 'deleted';
 export type ChangeCallback = (topic: ChangeTopic) => void;
 
-export class KanjiDatabase {
+export class JpdictDatabase {
   state: DatabaseState = DatabaseState.Initializing;
   updateState: UpdateState = { state: 'idle', lastCheck: null };
-  store: KanjiStore;
-  dbVersions: {
-    kanjidb: DatabaseVersion | null | undefined;
-    bushudb: DatabaseVersion | null | undefined;
-  } = { kanjidb: undefined, bushudb: undefined };
+  store: JpdictStore;
+  dataVersions: {
+    kanji: DataVersion | null | undefined;
+    radicals: DataVersion | null | undefined;
+  } = { kanji: undefined, radicals: undefined };
   onWarning?: (message: string) => void;
   verbose: boolean = false;
 
@@ -117,22 +117,22 @@ export class KanjiDatabase {
   private changeListeners: ChangeCallback[] = [];
 
   constructor({ verbose = false }: { verbose?: boolean } = {}) {
-    this.store = new KanjiStore();
+    this.store = new JpdictStore();
     this.verbose = verbose;
 
     // Fetch initial state
     this.readyPromise = (async () => {
       try {
-        const kanjiDbVersion = await this.store.getDbVersion('kanji');
-        this.updateDbVersion('kanjidb', kanjiDbVersion);
+        const kanjiDataVersion = await this.store.getDataVersion('kanji');
+        this.updateDataVersion('kanji', kanjiDataVersion);
 
-        const bushuDbVersion = await this.store.getDbVersion('bushu');
-        this.updateDbVersion('bushudb', bushuDbVersion);
+        const radicalsDataVersion = await this.store.getDataVersion('radicals');
+        this.updateDataVersion('radicals', radicalsDataVersion);
       } catch (e) {
         console.error('Failed to open IndexedDB');
         console.error(e);
 
-        this.dbVersions = { kanjidb: null, bushudb: null };
+        this.dataVersions = { kanji: null, radicals: null };
         this.state = DatabaseState.Unavailable;
 
         throw e;
@@ -176,26 +176,26 @@ export class KanjiDatabase {
     }
   }
 
-  private updateDbVersion(
-    db: 'kanjidb' | 'bushudb',
-    version: DatabaseVersion | null
-  ) {
-    if (jsonEqualish(this.dbVersions[db], version)) {
+  private updateDataVersion(series: DataSeries, version: DataVersion | null) {
+    if (jsonEqualish(this.dataVersions[series], version)) {
       return;
     }
 
-    this.dbVersions[db] = version;
-    if (this.dbVersions.kanjidb === null || this.dbVersions.bushudb === null) {
+    this.dataVersions[series] = version;
+    if (
+      this.dataVersions.kanji === null ||
+      this.dataVersions.radicals === null
+    ) {
       this.state = DatabaseState.Empty;
     } else if (
-      typeof this.dbVersions.kanjidb !== 'undefined' &&
-      typeof this.dbVersions.bushudb !== 'undefined'
+      typeof this.dataVersions.kanji !== 'undefined' &&
+      typeof this.dataVersions.radicals !== 'undefined'
     ) {
       this.state = DatabaseState.Ok;
     }
 
     // Invalidate our cached version of the radical database if we updated it
-    if (db === 'bushudb') {
+    if (series === 'radicals') {
       this.radicalsPromise = undefined;
       this.charToRadicalMap = new Map();
     }
@@ -218,7 +218,7 @@ export class KanjiDatabase {
         const lang = this.preferredLang || (await this.getDbLang()) || 'en';
 
         await this.doUpdate({
-          dbName: 'kanjidb',
+          series: 'kanji',
           lang,
           forceFetch: true,
           isEntryLine: isKanjiEntryLine,
@@ -227,7 +227,7 @@ export class KanjiDatabase {
         });
 
         await this.doUpdate({
-          dbName: 'bushudb',
+          series: 'radicals',
           lang,
           isEntryLine: isRadicalEntryLine,
           isDeletionLine: isRadicalDeletionLine,
@@ -243,14 +243,14 @@ export class KanjiDatabase {
   }
 
   private async doUpdate<EntryLine, DeletionLine>({
-    dbName,
+    series,
     lang,
     forceFetch = false,
     isEntryLine,
     isDeletionLine,
     update,
   }: {
-    dbName: 'bushudb' | 'kanjidb';
+    series: DataSeries;
     lang: string;
     forceFetch?: boolean;
     isEntryLine: (a: any) => a is EntryLine;
@@ -263,7 +263,7 @@ export class KanjiDatabase {
       this.updateState = updateReducer(this.updateState, action);
       if (action.type === 'finishpatch') {
         wroteSomething = true;
-        this.updateDbVersion(dbName, action.version);
+        this.updateDataVersion(series, action.version);
       }
       this.notifyChanged('stateupdated');
     };
@@ -277,22 +277,22 @@ export class KanjiDatabase {
     const checkDate = new Date();
 
     try {
-      reducer({ type: 'start', dbName });
+      reducer({ type: 'start', series });
 
       if (this.verbose) {
         console.log(
-          `Requesting download stream for ${dbName} db with current version ${JSON.stringify(
-            this.dbVersions[dbName] || undefined
+          `Requesting download stream for ${series} series with current version ${JSON.stringify(
+            this.dataVersions[series] || undefined
           )}`
         );
       }
 
       const downloadStream = await download({
-        dbName,
+        series,
         lang,
         majorVersion:
-          dbName === 'kanjidb' ? KANJIDB_MAJOR_VERSION : BUSHUDB_MAJOR_VERSION,
-        currentVersion: this.dbVersions[dbName] || undefined,
+          series === 'kanji' ? KANJI_MAJOR_VERSION : RADICAL_MAJOR_VERSION,
+        currentVersion: this.dataVersions[series] || undefined,
         forceFetch,
         isEntryLine,
         isDeletionLine,
@@ -352,10 +352,10 @@ export class KanjiDatabase {
       console.log('Destroying database while there is an in-progress update');
     }
 
-    this.store = new KanjiStore();
+    this.store = new JpdictStore();
     this.state = DatabaseState.Empty;
     this.updateState = { state: 'idle', lastCheck: null };
-    this.dbVersions = { kanjidb: null, bushudb: null };
+    this.dataVersions = { kanji: null, radicals: null };
     this.notifyChanged('deleted');
   }
 
@@ -380,14 +380,14 @@ export class KanjiDatabase {
       this.state !== DatabaseState.Unavailable &&
       lang &&
       (!(await hasLanguage({
-        dbName: 'kanjidb',
+        series: 'kanji',
         lang,
-        majorVersion: KANJIDB_MAJOR_VERSION,
+        majorVersion: KANJI_MAJOR_VERSION,
       })) ||
         !(await hasLanguage({
-          dbName: 'bushudb',
+          series: 'radicals',
           lang,
-          majorVersion: BUSHUDB_MAJOR_VERSION,
+          majorVersion: RADICAL_MAJOR_VERSION,
         })))
     ) {
       throw new Error(`Version information for language "${lang}" not found`);
@@ -427,7 +427,7 @@ export class KanjiDatabase {
       return null;
     }
 
-    return this.dbVersions.kanjidb!.lang;
+    return this.dataVersions.kanji!.lang;
   }
 
   async getKanji(kanji: Array<string>): Promise<Array<KanjiResult>> {
@@ -803,10 +803,7 @@ function parseVariants(record: KanjiRecord): RadicalVariantArray {
   const variants: Array<{ radical: number; id: string }> = [];
 
   if (record.var) {
-    const variantIdArray = Array.isArray(record.var)
-      ? record.var
-      : [record.var];
-    for (const variantId of variantIdArray) {
+    for (const variantId of record.var) {
       const matches = variantId.match(/^(\d+)-/);
       if (matches) {
         const [, radical] = matches;
