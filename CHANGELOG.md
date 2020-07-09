@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.0.0](https://github.com/birchill/hikibiki-data/compare/v3.0.0...v4.0.0) (2020-07-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* New database name and format
+
+### Features
+
+* Update to new datastore format and location ([c629b6f](https://github.com/birchill/hikibiki-data/commit/c629b6f3024a90f8fb6dfdeb036189918e6deb77))
+
 ## [3.0.0](https://github.com/birchill/hikibiki-data/compare/v2.5.0...v3.0.0) (2020-05-04)
 
 
