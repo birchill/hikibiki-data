@@ -105,8 +105,7 @@ export class JpdictDatabase {
     kanji: DataSeriesState.Initializing,
     radicals: DataSeriesState.Initializing,
   };
-  // XXX Rename to just dataVersion
-  dataVersions: { kanji: DataVersion | null; radicals: DataVersion | null } = {
+  dataVersion: { kanji: DataVersion | null; radicals: DataVersion | null } = {
     kanji: null,
     radicals: null,
   };
@@ -142,7 +141,7 @@ export class JpdictDatabase {
           kanji: DataSeriesState.Unavailable,
           radicals: DataSeriesState.Unavailable,
         };
-        this.dataVersions = { kanji: null, radicals: null };
+        this.dataVersion = { kanji: null, radicals: null };
 
         throw e;
       } finally {
@@ -189,12 +188,12 @@ export class JpdictDatabase {
     if (
       this.dataState[series] !== DataSeriesState.Initializing &&
       this.dataState[series] !== DataSeriesState.Unavailable &&
-      jsonEqualish(this.dataVersions[series], version)
+      jsonEqualish(this.dataVersion[series], version)
     ) {
       return;
     }
 
-    this.dataVersions[series] = version;
+    this.dataVersion[series] = version;
     this.dataState[series] = version
       ? DataSeriesState.Ok
       : DataSeriesState.Empty;
@@ -287,7 +286,7 @@ export class JpdictDatabase {
       if (this.verbose) {
         console.log(
           `Requesting download stream for ${series} series with current version ${JSON.stringify(
-            this.dataVersions[series] || undefined
+            this.dataVersion[series] || undefined
           )}`
         );
       }
@@ -296,7 +295,7 @@ export class JpdictDatabase {
         series,
         lang,
         majorVersion: MAJOR_VERSION[series],
-        currentVersion: this.dataVersions[series] || undefined,
+        currentVersion: this.dataVersion[series] || undefined,
         forceFetch,
         isEntryLine,
         isDeletionLine,
@@ -364,7 +363,7 @@ export class JpdictDatabase {
       kanji: DataSeriesState.Empty,
       radicals: DataSeriesState.Empty,
     };
-    this.dataVersions = { kanji: null, radicals: null };
+    this.dataVersion = { kanji: null, radicals: null };
     this.updateState = { state: 'idle', lastCheck: null };
     this.notifyChanged('deleted');
   }
@@ -437,11 +436,11 @@ export class JpdictDatabase {
     // 3. Names (only English)
     //
     if (this.dataState.kanji === DataSeriesState.Ok) {
-      return this.dataVersions.kanji!.lang;
+      return this.dataVersion.kanji!.lang;
     }
 
     if (this.dataState.radicals === DataSeriesState.Ok) {
-      return this.dataVersions.radicals!.lang;
+      return this.dataVersion.radicals!.lang;
     }
 
     return null;
@@ -454,7 +453,7 @@ export class JpdictDatabase {
       return [];
     }
 
-    const lang = this.dataVersions.kanji!.lang;
+    const lang = this.dataVersion.kanji!.lang;
 
     const ids = kanji.map((kanji) => kanji.codePointAt(0)!);
     const kanjiRecords = await this.store.getKanji(ids);

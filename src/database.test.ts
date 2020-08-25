@@ -63,7 +63,7 @@ describe('database', function () {
 
   it('should resolve the version after updating', async () => {
     await db.ready;
-    assert.isNull(db.dataVersions.kanji);
+    assert.isNull(db.dataVersion.kanji);
 
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
     fetchMock.mock(
@@ -80,7 +80,7 @@ describe('database', function () {
     await db.update();
 
     assert.deepEqual(
-      stripFields(db.dataVersions.kanji!, ['lang']),
+      stripFields(db.dataVersion.kanji!, ['lang']),
       stripFields(VERSION_3_0_0.kanji['3'], ['snapshot'])
     );
     assert.equal(db.dataState.kanji, DataSeriesState.Ok);
@@ -268,7 +268,7 @@ describe('database', function () {
 
   it('should not update the database version if the update failed', async () => {
     await db.ready;
-    assert.isNull(db.dataVersions.kanji);
+    assert.isNull(db.dataVersion.kanji);
 
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
     fetchMock.mock(
@@ -294,13 +294,13 @@ describe('database', function () {
       // Ignore
     }
 
-    assert.strictEqual(db.dataVersions.kanji, null);
+    assert.strictEqual(db.dataVersion.kanji, null);
     assert.equal(db.dataState.kanji, DataSeriesState.Empty);
   });
 
   it('should fetch kanji', async () => {
     await db.ready;
-    assert.isNull(db.dataVersions.kanji);
+    assert.isNull(db.dataVersion.kanji);
 
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
     fetchMock.mock(
@@ -392,7 +392,7 @@ describe('database', function () {
 
   it('should fill in katakana component descriptions', async () => {
     await db.ready;
-    assert.isNull(db.dataVersions.kanji);
+    assert.isNull(db.dataVersion.kanji);
 
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
     fetchMock.mock(
@@ -442,7 +442,7 @@ describe('database', function () {
 
   it('should match radical variants', async () => {
     await db.ready;
-    assert.isNull(db.dataVersions.kanji);
+    assert.isNull(db.dataVersion.kanji);
 
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
     fetchMock.mock(
@@ -526,7 +526,7 @@ describe('database', function () {
 
   it('should match component variants', async () => {
     await db.ready;
-    assert.isNull(db.dataVersions.kanji);
+    assert.isNull(db.dataVersion.kanji);
 
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
     fetchMock.mock(
@@ -612,7 +612,7 @@ describe('database', function () {
 
   it('should fetch related kanji', async () => {
     await db.ready;
-    assert.isNull(db.dataVersions.kanji);
+    assert.isNull(db.dataVersion.kanji);
 
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
     fetchMock.mock(
