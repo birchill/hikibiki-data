@@ -35,6 +35,16 @@ export interface DataVersionRecord extends DataVersion {
   id: 1 | 2;
 }
 
+function getVersionKey(series: DataSeries): 1 | 2 {
+  switch (series) {
+    case 'kanji':
+      return 1;
+
+    case 'radicals':
+      return 2;
+  }
+}
+
 interface JpdictSchema extends DBSchema {
   kanji: {
     key: number;
@@ -161,7 +171,9 @@ export class JpdictStore {
   }
 
   async destroy() {
-    await this.close();
+    if (this.state !== 'idle') {
+      await this.close();
+    }
 
     this.state = 'deleting';
 
@@ -174,12 +186,22 @@ export class JpdictStore {
     await this.deletePromise;
 
     this.deletePromise = undefined;
+    this.state = 'idle';
+  }
+
+  async clearTable(series: DataSeries) {
+    await this.bulkUpdateTable({
+      table: series,
+      put: [],
+      drop: '*',
+      version: null,
+    });
   }
 
   async getDataVersion(series: DataSeries): Promise<DataVersion | null> {
     await this.open();
 
-    const key = series === 'kanji' ? 1 : 2;
+    const key = getVersionKey(series);
     const versionDoc = await this.db!.get('version', key);
     if (!versionDoc) {
       return null;
@@ -220,13 +242,9 @@ export class JpdictStore {
     table: Name;
     put: Array<JpdictSchema[Name]['value']>;
     drop: Array<JpdictSchema[Name]['key']> | '*';
-    version: DataVersion;
+    version: DataVersion | null;
   }) {
-    try {
-      await this.open();
-    } catch (e) {
-      throw e;
-    }
+    await this.open();
 
     const tx = this.db!.transaction([table, 'version'], 'readwrite');
     const targetTable = tx.objectStore(table);
@@ -287,10 +305,15 @@ export class JpdictStore {
 
     try {
       const dbVersionTable = tx.objectStore('version');
-      await dbVersionTable.put({
-        id: table === 'kanji' ? 1 : 2,
-        ...version,
-      });
+      const id = getVersionKey(table);
+      if (version) {
+        await dbVersionTable.put({
+          ...version,
+          id,
+        });
+      } else {
+        await dbVersionTable.delete(id);
+      }
     } catch (e) {
       console.log('Error during version update portion of bulk update');
       console.log(JSON.stringify(version));

@@ -3,7 +3,7 @@ export {
   AbortError,
   ChangeCallback,
   ChangeTopic,
-  DatabaseState,
+  DataSeriesState as DatabaseState,
   JpdictDatabase,
   KanjiResult,
 } from './database';

@@ -4,7 +4,7 @@ import fetchMock from 'fetch-mock';
 import sinon from 'sinon';
 
 import { DownloadError, DownloadErrorCode } from './download';
-import { DatabaseState, JpdictDatabase } from './database';
+import { DataSeriesState, JpdictDatabase } from './database';
 import { stripFields } from './utils';
 
 mocha.setup('bdd');
@@ -51,12 +51,14 @@ describe('database', function () {
   });
 
   it('should initially be initializing', async () => {
-    assert.equal(db.state, DatabaseState.Initializing);
+    assert.equal(db.dataState.kanji, DataSeriesState.Initializing);
+    assert.equal(db.dataState.radicals, DataSeriesState.Initializing);
   });
 
   it('should resolve to being empty', async () => {
     await db.ready;
-    assert.equal(db.state, DatabaseState.Empty);
+    assert.equal(db.dataState.kanji, DataSeriesState.Empty);
+    assert.equal(db.dataState.radicals, DataSeriesState.Empty);
   });
 
   it('should resolve the version after updating', async () => {
@@ -81,7 +83,8 @@ describe('database', function () {
       stripFields(db.dataVersions.kanji!, ['lang']),
       stripFields(VERSION_3_0_0.kanji['3'], ['snapshot'])
     );
-    assert.equal(db.state, DatabaseState.Ok);
+    assert.equal(db.dataState.kanji, DataSeriesState.Ok);
+    assert.equal(db.dataState.radicals, DataSeriesState.Ok);
   });
 
   it('should update the update state after updating', async () => {
@@ -292,7 +295,7 @@ describe('database', function () {
     }
 
     assert.strictEqual(db.dataVersions.kanji, null);
-    assert.equal(db.state, DatabaseState.Empty);
+    assert.equal(db.dataState.kanji, DataSeriesState.Empty);
   });
 
   it('should fetch kanji', async () => {
@@ -317,7 +320,7 @@ describe('database', function () {
 
     await db.update();
 
-    assert.equal(db.state, DatabaseState.Ok);
+    assert.equal(db.dataState.kanji, DataSeriesState.Ok);
 
     const result = await db.getKanji(['引']);
     const expected = [
@@ -410,7 +413,7 @@ describe('database', function () {
 
     await db.update();
 
-    assert.equal(db.state, DatabaseState.Ok);
+    assert.equal(db.dataState.kanji, DataSeriesState.Ok);
 
     const result = await db.getKanji(['通']);
     assert.deepEqual(result[0].comp, [
@@ -462,7 +465,7 @@ describe('database', function () {
 
     await db.update();
 
-    assert.equal(db.state, DatabaseState.Ok);
+    assert.equal(db.dataState.kanji, DataSeriesState.Ok);
 
     const result = await db.getKanji(['胸']);
     const expected = [
@@ -547,7 +550,7 @@ describe('database', function () {
 
     await db.update();
 
-    assert.equal(db.state, DatabaseState.Ok);
+    assert.equal(db.dataState.kanji, DataSeriesState.Ok);
 
     const result = await db.getKanji(['筋']);
     const expected = [
@@ -637,7 +640,7 @@ describe('database', function () {
 
     await db.update();
 
-    assert.equal(db.state, DatabaseState.Ok);
+    assert.equal(db.dataState.kanji, DataSeriesState.Ok);
 
     const result = await db.getKanji(['構', '留']);
 

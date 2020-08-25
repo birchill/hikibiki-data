@@ -22,10 +22,12 @@ import {
 } from './update';
 import { stripFields } from './utils';
 
-const KANJI_MAJOR_VERSION = 3;
-const RADICAL_MAJOR_VERSION = 3;
+const MAJOR_VERSION: { [series in DataSeries]: number } = {
+  kanji: 3,
+  radicals: 3,
+};
 
-export const enum DatabaseState {
+export const enum DataSeriesState {
   // We don't know yet if we have a database or not
   Initializing,
   // No data has been stored yet
@@ -99,13 +101,17 @@ export type ChangeTopic = 'stateupdated' | 'deleted';
 export type ChangeCallback = (topic: ChangeTopic) => void;
 
 export class JpdictDatabase {
-  state: DatabaseState = DatabaseState.Initializing;
+  dataState: { kanji: DataSeriesState; radicals: DataSeriesState } = {
+    kanji: DataSeriesState.Initializing,
+    radicals: DataSeriesState.Initializing,
+  };
+  // XXX Rename to just dataVersion
+  dataVersions: { kanji: DataVersion | null; radicals: DataVersion | null } = {
+    kanji: null,
+    radicals: null,
+  };
   updateState: UpdateState = { state: 'idle', lastCheck: null };
   store: JpdictStore;
-  dataVersions: {
-    kanji: DataVersion | null | undefined;
-    radicals: DataVersion | null | undefined;
-  } = { kanji: undefined, radicals: undefined };
   onWarning?: (message: string) => void;
   verbose: boolean = false;
 
@@ -132,8 +138,11 @@ export class JpdictDatabase {
         console.error('Failed to open IndexedDB');
         console.error(e);
 
+        this.dataState = {
+          kanji: DataSeriesState.Unavailable,
+          radicals: DataSeriesState.Unavailable,
+        };
         this.dataVersions = { kanji: null, radicals: null };
-        this.state = DatabaseState.Unavailable;
 
         throw e;
       } finally {
@@ -177,22 +186,18 @@ export class JpdictDatabase {
   }
 
   private updateDataVersion(series: DataSeries, version: DataVersion | null) {
-    if (jsonEqualish(this.dataVersions[series], version)) {
+    if (
+      this.dataState[series] !== DataSeriesState.Initializing &&
+      this.dataState[series] !== DataSeriesState.Unavailable &&
+      jsonEqualish(this.dataVersions[series], version)
+    ) {
       return;
     }
 
     this.dataVersions[series] = version;
-    if (
-      this.dataVersions.kanji === null ||
-      this.dataVersions.radicals === null
-    ) {
-      this.state = DatabaseState.Empty;
-    } else if (
-      typeof this.dataVersions.kanji !== 'undefined' &&
-      typeof this.dataVersions.radicals !== 'undefined'
-    ) {
-      this.state = DatabaseState.Ok;
-    }
+    this.dataState[series] = version
+      ? DataSeriesState.Ok
+      : DataSeriesState.Empty;
 
     // Invalidate our cached version of the radical database if we updated it
     if (series === 'radicals') {
@@ -290,8 +295,7 @@ export class JpdictDatabase {
       const downloadStream = await download({
         series,
         lang,
-        majorVersion:
-          series === 'kanji' ? KANJI_MAJOR_VERSION : RADICAL_MAJOR_VERSION,
+        majorVersion: MAJOR_VERSION[series],
         currentVersion: this.dataVersions[series] || undefined,
         forceFetch,
         isEntryLine,
@@ -342,7 +346,10 @@ export class JpdictDatabase {
       /* Ignore, we're going to destroy anyway */
     }
 
-    if (this.state !== DatabaseState.Unavailable) {
+    const hasData = ['kanji', 'radicals'].some(
+      (key: DataSeries) => this.dataState[key] !== DataSeriesState.Unavailable
+    );
+    if (hasData) {
       // Wait for radicals query to finish before tidying up
       await this.getRadicals();
       await this.store.destroy();
@@ -353,9 +360,12 @@ export class JpdictDatabase {
     }
 
     this.store = new JpdictStore();
-    this.state = DatabaseState.Empty;
-    this.updateState = { state: 'idle', lastCheck: null };
+    this.dataState = {
+      kanji: DataSeriesState.Empty,
+      radicals: DataSeriesState.Empty,
+    };
     this.dataVersions = { kanji: null, radicals: null };
+    this.updateState = { state: 'idle', lastCheck: null };
     this.notifyChanged('deleted');
   }
 
@@ -368,43 +378,42 @@ export class JpdictDatabase {
       return;
     }
 
+    this.preferredLang = lang;
+
     // Check if the language actually matches the language we already have
     if (lang && lang === (await this.getDbLang())) {
-      this.preferredLang = lang;
       return;
     }
 
-    // Make sure the language exists before we clobber the database
-    if (
-      this.state !== DatabaseState.Empty &&
-      this.state !== DatabaseState.Unavailable &&
-      lang &&
-      (!(await hasLanguage({
-        series: 'kanji',
-        lang,
-        majorVersion: KANJI_MAJOR_VERSION,
-      })) ||
-        !(await hasLanguage({
-          series: 'radicals',
-          lang,
-          majorVersion: RADICAL_MAJOR_VERSION,
-        })))
-    ) {
-      throw new Error(`Version information for language "${lang}" not found`);
-    }
-
-    this.preferredLang = lang;
-
     const hadUpdate = await this.cancelUpdate();
 
-    // If we are empty and didn't have an update in progress, there is no need
-    // to clobber the database (and in fact doing so could confuse clients who
-    // are simply trying to set the initially preferred language).
-    if (this.state !== DatabaseState.Empty || hadUpdate) {
-      if (this.verbose) {
-        console.log(`Clobbering database to change lang to ${lang}`);
+    // Clobber any data for which there is data for the newly-set language.
+    for (const series of [<const>'kanji', <const>'radicals']) {
+      // No need to clear the data if it's already empty (unless we had an
+      // update in progress that we canceled since that might have left some
+      // data there).
+      if (this.dataState[series] === DataSeriesState.Empty && !hadUpdate) {
+        continue;
       }
-      await this.destroy();
+
+      // No need to clear the data if the new target language is not available
+      // for this data series.
+      if (
+        lang &&
+        !(await hasLanguage({
+          series,
+          lang,
+          majorVersion: MAJOR_VERSION[series],
+        }))
+      ) {
+        continue;
+      }
+
+      if (this.verbose) {
+        console.log(`Clobbering ${series} data to change lang to ${lang}`);
+      }
+      await this.store.clearTable(series);
+      this.updateDataVersion(series, null);
     }
 
     // We _could_ detect if we had data or had an in-progress update and
@@ -420,24 +429,32 @@ export class JpdictDatabase {
       /* Ignore, we will handle the unavailable state below explicitly. */
     }
 
-    if (
-      this.state === DatabaseState.Empty ||
-      this.state === DatabaseState.Unavailable
-    ) {
-      return null;
+    // The priority for determining the database language is as follows:
+    //
+    // 1. Words (superset of all other data series) -- not yet implemented
+    // 2. Kanji / Radicals (subset of words, should have the same set of values
+    //    and should be kept in sync)
+    // 3. Names (only English)
+    //
+    if (this.dataState.kanji === DataSeriesState.Ok) {
+      return this.dataVersions.kanji!.lang;
     }
 
-    return this.dataVersions.kanji!.lang;
+    if (this.dataState.radicals === DataSeriesState.Ok) {
+      return this.dataVersions.radicals!.lang;
+    }
+
+    return null;
   }
 
   async getKanji(kanji: Array<string>): Promise<Array<KanjiResult>> {
     await this.ready;
 
-    if (this.state !== DatabaseState.Ok) {
+    if (this.dataState.kanji !== DataSeriesState.Ok) {
       return [];
     }
 
-    const lang = (await this.getDbLang())!;
+    const lang = this.dataVersions.kanji!.lang;
 
     const ids = kanji.map((kanji) => kanji.codePointAt(0)!);
     const kanjiRecords = await this.store.getKanji(ids);
@@ -655,6 +672,8 @@ export class JpdictDatabase {
             //
             // Given that all these languages fall back to English anyway,
             // though, it's probably not so bad if we forget to do this.
+            //
+            // TODO: Update this when we handle word dictionary
             if (!['en', 'es', 'pt', 'fr'].includes(lang)) {
               this.logWarningMessage(
                 `Generating katakana record for unknown language: ${lang}`
