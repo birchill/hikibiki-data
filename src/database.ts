@@ -117,6 +117,7 @@ export class JpdictDatabase {
   private preferredLang: string | null = null;
   private readyPromise: Promise<any>;
   private inProgressUpdate: Promise<void> | undefined;
+  private updateQueue: Array<DataSeries>;
   private radicalsPromise: Promise<Map<string, RadicalRecord>> | undefined;
   private charToRadicalMap: Map<string, string> = new Map();
   private changeListeners: ChangeCallback[] = [];
@@ -207,38 +208,80 @@ export class JpdictDatabase {
     this.notifyChanged('stateupdated');
   }
 
-  async update() {
+  async update({
+    seriesToUpdate,
+  }: { seriesToUpdate?: Array<DataSeries> } = {}) {
+    const toUpdate = seriesToUpdate || ['kanji', 'radicals'];
+
+    // If we update kanji, we should update the radicals too.
+    if (toUpdate.includes('kanji') && !toUpdate.includes('radicals')) {
+      toUpdate.push('radicals');
+    }
+
+    // Check for an existing update
     if (this.inProgressUpdate) {
       if (this.verbose) {
         console.log('Detected overlapping updates. Re-using existing update.');
       }
+
+      // Append any items not already in the queue.
+      for (const series of toUpdate) {
+        if (!this.updateQueue.includes(series)) {
+          if (this.verbose) {
+            console.log(`Adding ${series} to the update queue.`);
+          }
+          this.updateQueue.push(series);
+        }
+      }
+
       return this.inProgressUpdate;
     }
+
+    this.updateQueue = toUpdate;
 
     this.inProgressUpdate = (async () => {
       try {
         await this.ready;
 
+        // TODO: This needs to take into account the available languages for
+        // each data series.
         const lang = this.preferredLang || (await this.getDbLang()) || 'en';
 
-        await this.doUpdate({
-          series: 'kanji',
-          lang,
-          forceFetch: true,
-          isEntryLine: isKanjiEntryLine,
-          isDeletionLine: isKanjiDeletionLine,
-          update: updateKanji,
-        });
+        for (const series of this.updateQueue) {
+          switch (series) {
+            case 'kanji':
+              await this.doUpdate({
+                series,
+                lang,
+                forceFetch: true,
+                isEntryLine: isKanjiEntryLine,
+                isDeletionLine: isKanjiDeletionLine,
+                update: updateKanji,
+              });
+              break;
 
-        await this.doUpdate({
-          series: 'radicals',
-          lang,
-          isEntryLine: isRadicalEntryLine,
-          isDeletionLine: isRadicalDeletionLine,
-          update: updateRadicals,
-        });
+            case 'radicals':
+              await this.doUpdate({
+                series,
+                lang,
+                forceFetch: true,
+                isEntryLine: isRadicalEntryLine,
+                isDeletionLine: isRadicalDeletionLine,
+                update: updateRadicals,
+              });
+              break;
+          }
+        }
+
+        // Check if we were canceled. If we were, the queue will have been
+        // emptied and we may skip the above loop entirely so we need to check
+        // here to ensure we produce the correct error reporting.
+        if (!this.inProgressUpdate) {
+          throw new AbortError();
+        }
       } finally {
         this.inProgressUpdate = undefined;
+        this.updateQueue = [];
         this.notifyChanged('stateupdated');
       }
     })();
@@ -330,12 +373,10 @@ export class JpdictDatabase {
   }
 
   async cancelUpdate(): Promise<boolean> {
-    const hadProgressUpdate = !!this.inProgressUpdate;
     this.inProgressUpdate = undefined;
+    this.updateQueue = [];
 
-    await cancelUpdate(this.store);
-
-    return hadProgressUpdate;
+    return await cancelUpdate(this.store);
   }
 
   async destroy() {
@@ -449,7 +490,10 @@ export class JpdictDatabase {
   async getKanji(kanji: Array<string>): Promise<Array<KanjiResult>> {
     await this.ready;
 
-    if (this.dataState.kanji !== DataSeriesState.Ok) {
+    if (
+      this.dataState.kanji !== DataSeriesState.Ok ||
+      this.dataState.radicals !== DataSeriesState.Ok
+    ) {
       return [];
     }
 

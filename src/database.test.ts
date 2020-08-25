@@ -137,6 +137,52 @@ describe('database', function () {
     );
   });
 
+  it('should allow updating nothing', async () => {
+    await db.ready;
+    assert.isNull(db.dataVersion.kanji);
+
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
+    fetchMock.mock(
+      'end:kanji-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+`
+    );
+    fetchMock.mock(
+      'end:radicals-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+`
+    );
+
+    await db.update({ seriesToUpdate: [] });
+
+    assert.isNull(db.dataVersion.kanji);
+    assert.equal(db.dataState.kanji, DataSeriesState.Empty);
+    assert.isNull(db.dataVersion.radicals);
+    assert.equal(db.dataState.radicals, DataSeriesState.Empty);
+  });
+
+  it('should fetch radicals if we try to update kanji only', async () => {
+    await db.ready;
+    assert.isNull(db.dataVersion.radicals);
+
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
+    fetchMock.mock(
+      'end:kanji-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+`
+    );
+    fetchMock.mock(
+      'end:radicals-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+`
+    );
+
+    await db.update({ seriesToUpdate: ['kanji'] });
+
+    assert.equal(db.dataState.kanji, DataSeriesState.Ok);
+    assert.equal(db.dataState.radicals, DataSeriesState.Ok);
+  });
+
   it('should handle error actions', async () => {
     fetchMock.mock('end:jpdict-rc-en-version.json', 404);
 
