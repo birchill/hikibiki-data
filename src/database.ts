@@ -501,6 +501,20 @@ export class JpdictDatabase {
     this.notifyChanged('deleted');
   }
 
+  async deleteSeries(series: MajorDataSeries) {
+    if (this.inProgressUpdates[series]) {
+      await this.cancelUpdate({ series });
+    }
+
+    await this.store.clearTable(series);
+    this.updateDataVersion(series, null);
+
+    if (series === 'kanji') {
+      await this.store.clearTable('radicals');
+      this.updateDataVersion('radicals', null);
+    }
+  }
+
   async getKanji(kanji: Array<string>): Promise<Array<KanjiResult>> {
     await this.ready;
 

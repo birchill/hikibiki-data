@@ -818,4 +818,33 @@ describe('database', function () {
 
     assert.deepEqual(result, expected);
   });
+
+  it('should allow deleting data for a series', async () => {
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
+    fetchMock.mock(
+      'end:kanji-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+`
+    );
+    fetchMock.mock(
+      'end:radicals-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+`
+    );
+    fetchMock.mock(
+      'end:names-rc-en-1.0.0-full.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+`
+    );
+
+    const kanjiUpdate = db.update({ series: 'kanji', lang: 'en' });
+    const namesUpdate = db.update({ series: 'names', lang: 'en' });
+
+    await Promise.all([kanjiUpdate, namesUpdate]);
+    await db.deleteSeries('kanji');
+
+    assert.equal(db.kanji.state, DataSeriesState.Empty);
+    assert.equal(db.radicals.state, DataSeriesState.Empty);
+    assert.equal(db.names.state, DataSeriesState.Ok);
+  });
 });
