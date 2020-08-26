@@ -10,7 +10,8 @@ import {
   isKanjiDeletionLine,
 } from './kanji';
 import { isRadicalEntryLine, isRadicalDeletionLine } from './radicals';
-import { JpdictStore, KanjiRecord, RadicalRecord } from './store';
+import { isNameEntryLine, isNameDeletionLine } from './names';
+import { JpdictStore, KanjiRecord, RadicalRecord, NameRecord } from './store';
 import { UpdateAction } from './update-actions';
 import { UpdateState } from './update-state';
 import { reducer as updateReducer } from './update-reducer';
@@ -18,6 +19,7 @@ import {
   cancelUpdate,
   updateKanji,
   updateRadicals,
+  updateNames,
   UpdateOptions,
 } from './update';
 import { stripFields } from './utils';
@@ -25,6 +27,7 @@ import { stripFields } from './utils';
 const MAJOR_VERSION: { [series in DataSeries]: number } = {
   kanji: 3,
   radicals: 3,
+  names: 1,
 };
 
 export const enum DataSeriesState {
@@ -84,6 +87,8 @@ export interface RelatedKanji {
   misc: Misc;
 }
 
+export type { NameRecord as NameResult };
+
 export class AbortError extends Error {
   constructor(...params: any[]) {
     super(...params);
@@ -101,13 +106,23 @@ export type ChangeTopic = 'stateupdated' | 'deleted';
 export type ChangeCallback = (topic: ChangeTopic) => void;
 
 export class JpdictDatabase {
-  dataState: { kanji: DataSeriesState; radicals: DataSeriesState } = {
+  dataState: {
+    kanji: DataSeriesState;
+    radicals: DataSeriesState;
+    names: DataSeriesState;
+  } = {
     kanji: DataSeriesState.Initializing,
     radicals: DataSeriesState.Initializing,
+    names: DataSeriesState.Initializing,
   };
-  dataVersion: { kanji: DataVersion | null; radicals: DataVersion | null } = {
+  dataVersion: {
+    kanji: DataVersion | null;
+    radicals: DataVersion | null;
+    names: DataVersion | null;
+  } = {
     kanji: null,
     radicals: null,
+    names: null,
   };
   updateState: UpdateState = { state: 'idle', lastCheck: null };
   store: JpdictStore;
@@ -129,11 +144,14 @@ export class JpdictDatabase {
     // Fetch initial state
     this.readyPromise = (async () => {
       try {
-        const kanjiDataVersion = await this.store.getDataVersion('kanji');
-        this.updateDataVersion('kanji', kanjiDataVersion);
-
-        const radicalsDataVersion = await this.store.getDataVersion('radicals');
-        this.updateDataVersion('radicals', radicalsDataVersion);
+        for (const series of [
+          <const>'kanji',
+          <const>'radicals',
+          <const>'names',
+        ]) {
+          const dataVersion = await this.store.getDataVersion(series);
+          this.updateDataVersion(series, dataVersion);
+        }
       } catch (e) {
         console.error('Failed to open IndexedDB');
         console.error(e);
@@ -141,8 +159,9 @@ export class JpdictDatabase {
         this.dataState = {
           kanji: DataSeriesState.Unavailable,
           radicals: DataSeriesState.Unavailable,
+          names: DataSeriesState.Unavailable,
         };
-        this.dataVersion = { kanji: null, radicals: null };
+        this.dataVersion = { kanji: null, radicals: null, names: null };
 
         throw e;
       } finally {
@@ -270,6 +289,17 @@ export class JpdictDatabase {
                 update: updateRadicals,
               });
               break;
+
+            case 'names':
+              await this.doUpdate({
+                series,
+                lang,
+                forceFetch: true,
+                isEntryLine: isNameEntryLine,
+                isDeletionLine: isNameDeletionLine,
+                update: updateNames,
+              });
+              break;
           }
         }
 
@@ -386,7 +416,7 @@ export class JpdictDatabase {
       /* Ignore, we're going to destroy anyway */
     }
 
-    const hasData = ['kanji', 'radicals'].some(
+    const hasData = ['kanji', 'radicals', 'names'].some(
       (key: DataSeries) => this.dataState[key] !== DataSeriesState.Unavailable
     );
     if (hasData) {
@@ -403,8 +433,9 @@ export class JpdictDatabase {
     this.dataState = {
       kanji: DataSeriesState.Empty,
       radicals: DataSeriesState.Empty,
+      names: DataSeriesState.Empty,
     };
-    this.dataVersion = { kanji: null, radicals: null };
+    this.dataVersion = { kanji: null, radicals: null, names: null };
     this.updateState = { state: 'idle', lastCheck: null };
     this.notifyChanged('deleted');
   }
@@ -845,6 +876,10 @@ export class JpdictDatabase {
     this.charToRadicalMap = mapping;
 
     return mapping;
+  }
+
+  async getNames(search: string): Promise<Array<NameRecord>> {
+    return this.store.getNames(search);
   }
 
   private logWarningMessage(message: string) {

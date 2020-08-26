@@ -1,1 +1,1 @@
-type DataSeries = 'kanji' | 'radicals';
+type DataSeries = 'kanji' | 'radicals' | 'names';

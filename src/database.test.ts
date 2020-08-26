@@ -4,7 +4,7 @@ import fetchMock from 'fetch-mock';
 import sinon from 'sinon';
 
 import { DownloadError, DownloadErrorCode } from './download';
-import { DataSeriesState, JpdictDatabase } from './database';
+import { DataSeriesState, JpdictDatabase, NameResult } from './database';
 import { stripFields } from './utils';
 
 mocha.setup('bdd');
@@ -28,6 +28,15 @@ const VERSION_3_0_0 = {
       patch: 0,
       snapshot: 0,
       dateOfCreation: '2019-09-06',
+    },
+  },
+  names: {
+    '1': {
+      major: 1,
+      minor: 0,
+      patch: 0,
+      snapshot: 0,
+      dateOfCreation: '2020-08-22',
     },
   },
 };
@@ -719,5 +728,63 @@ describe('database', function () {
         misc: { sc: 13, gr: 9, freq: 2451, kk: 15 },
       },
     ]);
+  });
+
+  it('should fetch names by kanji', async () => {
+    await db.ready;
+    assert.isNull(db.dataVersion.names);
+
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
+    fetchMock.mock(
+      'end:names-rc-en-1.0.0-full.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"n/a","dateOfCreation":"2020-08-22"},"records":1}
+{"r":["こくろう"],"k":["国労"],"id":1657560,"tr":[{"type":["org"],"det":["National Railway Workers' Union"]}]}
+`
+    );
+
+    await db.update({ seriesToUpdate: ['names'] });
+
+    assert.equal(db.dataState.names, DataSeriesState.Ok);
+
+    const result = await db.getNames('国労');
+    const expected: Array<NameResult> = [
+      {
+        r: ['こくろう'],
+        k: ['国労'],
+        id: 1657560,
+        tr: [{ type: ['org'], det: ["National Railway Workers' Union"] }],
+      },
+    ];
+
+    assert.deepEqual(result, expected);
+  });
+
+  it('should fetch names by reading', async () => {
+    await db.ready;
+    assert.isNull(db.dataVersion.names);
+
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
+    fetchMock.mock(
+      'end:names-rc-en-1.0.0-full.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"n/a","dateOfCreation":"2020-08-22"},"records":1}
+{"r":["こくろう"],"k":["国労"],"id":1657560,"tr":[{"type":["org"],"det":["National Railway Workers' Union"]}]}
+`
+    );
+
+    await db.update({ seriesToUpdate: ['names'] });
+
+    assert.equal(db.dataState.names, DataSeriesState.Ok);
+
+    const result = await db.getNames('こくろう');
+    const expected: Array<NameResult> = [
+      {
+        r: ['こくろう'],
+        k: ['国労'],
+        id: 1657560,
+        tr: [{ type: ['org'], det: ["National Railway Workers' Union"] }],
+      },
+    ];
+
+    assert.deepEqual(result, expected);
   });
 });

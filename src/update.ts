@@ -2,14 +2,18 @@ import { DataVersion } from './data-version';
 import { DownloadEvent } from './download';
 import { KanjiEntryLine, KanjiDeletionLine } from './kanji';
 import { RadicalEntryLine, RadicalDeletionLine } from './radicals';
+import { NameEntryLine, NameDeletionLine } from './names';
 import {
   getIdForKanjiRecord,
   getIdForRadicalRecord,
+  getIdForNameRecord,
   toKanjiRecord,
   toRadicalRecord,
+  toNameRecord,
   JpdictStore,
   KanjiRecord,
   RadicalRecord,
+  NameRecord,
 } from './store';
 import { UpdateAction } from './update-actions';
 import { stripFields } from './utils';
@@ -81,6 +85,17 @@ export async function updateRadicals(
   });
 }
 
+export async function updateNames(
+  options: UpdateOptions<NameEntryLine, NameDeletionLine>
+) {
+  return update<NameEntryLine, NameDeletionLine, NameRecord, number>({
+    ...options,
+    series: 'names',
+    toRecord: toNameRecord,
+    getId: getIdForNameRecord,
+  });
+}
+
 export interface UpdateOptions<EntryLine, DeletionLine> {
   downloadStream: ReadableStream<DownloadEvent<EntryLine, DeletionLine>>;
   lang: string;
@@ -92,7 +107,7 @@ export interface UpdateOptions<EntryLine, DeletionLine> {
 async function update<
   EntryLine extends Omit<object, 'type'>,
   DeletionLine,
-  RecordType extends KanjiRecord | RadicalEntryLine,
+  RecordType extends KanjiRecord | RadicalRecord | NameRecord,
   IdType extends number | string
 >({
   downloadStream,

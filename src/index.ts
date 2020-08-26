@@ -6,6 +6,7 @@ export {
   DataSeriesState as DatabaseState,
   JpdictDatabase,
   KanjiResult,
+  NameResult,
 } from './database';
 export { DownloadError, DownloadErrorCode } from './download';
 export { UpdateErrorState, toUpdateErrorState } from './update-error-state';

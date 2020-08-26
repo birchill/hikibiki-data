@@ -1,8 +1,15 @@
-import { DBSchema, deleteDB, IDBPDatabase, IDBPTransaction, openDB } from 'idb';
+import {
+  DBSchema,
+  deleteDB,
+  IDBPDatabase,
+  IDBPTransaction,
+  openDB,
+} from 'idb/with-async-ittr';
 
 import { DataVersion } from './data-version';
 import { KanjiEntryLine, KanjiDeletionLine } from './kanji';
 import { RadicalEntryLine, RadicalDeletionLine } from './radicals';
+import { NameEntryLine, NameDeletionLine } from './names';
 import { stripFields } from './utils';
 
 // Define a variant on KanjiEntryLine that turns 'c' into a number
@@ -31,17 +38,30 @@ export function getIdForRadicalRecord(entry: RadicalDeletionLine): string {
   return entry.id;
 }
 
-export interface DataVersionRecord extends DataVersion {
-  id: 1 | 2;
+export type NameRecord = NameEntryLine;
+
+export function toNameRecord(entry: NameEntryLine): NameRecord {
+  return entry;
 }
 
-function getVersionKey(series: DataSeries): 1 | 2 {
+export function getIdForNameRecord(entry: NameDeletionLine): number {
+  return entry.id;
+}
+
+export interface DataVersionRecord extends DataVersion {
+  id: 1 | 2 | 3;
+}
+
+function getVersionKey(series: DataSeries): 1 | 2 | 3 {
   switch (series) {
     case 'kanji':
       return 1;
 
     case 'radicals':
       return 2;
+
+    case 'names':
+      return 3;
   }
 }
 
@@ -62,6 +82,14 @@ interface JpdictSchema extends DBSchema {
       r: number;
       b: string;
       k: string;
+    };
+  };
+  names: {
+    key: number;
+    value: NameRecord;
+    indexes: {
+      k: Array<string>;
+      r: Array<string>;
     };
   };
   version: {
@@ -91,30 +119,39 @@ export class JpdictStore {
 
     this.state = 'opening';
 
-    this.openPromise = openDB<JpdictSchema>('jpdict', 1, {
+    this.openPromise = openDB<JpdictSchema>('jpdict', 2, {
       upgrade(
         db: IDBPDatabase<JpdictSchema>,
         oldVersion: number,
         newVersion: number | null,
         transaction: IDBPTransaction<JpdictSchema>
       ) {
-        const kanjiTable = db.createObjectStore<'kanji'>('kanji', {
-          keyPath: 'c',
-        });
-        kanjiTable.createIndex('r.on', 'r.on', { multiEntry: true });
-        kanjiTable.createIndex('r.kun', 'r.kun', { multiEntry: true });
-        kanjiTable.createIndex('r.na', 'r.na', { multiEntry: true });
+        if (oldVersion < 1) {
+          const kanjiTable = db.createObjectStore<'kanji'>('kanji', {
+            keyPath: 'c',
+          });
+          kanjiTable.createIndex('r.on', 'r.on', { multiEntry: true });
+          kanjiTable.createIndex('r.kun', 'r.kun', { multiEntry: true });
+          kanjiTable.createIndex('r.na', 'r.na', { multiEntry: true });
 
-        const radicalsTable = db.createObjectStore<'radicals'>('radicals', {
-          keyPath: 'id',
-        });
-        radicalsTable.createIndex('r', 'r');
-        radicalsTable.createIndex('b', 'b');
-        radicalsTable.createIndex('k', 'k');
+          const radicalsTable = db.createObjectStore<'radicals'>('radicals', {
+            keyPath: 'id',
+          });
+          radicalsTable.createIndex('r', 'r');
+          radicalsTable.createIndex('b', 'b');
+          radicalsTable.createIndex('k', 'k');
 
-        db.createObjectStore<'version'>('version', {
-          keyPath: 'id',
-        });
+          db.createObjectStore<'version'>('version', {
+            keyPath: 'id',
+          });
+        }
+        if (oldVersion < 2) {
+          const namesTable = db.createObjectStore<'names'>('names', {
+            keyPath: 'id',
+          });
+          namesTable.createIndex('k', 'k', { multiEntry: true });
+          namesTable.createIndex('r', 'r', { multiEntry: true });
+        }
       },
       blocked() {
         console.log('Opening blocked');
@@ -233,7 +270,30 @@ export class JpdictStore {
     return this.db!.getAll('radicals');
   }
 
-  async bulkUpdateTable<Name extends 'kanji' | 'radicals'>({
+  async getNames(search: string): Promise<Array<NameRecord>> {
+    await this.open();
+
+    const result: Set<NameRecord> = new Set();
+
+    // Try the k (kanji) index first
+    const kanjiIndex = this.db!.transaction('names').store.index('k');
+    // (We explicitly use IDBKeyRange.only because otherwise the idb TS typings
+    // fail to recognize that these indices are multi-entry and hence it is
+    // valid to supply a single string instead of an array of strings.)
+    for await (const cursor of kanjiIndex.iterate(IDBKeyRange.only(search))) {
+      result.add(cursor.value);
+    }
+
+    // Then the r (reading) index
+    const readingIndex = this.db!.transaction('names').store.index('r');
+    for await (const cursor of readingIndex.iterate(IDBKeyRange.only(search))) {
+      result.add(cursor.value);
+    }
+
+    return [...result];
+  }
+
+  async bulkUpdateTable<Name extends DataSeries>({
     table,
     put,
     drop,
