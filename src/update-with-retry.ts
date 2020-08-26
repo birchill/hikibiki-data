@@ -427,10 +427,6 @@ function onDatabaseChange({
       ? db.kanji.updateState.state === 'updatingdb' ||
         db.radicals.updateState.state === 'updatingdb'
       : db[series].updateState.state === 'updatingdb';
-  console.log(`currentRetryStatus: ${JSON.stringify(currentRetryStatus)}`);
-  console.log(`isUpdatingDb: ${isUpdatingDb}`);
-  console.log(`  kanji: ${JSON.stringify(db.kanji.updateState)}}`);
-  console.log(`  radicals: ${JSON.stringify(db.kanji.updateState)}}`);
   if (
     currentRetryStatus &&
     currentRetryStatus.retryIntervalMs &&
