@@ -686,7 +686,7 @@ describe('updateWithRetry', function () {
     constraintError.name = 'ConstraintError';
 
     // We need to actually stub out the store method since we want the DB
-    // update state to reach 'upadtingdb' since we want to test that when
+    // update state to reach 'updatingdb' since we want to test that when
     // we reach that condition we DON'T clear the retryCount.
     const stub = sinon.stub(db.store, 'bulkUpdateTable');
     stub.throws(constraintError);
@@ -700,8 +700,11 @@ describe('updateWithRetry', function () {
         lang: 'en',
         onUpdateComplete: resolve,
         onUpdateError: ({ error, nextRetry }) => {
+          console.log(`Got update error: ${error}`);
+          console.log(`Next retry: ${nextRetry}`);
           errors.push(error);
           if (!nextRetry) {
+            console.log('Rejecting');
             reject(error);
           }
         },
