@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.0.1](https://github.com/birchill/hikibiki-data/compare/v5.0.0...v5.0.1) (2020-08-26)
+
+
+### Bug Fixes
+
+* Export DataSeries and MajorDataSeries ([c4545d3](https://github.com/birchill/hikibiki-data/commit/c4545d3f27a3203c413931511e4fb87247f73172))
+
 ## [5.0.0](https://github.com/birchill/hikibiki-data/compare/v4.0.1...v5.0.0) (2020-08-26)
 
 
