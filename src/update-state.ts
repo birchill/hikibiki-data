@@ -1,3 +1,4 @@
+import { DataSeries } from './data-series';
 import { DataVersion } from './data-version';
 
 // Last time we checked, if ever, we were up-to-date.

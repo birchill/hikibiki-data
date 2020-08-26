@@ -1,3 +1,4 @@
+import { DataSeries } from './data-series';
 import { DataVersion } from './data-version';
 
 export type StartAction = {

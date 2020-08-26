@@ -6,6 +6,7 @@ import {
   openDB,
 } from 'idb/with-async-ittr';
 
+import { DataSeries } from './data-series';
 import { DataVersion } from './data-version';
 import { KanjiEntryLine, KanjiDeletionLine } from './kanji';
 import { RadicalEntryLine, RadicalDeletionLine } from './radicals';

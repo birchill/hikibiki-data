@@ -1,5 +1,6 @@
 import { jsonEqualish } from '@birchill/json-equalish';
 
+import { DataSeries, allDataSeries } from './data-series';
 import { DataVersion } from './data-version';
 import { hasLanguage, download } from './download';
 import {
@@ -144,11 +145,7 @@ export class JpdictDatabase {
     // Fetch initial state
     this.readyPromise = (async () => {
       try {
-        for (const series of [
-          <const>'kanji',
-          <const>'radicals',
-          <const>'names',
-        ]) {
+        for (const series of allDataSeries) {
           const dataVersion = await this.store.getDataVersion(series);
           this.updateDataVersion(series, dataVersion);
         }
@@ -229,8 +226,10 @@ export class JpdictDatabase {
 
   async update({
     seriesToUpdate,
-  }: { seriesToUpdate?: Array<DataSeries> } = {}) {
-    const toUpdate = seriesToUpdate || ['kanji', 'radicals'];
+  }: { seriesToUpdate?: ReadonlyArray<DataSeries> } = {}) {
+    const toUpdate = seriesToUpdate
+      ? seriesToUpdate.slice()
+      : [<const>'kanji', <const>'radicals'];
 
     // If we update kanji, we should update the radicals too.
     if (toUpdate.includes('kanji') && !toUpdate.includes('radicals')) {
@@ -416,7 +415,7 @@ export class JpdictDatabase {
       /* Ignore, we're going to destroy anyway */
     }
 
-    const hasData = ['kanji', 'radicals', 'names'].some(
+    const hasData = allDataSeries.some(
       (key: DataSeries) => this.dataState[key] !== DataSeriesState.Unavailable
     );
     if (hasData) {

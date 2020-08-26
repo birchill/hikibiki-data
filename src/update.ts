@@ -1,3 +1,4 @@
+import { DataSeries } from './data-series';
 import { DataVersion } from './data-version';
 import { DownloadEvent } from './download';
 import { KanjiEntryLine, KanjiDeletionLine } from './kanji';
