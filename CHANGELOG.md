@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.0.0](https://github.com/birchill/hikibiki-data/compare/v4.0.1...v5.0.0) (2020-08-26)
+
+
+### ⚠ BREAKING CHANGES
+
+* JpdictDatabase.setPreferredLanguage() is removed
+* JpdictDatabase.getDbLang() is removed
+* JpdictDatabase.update() requires the language to be specified
+* The update state etc. is now per data series
+* database.dataVersions is now database.dataVersion
+* database.state is now database.dataState[series]
+
+### Features
+
+* Add JpdictDatabase.deleteSeries ([1126d75](https://github.com/birchill/hikibiki-data/commit/1126d7519c473c7f4373a0efd726e15290bc738b))
+* Add support for looking up names dictionary ([5b52258](https://github.com/birchill/hikibiki-data/commit/5b5225869e47693434feb5c14eea2e58686699d5))
+* Allow specifying which series to download ([bb286fa](https://github.com/birchill/hikibiki-data/commit/bb286fab7ae59e0063a8fc6e20129ebb3e586e5d))
+* Made updates of different major data series independent ([893ec1a](https://github.com/birchill/hikibiki-data/commit/893ec1ae7d588642b3311b804346c25e0cdbffab))
+* Make each data series have its only status ([1421aed](https://github.com/birchill/hikibiki-data/commit/1421aed9bc5b08557b7404ffb7b4bda981448174))
+* Rename dataVersions to dataVersion ([24c05a8](https://github.com/birchill/hikibiki-data/commit/24c05a8ecd22ee491c91c991925a0dbda256e64a))
+* Specify the language to download when updating ([eb19b42](https://github.com/birchill/hikibiki-data/commit/eb19b4207b3a32b81f7126828497177d4bb46552))
+
 ### [4.0.1](https://github.com/birchill/hikibiki-data/compare/v4.0.0...v4.0.1) (2020-07-09)
 
 ## [4.0.0](https://github.com/birchill/hikibiki-data/compare/v3.0.0...v4.0.0) (2020-07-09)
