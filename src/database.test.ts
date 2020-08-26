@@ -60,19 +60,19 @@ describe('database', function () {
   });
 
   it('should initially be initializing', async () => {
-    assert.equal(db.dataState.kanji, DataSeriesState.Initializing);
-    assert.equal(db.dataState.radicals, DataSeriesState.Initializing);
+    assert.equal(db.kanji.state, DataSeriesState.Initializing);
+    assert.equal(db.radicals.state, DataSeriesState.Initializing);
   });
 
   it('should resolve to being empty', async () => {
     await db.ready;
-    assert.equal(db.dataState.kanji, DataSeriesState.Empty);
-    assert.equal(db.dataState.radicals, DataSeriesState.Empty);
+    assert.equal(db.kanji.state, DataSeriesState.Empty);
+    assert.equal(db.radicals.state, DataSeriesState.Empty);
   });
 
   it('should resolve the version after updating', async () => {
     await db.ready;
-    assert.isNull(db.dataVersion.kanji);
+    assert.isNull(db.kanji.version);
 
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
     fetchMock.mock(
@@ -86,19 +86,23 @@ describe('database', function () {
 `
     );
 
-    await db.update();
+    await db.update({ series: 'kanji' });
 
     assert.deepEqual(
-      stripFields(db.dataVersion.kanji!, ['lang']),
+      stripFields(db.kanji.version!, ['lang']),
       stripFields(VERSION_3_0_0.kanji['3'], ['snapshot'])
     );
-    assert.equal(db.dataState.kanji, DataSeriesState.Ok);
-    assert.equal(db.dataState.radicals, DataSeriesState.Ok);
+    assert.equal(db.kanji.state, DataSeriesState.Ok);
+    assert.equal(db.radicals.state, DataSeriesState.Ok);
   });
 
   it('should update the update state after updating', async () => {
     await db.ready;
-    assert.deepEqual(db.updateState, { state: 'idle', lastCheck: null });
+    assert.deepEqual(db.kanji.updateState, { state: 'idle', lastCheck: null });
+    assert.deepEqual(db.radicals.updateState, {
+      state: 'idle',
+      lastCheck: null,
+    });
 
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
     fetchMock.mock(
@@ -113,12 +117,19 @@ describe('database', function () {
     );
 
     const updateStart = new Date();
-    await db.update();
+    await db.update({ series: 'kanji' });
     const updateEnd = new Date();
 
-    assert.deepEqual(db.updateState.state, 'idle');
-    assert.isNotNull(db.updateState.lastCheck);
-    assert.withinTime(db.updateState.lastCheck!, updateStart, updateEnd);
+    assert.deepEqual(db.kanji.updateState.state, 'idle');
+    assert.isNotNull(db.kanji.updateState.lastCheck);
+    assert.deepEqual(db.radicals.updateState.state, 'idle');
+    assert.isNotNull(db.radicals.updateState.lastCheck);
+    assert.withinTime(db.kanji.updateState.lastCheck!, updateStart, updateEnd);
+    assert.withinTime(
+      db.radicals.updateState.lastCheck!,
+      updateStart,
+      updateEnd
+    );
   });
 
   it('should ignore redundant calls to update', async () => {
@@ -134,8 +145,8 @@ describe('database', function () {
 `
     );
 
-    const firstUpdate = db.update();
-    const secondUpdate = db.update();
+    const firstUpdate = db.update({ series: 'kanji' });
+    const secondUpdate = db.update({ series: 'kanji' });
 
     await Promise.all([firstUpdate, secondUpdate]);
 
@@ -146,58 +157,12 @@ describe('database', function () {
     );
   });
 
-  it('should allow updating nothing', async () => {
-    await db.ready;
-    assert.isNull(db.dataVersion.kanji);
-
-    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
-    fetchMock.mock(
-      'end:kanji-rc-en-3.0.0-full.ljson',
-      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
-`
-    );
-    fetchMock.mock(
-      'end:radicals-rc-en-3.0.0-full.ljson',
-      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
-`
-    );
-
-    await db.update({ seriesToUpdate: [] });
-
-    assert.isNull(db.dataVersion.kanji);
-    assert.equal(db.dataState.kanji, DataSeriesState.Empty);
-    assert.isNull(db.dataVersion.radicals);
-    assert.equal(db.dataState.radicals, DataSeriesState.Empty);
-  });
-
-  it('should fetch radicals if we try to update kanji only', async () => {
-    await db.ready;
-    assert.isNull(db.dataVersion.radicals);
-
-    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
-    fetchMock.mock(
-      'end:kanji-rc-en-3.0.0-full.ljson',
-      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
-`
-    );
-    fetchMock.mock(
-      'end:radicals-rc-en-3.0.0-full.ljson',
-      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
-`
-    );
-
-    await db.update({ seriesToUpdate: ['kanji'] });
-
-    assert.equal(db.dataState.kanji, DataSeriesState.Ok);
-    assert.equal(db.dataState.radicals, DataSeriesState.Ok);
-  });
-
   it('should handle error actions', async () => {
     fetchMock.mock('end:jpdict-rc-en-version.json', 404);
 
     let exception;
     try {
-      await db.update();
+      await db.update({ series: 'kanji' });
     } catch (e) {
       exception = e;
     }
@@ -214,7 +179,8 @@ describe('database', function () {
     );
 
     // Check update state
-    assert.equal(db.updateState.state, 'idle');
+    assert.equal(db.kanji.updateState.state, 'idle');
+    assert.equal(db.radicals.updateState.state, 'idle');
   });
 
   it('should allow canceling the update', async () => {
@@ -229,8 +195,8 @@ describe('database', function () {
 `
     );
 
-    const update = db.update();
-    db.cancelUpdate();
+    const update = db.update({ series: 'kanji' });
+    db.cancelUpdate({ series: 'kanji' });
 
     let exception;
     try {
@@ -242,10 +208,14 @@ describe('database', function () {
     assert.isDefined(exception);
     assert.equal(exception.name, 'AbortError');
 
-    assert.deepEqual(db.updateState, { state: 'idle', lastCheck: null });
+    assert.deepEqual(db.kanji.updateState, { state: 'idle', lastCheck: null });
+    assert.deepEqual(db.radicals.updateState, {
+      state: 'idle',
+      lastCheck: null,
+    });
 
     // Also check that a redundant call to cancelUpdate doesn't break anything.
-    db.cancelUpdate();
+    db.cancelUpdate({ series: 'kanji' });
   });
 
   it('should allow canceling the update mid-stream', async () => {
@@ -260,11 +230,11 @@ describe('database', function () {
     // (We need to cancel from this second request, otherwise we don't seem to
     // exercise the code path where we actually cancel the reader.)
     fetchMock.mock('end:kanji-rc-en-3.0.0-full.ljson', () => {
-      db.cancelUpdate();
+      db.cancelUpdate({ series: 'kanji' });
       return '';
     });
 
-    const update = db.update();
+    const update = db.update({ series: 'kanji' });
 
     let exception;
     try {
@@ -276,7 +246,11 @@ describe('database', function () {
     assert.isDefined(exception);
     assert.equal(exception.name, 'AbortError');
 
-    assert.deepEqual(db.updateState, { state: 'idle', lastCheck: null });
+    assert.deepEqual(db.kanji.updateState, { state: 'idle', lastCheck: null });
+    assert.deepEqual(db.radicals.updateState, {
+      state: 'idle',
+      lastCheck: null,
+    });
 
     assert.isFalse(
       fetchMock.called('end:kanji-rc-en-3.0.1-patch.ljson'),
@@ -301,11 +275,11 @@ describe('database', function () {
 `
     );
     fetchMock.mock('end:kanji-rc-en-3.0.1-patch.ljson', () => {
-      db.cancelUpdate();
+      db.cancelUpdate({ series: 'kanji' });
       return '';
     });
 
-    const update = db.update();
+    const update = db.update({ series: 'kanji' });
 
     let exception;
     try {
@@ -317,13 +291,13 @@ describe('database', function () {
     assert.isDefined(exception);
     assert.equal(exception.name, 'AbortError');
 
-    assert.equal(db.updateState.state, 'idle');
-    assert.isDefined(db.updateState.lastCheck);
+    assert.equal(db.kanji.updateState.state, 'idle');
+    assert.isDefined(db.kanji.updateState.lastCheck);
   });
 
   it('should not update the database version if the update failed', async () => {
     await db.ready;
-    assert.isNull(db.dataVersion.kanji);
+    assert.isNull(db.kanji.version);
 
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
     fetchMock.mock(
@@ -344,18 +318,18 @@ describe('database', function () {
     stub.throws(constraintError);
 
     try {
-      await db.update();
+      await db.update({ series: 'kanji' });
     } catch (e) {
       // Ignore
     }
 
-    assert.strictEqual(db.dataVersion.kanji, null);
-    assert.equal(db.dataState.kanji, DataSeriesState.Empty);
+    assert.strictEqual(db.kanji.version, null);
+    assert.equal(db.kanji.state, DataSeriesState.Empty);
   });
 
   it('should fetch kanji', async () => {
     await db.ready;
-    assert.isNull(db.dataVersion.kanji);
+    assert.isNull(db.kanji.version);
 
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
     fetchMock.mock(
@@ -373,9 +347,9 @@ describe('database', function () {
 `
     );
 
-    await db.update();
+    await db.update({ series: 'kanji' });
 
-    assert.equal(db.dataState.kanji, DataSeriesState.Ok);
+    assert.equal(db.kanji.state, DataSeriesState.Ok);
 
     const result = await db.getKanji(['引']);
     const expected = [
@@ -447,7 +421,7 @@ describe('database', function () {
 
   it('should fill in katakana component descriptions', async () => {
     await db.ready;
-    assert.isNull(db.dataVersion.kanji);
+    assert.isNull(db.kanji.version);
 
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
     fetchMock.mock(
@@ -466,9 +440,9 @@ describe('database', function () {
 `
     );
 
-    await db.update();
+    await db.update({ series: 'kanji' });
 
-    assert.equal(db.dataState.kanji, DataSeriesState.Ok);
+    assert.equal(db.kanji.state, DataSeriesState.Ok);
 
     const result = await db.getKanji(['通']);
     assert.deepEqual(result[0].comp, [
@@ -497,7 +471,7 @@ describe('database', function () {
 
   it('should match radical variants', async () => {
     await db.ready;
-    assert.isNull(db.dataVersion.kanji);
+    assert.isNull(db.kanji.version);
 
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
     fetchMock.mock(
@@ -518,9 +492,9 @@ describe('database', function () {
 `
     );
 
-    await db.update();
+    await db.update({ series: 'kanji' });
 
-    assert.equal(db.dataState.kanji, DataSeriesState.Ok);
+    assert.equal(db.kanji.state, DataSeriesState.Ok);
 
     const result = await db.getKanji(['胸']);
     const expected = [
@@ -581,7 +555,7 @@ describe('database', function () {
 
   it('should match component variants', async () => {
     await db.ready;
-    assert.isNull(db.dataVersion.kanji);
+    assert.isNull(db.kanji.version);
 
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
     fetchMock.mock(
@@ -603,9 +577,9 @@ describe('database', function () {
 `
     );
 
-    await db.update();
+    await db.update({ series: 'kanji' });
 
-    assert.equal(db.dataState.kanji, DataSeriesState.Ok);
+    assert.equal(db.kanji.state, DataSeriesState.Ok);
 
     const result = await db.getKanji(['筋']);
     const expected = [
@@ -667,7 +641,7 @@ describe('database', function () {
 
   it('should fetch related kanji', async () => {
     await db.ready;
-    assert.isNull(db.dataVersion.kanji);
+    assert.isNull(db.kanji.version);
 
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
     fetchMock.mock(
@@ -693,9 +667,9 @@ describe('database', function () {
 `
     );
 
-    await db.update();
+    await db.update({ series: 'kanji' });
 
-    assert.equal(db.dataState.kanji, DataSeriesState.Ok);
+    assert.equal(db.kanji.state, DataSeriesState.Ok);
 
     const result = await db.getKanji(['構', '留']);
 
@@ -732,7 +706,7 @@ describe('database', function () {
 
   it('should fetch names by kanji', async () => {
     await db.ready;
-    assert.isNull(db.dataVersion.names);
+    assert.isNull(db.names.version);
 
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
     fetchMock.mock(
@@ -742,9 +716,9 @@ describe('database', function () {
 `
     );
 
-    await db.update({ seriesToUpdate: ['names'] });
+    await db.update({ series: 'names' });
 
-    assert.equal(db.dataState.names, DataSeriesState.Ok);
+    assert.equal(db.names.state, DataSeriesState.Ok);
 
     const result = await db.getNames('国労');
     const expected: Array<NameResult> = [
@@ -761,7 +735,6 @@ describe('database', function () {
 
   it('should fetch names by reading', async () => {
     await db.ready;
-    assert.isNull(db.dataVersion.names);
 
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
     fetchMock.mock(
@@ -771,9 +744,7 @@ describe('database', function () {
 `
     );
 
-    await db.update({ seriesToUpdate: ['names'] });
-
-    assert.equal(db.dataState.names, DataSeriesState.Ok);
+    await db.update({ series: 'names' });
 
     const result = await db.getNames('こくろう');
     const expected: Array<NameResult> = [

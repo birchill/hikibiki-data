@@ -1,9 +1,11 @@
+import { MajorDataSeries } from './data-series';
 import { ChangeCallback, ChangeTopic, JpdictDatabase } from './database';
 import { DownloadError } from './download';
 import {
   requestIdleCallback,
   cancelIdleCallback,
 } from './request-idle-callback';
+import { getUpdateKey } from './update-key';
 
 interface RetryStatus {
   onlineCallback?: () => any;
@@ -14,7 +16,7 @@ interface RetryStatus {
   retryCount?: number;
 }
 
-const inProgressUpdates: Map<JpdictDatabase, RetryStatus> = new Map();
+const inProgressUpdates: Map<string, RetryStatus> = new Map();
 
 export class OfflineError extends Error {
   constructor(...params: any[]) {
@@ -59,18 +61,22 @@ export type UpdateErrorCallback = (params: {
 // this.)
 export async function updateWithRetry({
   db,
+  series,
   forceUpdate = false,
   onUpdateComplete,
   onUpdateError,
 }: {
   db: JpdictDatabase;
+  series: MajorDataSeries;
   forceUpdate?: boolean;
   onUpdateComplete?: UpdateCompleteCallback;
   onUpdateError?: UpdateErrorCallback;
 }) {
+  const updateKey = getUpdateKey(db, series);
+
   // Check if we have an in-progress update we can use.
   {
-    const currentRetryStatus = inProgressUpdates.get(db);
+    const currentRetryStatus = inProgressUpdates.get(updateKey);
     if (currentRetryStatus) {
       // If we are not trying to force an update then just use the existing
       // in-progress update.
@@ -103,8 +109,13 @@ export async function updateWithRetry({
 
       // And even if we have a timeout, if we are currently running the update,
       // just let it run but reset the timeout.
-      if (db.updateState.state !== 'idle') {
-        inProgressUpdates.set(db, {
+      const isRunningUpdate =
+        series === 'kanji'
+          ? db.kanji.updateState.state !== 'idle' ||
+            db.radicals.updateState.state !== 'idle'
+          : db[series].updateState.state;
+      if (isRunningUpdate) {
+        inProgressUpdates.set(updateKey, {
           ...currentRetryStatus,
           retryIntervalMs: undefined,
           retryCount: undefined,
@@ -119,29 +130,31 @@ export async function updateWithRetry({
       if (db.verbose) {
         console.log('Canceling existing queued retry.');
       }
-      await cancelUpdateWithRetry(db);
+      await cancelUpdateWithRetry({ db, series });
     }
   }
 
   // If we have a in-progress update here, it means we got an overlapping
   // call to this method while we were waiting to cancel the previous
   // in-progress update.
-  if (inProgressUpdates.has(db)) {
+  if (inProgressUpdates.has(updateKey)) {
     if (db.verbose) {
       console.log('Skipping overlapping auto-retry request.');
     }
     return;
   }
 
-  await doUpdate({ db, onUpdateComplete, onUpdateError });
+  await doUpdate({ db, series, onUpdateComplete, onUpdateError });
 }
 
 async function doUpdate({
   db,
+  series,
   onUpdateComplete,
   onUpdateError,
 }: {
   db: JpdictDatabase;
+  series: MajorDataSeries;
   onUpdateComplete?: UpdateCompleteCallback;
   onUpdateError?: UpdateErrorCallback;
 }) {
@@ -155,6 +168,7 @@ async function doUpdate({
 
         await doUpdate({
           db,
+          series,
           onUpdateComplete,
           onUpdateError,
         });
@@ -170,7 +184,7 @@ async function doUpdate({
     };
     addEventListener('online', onlineCallback, { once: true });
 
-    setInProgressUpdate(db, { onlineCallback });
+    setInProgressUpdate({ db, series, onlineCallback });
 
     if (onUpdateError) {
       onUpdateError({ error: new OfflineError() });
@@ -181,14 +195,15 @@ async function doUpdate({
 
   // If needed, create a new (empty) in-progress update record so we can skip
   // overlapping calls.
-  if (!inProgressUpdates.has(db)) {
-    setInProgressUpdate(db, {});
+  const updateKey = getUpdateKey(db, series);
+  if (!inProgressUpdates.has(updateKey)) {
+    setInProgressUpdate({ db, series });
   }
 
   try {
-    await db.update();
+    await db.update({ series });
 
-    deleteInProgressUpdate(db);
+    deleteInProgressUpdate({ db, series });
 
     if (db.verbose) {
       console.log('Successfully completed update.');
@@ -205,7 +220,7 @@ async function doUpdate({
 
     // Retry network errors at descreasing intervals
     const isNetworkError = e instanceof DownloadError;
-    const currentRetryStatus = inProgressUpdates.get(db);
+    const currentRetryStatus = inProgressUpdates.get(updateKey);
     const wasCanceled = !currentRetryStatus;
 
     let retryIntervalMs: number | undefined;
@@ -239,6 +254,7 @@ async function doUpdate({
 
         doUpdate({
           db,
+          series,
           onUpdateComplete,
           onUpdateError,
         });
@@ -246,7 +262,9 @@ async function doUpdate({
 
       nextRetry = new Date(Date.now() + retryIntervalMs);
 
-      setInProgressUpdate(db, {
+      setInProgressUpdate({
+        db,
+        series,
         setTimeoutHandle,
         retryIntervalMs,
         retryCount,
@@ -275,6 +293,7 @@ async function doUpdate({
 
           doUpdate({
             db,
+            series,
             onUpdateComplete,
             onUpdateError,
           });
@@ -282,14 +301,16 @@ async function doUpdate({
         { timeout: 2000 }
       );
 
-      setInProgressUpdate(db, {
+      setInProgressUpdate({
+        db,
+        series,
         requestIdleCallbackHandle,
         retryCount,
       });
 
       suppressError = true;
     } else {
-      deleteInProgressUpdate(db);
+      deleteInProgressUpdate({ db, series });
     }
 
     if (!suppressError && onUpdateError) {
@@ -299,27 +320,31 @@ async function doUpdate({
   }
 }
 
-function setInProgressUpdate(
-  db: JpdictDatabase,
-  {
-    onlineCallback,
-    setTimeoutHandle,
-    requestIdleCallbackHandle,
-    retryIntervalMs,
-    retryCount,
-  }: Omit<RetryStatus, 'changeCallback'>
-) {
+function setInProgressUpdate({
+  db,
+  series,
+  onlineCallback,
+  setTimeoutHandle,
+  requestIdleCallbackHandle,
+  retryIntervalMs,
+  retryCount,
+}: { db: JpdictDatabase; series: MajorDataSeries } & Omit<
+  RetryStatus,
+  'changeCallback'
+>) {
   let changeCallback: ChangeCallback;
 
-  const currentRetryStatus = inProgressUpdates.get(db);
+  const updateKey = getUpdateKey(db, series);
+  const currentRetryStatus = inProgressUpdates.get(updateKey);
   if (currentRetryStatus) {
     changeCallback = currentRetryStatus.changeCallback;
   } else {
-    changeCallback = (topic: ChangeTopic) => onDatabaseChange(db, topic);
+    changeCallback = (topic: ChangeTopic) =>
+      onDatabaseChange({ db, series, topic });
     db.addChangeListener(changeCallback);
   }
 
-  inProgressUpdates.set(db, {
+  inProgressUpdates.set(updateKey, {
     onlineCallback,
     changeCallback,
     setTimeoutHandle,
@@ -329,23 +354,38 @@ function setInProgressUpdate(
   });
 }
 
-function deleteInProgressUpdate(db: JpdictDatabase) {
-  const currentRetryStatus = inProgressUpdates.get(db);
+function deleteInProgressUpdate({
+  db,
+  series,
+}: {
+  db: JpdictDatabase;
+  series: MajorDataSeries;
+}) {
+  const updateKey = getUpdateKey(db, series);
+  const currentRetryStatus = inProgressUpdates.get(updateKey);
   if (!currentRetryStatus) {
     return;
   }
 
   db.removeChangeListener(currentRetryStatus.changeCallback);
 
-  inProgressUpdates.delete(db);
+  inProgressUpdates.delete(updateKey);
 }
 
-function onDatabaseChange(db: JpdictDatabase, topic: ChangeTopic) {
+function onDatabaseChange({
+  db,
+  series,
+  topic,
+}: {
+  db: JpdictDatabase;
+  series: MajorDataSeries;
+  topic: ChangeTopic;
+}) {
   // If the database was deleted, cancel any scheduled retries.
   if (topic === 'deleted') {
     // This is async, but no-one's waiting for us, so don't bother waiting on it
     // either.
-    cancelUpdateWithRetry(db);
+    cancelUpdateWithRetry({ db, series });
     return;
   }
 
@@ -354,13 +394,19 @@ function onDatabaseChange(db: JpdictDatabase, topic: ChangeTopic) {
   // We should only do this if there is a retry interval set, however, since
   // we DON'T want to reset the retry count if we are retrying due to a database
   // error (i.e. in the phase AFTER 'updatingdb').
-  const currentRetryStatus = inProgressUpdates.get(db);
+  const updateKey = getUpdateKey(db, series);
+  const currentRetryStatus = inProgressUpdates.get(updateKey);
+  const isUpdatingDb =
+    series === 'kanji'
+      ? db.kanji.updateState.state === 'updatingdb' ||
+        db.radicals.updateState.state === 'updatingdb'
+      : db[series].updateState.state === 'updatingdb';
   if (
     currentRetryStatus &&
     currentRetryStatus.retryIntervalMs &&
-    db.updateState.state === 'updatingdb'
+    isUpdatingDb
   ) {
-    inProgressUpdates.set(db, {
+    inProgressUpdates.set(updateKey, {
       ...currentRetryStatus,
       retryIntervalMs: undefined,
       retryCount: undefined,
@@ -368,8 +414,15 @@ function onDatabaseChange(db: JpdictDatabase, topic: ChangeTopic) {
   }
 }
 
-export async function cancelUpdateWithRetry(db: JpdictDatabase) {
-  const currentRetryStatus = inProgressUpdates.get(db);
+export async function cancelUpdateWithRetry({
+  db,
+  series,
+}: {
+  db: JpdictDatabase;
+  series: MajorDataSeries;
+}) {
+  const updateKey = getUpdateKey(db, series);
+  const currentRetryStatus = inProgressUpdates.get(updateKey);
   if (!currentRetryStatus) {
     return;
   }
@@ -390,9 +443,9 @@ export async function cancelUpdateWithRetry(db: JpdictDatabase) {
     removeEventListener('online', onlineCallback);
   }
 
-  deleteInProgressUpdate(db);
+  deleteInProgressUpdate({ db, series });
 
-  await db.cancelUpdate();
+  await db.cancelUpdate({ series });
 
   // We _could_ take an updateAborted callback and call it here, but currently
   // no client needs it.

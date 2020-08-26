@@ -31,6 +31,15 @@ const VERSION_3_0_0 = {
       dateOfCreation: '2019-09-06',
     },
   },
+  names: {
+    '1': {
+      major: 1,
+      minor: 0,
+      patch: 0,
+      snapshot: 0,
+      dateOfCreation: '2019-09-06',
+    },
+  },
 };
 
 describe('updateWithRetry', function () {
@@ -64,6 +73,7 @@ describe('updateWithRetry', function () {
     await new Promise((resolve, reject) => {
       updateWithRetry({
         db,
+        series: 'kanji',
         onUpdateComplete: resolve,
         onUpdateError: ({ error }) => reject(error),
       });
@@ -91,6 +101,7 @@ describe('updateWithRetry', function () {
     const retryPromise = new Promise((resolve, reject) => {
       updateWithRetry({
         db,
+        series: 'kanji',
         onUpdateComplete: resolve,
         onUpdateError: ({ error }) => reject(error),
       });
@@ -124,6 +135,7 @@ describe('updateWithRetry', function () {
     await new Promise((resolve, reject) => {
       updateWithRetry({
         db,
+        series: 'kanji',
         onUpdateComplete: resolve,
         onUpdateError: (params) => {
           errors.push(params);
@@ -175,6 +187,7 @@ describe('updateWithRetry', function () {
     await new Promise((resolve, reject) => {
       updateWithRetry({
         db,
+        series: 'kanji',
         onUpdateComplete: resolve,
         onUpdateError: ({ error }) => {
           assert.equal(error.name, 'OfflineError');
@@ -220,6 +233,7 @@ describe('updateWithRetry', function () {
     await new Promise((resolve, reject) => {
       updateWithRetry({
         db,
+        series: 'kanji',
         onUpdateComplete: resolve,
         onUpdateError: ({ error, nextRetry, retryCount }) => {
           errors.push({
@@ -276,6 +290,7 @@ describe('updateWithRetry', function () {
     const firstInvocation = new Promise((resolve, reject) => {
       updateWithRetry({
         db,
+        series: 'kanji',
         onUpdateComplete: resolve,
         onUpdateError: () => {
           clock.next();
@@ -287,6 +302,7 @@ describe('updateWithRetry', function () {
     const secondInvocation = new Promise((resolve, reject) => {
       updateWithRetry({
         db,
+        series: 'kanji',
         onUpdateComplete: () => {
           secondCompletionCallbackCalled = true;
           resolve();
@@ -323,6 +339,7 @@ describe('updateWithRetry', function () {
       firstInvocation = new Promise((_, reject) => {
         updateWithRetry({
           db,
+          series: 'kanji',
           onUpdateComplete: reject,
           onUpdateError: firstErrorResolve,
         });
@@ -336,6 +353,7 @@ describe('updateWithRetry', function () {
     const secondInvocation = new Promise((resolve, reject) => {
       updateWithRetry({
         db,
+        series: 'kanji',
         forceUpdate: true,
         onUpdateComplete: resolve,
         onUpdateError: ({ error }) => reject(error),
@@ -369,6 +387,7 @@ describe('updateWithRetry', function () {
     await new Promise((resolve) => {
       updateWithRetry({
         db,
+        series: 'kanji',
         onUpdateComplete: () => {
           completeCalled = true;
         },
@@ -378,7 +397,7 @@ describe('updateWithRetry', function () {
 
     // Then cancel
 
-    await cancelUpdateWithRetry(db);
+    await cancelUpdateWithRetry({ db, series: 'kanji' });
 
     // Then make sure that the completion doesn't happen
 
@@ -416,6 +435,7 @@ describe('updateWithRetry', function () {
     await new Promise((resolve) => {
       updateWithRetry({
         db,
+        series: 'kanji',
         onUpdateComplete: () => {
           completeCalled = true;
         },
@@ -467,6 +487,7 @@ describe('updateWithRetry', function () {
     await new Promise((resolve, reject) => {
       updateWithRetry({
         db,
+        series: 'kanji',
         onUpdateComplete: resolve,
         onUpdateError: ({ error, nextRetry, retryCount }) => {
           errors.push({
@@ -519,6 +540,7 @@ describe('updateWithRetry', function () {
     await new Promise((resolve, reject) => {
       updateWithRetry({
         db,
+        series: 'kanji',
         onUpdateComplete: resolve,
         onUpdateError: ({ error }) => reject(error),
       });
@@ -553,6 +575,7 @@ describe('updateWithRetry', function () {
     const updateResult = new Promise((resolve, reject) => {
       updateWithRetry({
         db,
+        series: 'kanji',
         onUpdateComplete: resolve,
         onUpdateError: ({ error, nextRetry }) => {
           errors.push(error);

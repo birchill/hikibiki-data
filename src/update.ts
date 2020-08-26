@@ -17,6 +17,7 @@ import {
   NameRecord,
 } from './store';
 import { UpdateAction } from './update-actions';
+import { getUpdateKey } from './update-key';
 import { stripFields } from './utils';
 
 export type UpdateCallback = (action: UpdateAction) => void;
@@ -59,8 +60,9 @@ export type UpdateCallback = (action: UpdateAction) => void;
 // IndexedDB. So, for now, we just have to recommend only updating once database
 // at a time to limit memory usage.
 
+// We allow one update per store-series pair at a time
 const inProgressUpdates: Map<
-  JpdictStore,
+  string,
   ReadableStreamDefaultReader<DownloadEvent<any, any>>
 > = new Map();
 
@@ -129,13 +131,14 @@ async function update<
   callback: UpdateCallback;
   verbose?: boolean;
 }) {
-  if (inProgressUpdates.has(store)) {
+  const updateKey = getUpdateKey(store, series);
+  if (inProgressUpdates.has(updateKey)) {
     throw new Error('Overlapping calls to update');
   }
 
   const reader = downloadStream.getReader();
 
-  inProgressUpdates.set(store, reader);
+  inProgressUpdates.set(updateKey, reader);
 
   let recordsToPut: Array<RecordType> = [];
   let recordsToDelete: Array<IdType> = [];
@@ -191,13 +194,13 @@ async function update<
       readResult = await reader.read();
     } catch (e) {
       reader.releaseLock();
-      inProgressUpdates.delete(store);
+      inProgressUpdates.delete(updateKey);
       throw e;
     }
 
     if (readResult.done) {
-      if (inProgressUpdates.has(store)) {
-        inProgressUpdates.delete(store);
+      if (inProgressUpdates.has(updateKey)) {
+        inProgressUpdates.delete(updateKey);
         if (currentVersion) {
           throw new Error(
             `Unfinished version: ${JSON.stringify(currentVersion)}`
@@ -213,7 +216,7 @@ async function update<
       case 'version':
         if (currentVersion) {
           reader.releaseLock();
-          inProgressUpdates.delete(store);
+          inProgressUpdates.delete(updateKey);
           throw new Error(
             `Unfinished version: ${JSON.stringify(currentVersion)}`
           );
@@ -234,7 +237,7 @@ async function update<
           await finishCurrentVersion();
         } catch (e) {
           reader.releaseLock();
-          inProgressUpdates.delete(store);
+          inProgressUpdates.delete(updateKey);
           throw e;
         }
         break;
@@ -268,13 +271,17 @@ async function update<
   }
 }
 
-export async function cancelUpdate(store: JpdictStore): Promise<boolean> {
-  const reader = inProgressUpdates.get(store);
+export async function cancelUpdate(
+  store: JpdictStore,
+  series: DataSeries
+): Promise<boolean> {
+  const updateKey = getUpdateKey(store, series);
+  const reader = inProgressUpdates.get(updateKey);
   if (!reader) {
     return false;
   }
 
-  inProgressUpdates.delete(store);
+  inProgressUpdates.delete(updateKey);
   await reader.cancel();
 
   return true;

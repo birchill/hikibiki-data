@@ -1,6 +1,6 @@
 import { jsonEqualish } from '@birchill/json-equalish';
 
-import { DataSeries, allDataSeries } from './data-series';
+import { DataSeries, MajorDataSeries, allDataSeries } from './data-series';
 import { DataVersion } from './data-version';
 import { hasLanguage, download } from './download';
 import {
@@ -106,34 +106,38 @@ export class AbortError extends Error {
 export type ChangeTopic = 'stateupdated' | 'deleted';
 export type ChangeCallback = (topic: ChangeTopic) => void;
 
+type DataSeriesInfo = {
+  state: DataSeriesState;
+  version: DataVersion | null;
+  updateState: UpdateState;
+};
+
 export class JpdictDatabase {
-  dataState: {
-    kanji: DataSeriesState;
-    radicals: DataSeriesState;
-    names: DataSeriesState;
-  } = {
-    kanji: DataSeriesState.Initializing,
-    radicals: DataSeriesState.Initializing,
-    names: DataSeriesState.Initializing,
+  kanji: DataSeriesInfo = {
+    state: DataSeriesState.Initializing,
+    version: null,
+    updateState: { state: 'idle', lastCheck: null },
   };
-  dataVersion: {
-    kanji: DataVersion | null;
-    radicals: DataVersion | null;
-    names: DataVersion | null;
-  } = {
-    kanji: null,
-    radicals: null,
-    names: null,
+  radicals: DataSeriesInfo = {
+    state: DataSeriesState.Initializing,
+    version: null,
+    updateState: { state: 'idle', lastCheck: null },
   };
-  updateState: UpdateState = { state: 'idle', lastCheck: null };
+  names: DataSeriesInfo = {
+    state: DataSeriesState.Initializing,
+    version: null,
+    updateState: { state: 'idle', lastCheck: null },
+  };
+
   store: JpdictStore;
   onWarning?: (message: string) => void;
   verbose: boolean = false;
 
   private preferredLang: string | null = null;
   private readyPromise: Promise<any>;
-  private inProgressUpdate: Promise<void> | undefined;
-  private updateQueue: Array<DataSeries>;
+  private inProgressUpdates: {
+    [series in MajorDataSeries]: Promise<void> | undefined;
+  } = { kanji: undefined, names: undefined };
   private radicalsPromise: Promise<Map<string, RadicalRecord>> | undefined;
   private charToRadicalMap: Map<string, string> = new Map();
   private changeListeners: ChangeCallback[] = [];
@@ -153,12 +157,14 @@ export class JpdictDatabase {
         console.error('Failed to open IndexedDB');
         console.error(e);
 
-        this.dataState = {
-          kanji: DataSeriesState.Unavailable,
-          radicals: DataSeriesState.Unavailable,
-          names: DataSeriesState.Unavailable,
-        };
-        this.dataVersion = { kanji: null, radicals: null, names: null };
+        // Reset state and version information
+        for (const series of allDataSeries) {
+          this[series] = {
+            ...this[series],
+            state: DataSeriesState.Unavailable,
+            version: null,
+          };
+        }
 
         throw e;
       } finally {
@@ -203,17 +209,15 @@ export class JpdictDatabase {
 
   private updateDataVersion(series: DataSeries, version: DataVersion | null) {
     if (
-      this.dataState[series] !== DataSeriesState.Initializing &&
-      this.dataState[series] !== DataSeriesState.Unavailable &&
-      jsonEqualish(this.dataVersion[series], version)
+      this[series].state !== DataSeriesState.Initializing &&
+      this[series].state !== DataSeriesState.Unavailable &&
+      jsonEqualish(this[series].version, version)
     ) {
       return;
     }
 
-    this.dataVersion[series] = version;
-    this.dataState[series] = version
-      ? DataSeriesState.Ok
-      : DataSeriesState.Empty;
+    this[series].version = version;
+    this[series].state = version ? DataSeriesState.Ok : DataSeriesState.Empty;
 
     // Invalidate our cached version of the radical database if we updated it
     if (series === 'radicals') {
@@ -224,40 +228,19 @@ export class JpdictDatabase {
     this.notifyChanged('stateupdated');
   }
 
-  async update({
-    seriesToUpdate,
-  }: { seriesToUpdate?: ReadonlyArray<DataSeries> } = {}) {
-    const toUpdate = seriesToUpdate
-      ? seriesToUpdate.slice()
-      : [<const>'kanji', <const>'radicals'];
-
-    // If we update kanji, we should update the radicals too.
-    if (toUpdate.includes('kanji') && !toUpdate.includes('radicals')) {
-      toUpdate.push('radicals');
-    }
-
+  async update({ series }: { series: MajorDataSeries }) {
     // Check for an existing update
-    if (this.inProgressUpdate) {
+    if (this.inProgressUpdates[series]) {
       if (this.verbose) {
-        console.log('Detected overlapping updates. Re-using existing update.');
+        console.log(
+          `Detected overlapping update for ${series}. Re-using existing update.`
+        );
       }
 
-      // Append any items not already in the queue.
-      for (const series of toUpdate) {
-        if (!this.updateQueue.includes(series)) {
-          if (this.verbose) {
-            console.log(`Adding ${series} to the update queue.`);
-          }
-          this.updateQueue.push(series);
-        }
-      }
-
-      return this.inProgressUpdate;
+      return this.inProgressUpdates[series];
     }
 
-    this.updateQueue = toUpdate;
-
-    this.inProgressUpdate = (async () => {
+    this.inProgressUpdates[series] = (async () => {
       try {
         await this.ready;
 
@@ -265,57 +248,50 @@ export class JpdictDatabase {
         // each data series.
         const lang = this.preferredLang || (await this.getDbLang()) || 'en';
 
-        for (const series of this.updateQueue) {
-          switch (series) {
-            case 'kanji':
-              await this.doUpdate({
-                series,
-                lang,
-                forceFetch: true,
-                isEntryLine: isKanjiEntryLine,
-                isDeletionLine: isKanjiDeletionLine,
-                update: updateKanji,
-              });
-              break;
+        switch (series) {
+          case 'kanji':
+            await this.doUpdate({
+              series: 'kanji',
+              lang,
+              forceFetch: true,
+              isEntryLine: isKanjiEntryLine,
+              isDeletionLine: isKanjiDeletionLine,
+              update: updateKanji,
+            });
 
-            case 'radicals':
-              await this.doUpdate({
-                series,
-                lang,
-                forceFetch: true,
-                isEntryLine: isRadicalEntryLine,
-                isDeletionLine: isRadicalDeletionLine,
-                update: updateRadicals,
-              });
-              break;
+            await this.doUpdate({
+              series: 'radicals',
+              lang,
+              forceFetch: true,
+              isEntryLine: isRadicalEntryLine,
+              isDeletionLine: isRadicalDeletionLine,
+              update: updateRadicals,
+            });
+            break;
 
-            case 'names':
-              await this.doUpdate({
-                series,
-                lang,
-                forceFetch: true,
-                isEntryLine: isNameEntryLine,
-                isDeletionLine: isNameDeletionLine,
-                update: updateNames,
-              });
-              break;
-          }
+          case 'names':
+            await this.doUpdate({
+              series: 'names',
+              lang,
+              forceFetch: true,
+              isEntryLine: isNameEntryLine,
+              isDeletionLine: isNameDeletionLine,
+              update: updateNames,
+            });
+            break;
         }
 
-        // Check if we were canceled. If we were, the queue will have been
-        // emptied and we may skip the above loop entirely so we need to check
-        // here to ensure we produce the correct error reporting.
-        if (!this.inProgressUpdate) {
+        // Check if we were canceled.
+        if (!this.inProgressUpdates[series]) {
           throw new AbortError();
         }
       } finally {
-        this.inProgressUpdate = undefined;
-        this.updateQueue = [];
+        this.inProgressUpdates[series] = undefined;
         this.notifyChanged('stateupdated');
       }
     })();
 
-    return this.inProgressUpdate;
+    return this.inProgressUpdates[series];
   }
 
   private async doUpdate<EntryLine, DeletionLine>({
@@ -336,7 +312,10 @@ export class JpdictDatabase {
     let wroteSomething = false;
 
     const reducer = (action: UpdateAction) => {
-      this.updateState = updateReducer(this.updateState, action);
+      this[series].updateState = updateReducer(
+        this[series].updateState,
+        action
+      );
       if (action.type === 'finishpatch') {
         wroteSomething = true;
         this.updateDataVersion(series, action.version);
@@ -345,7 +324,9 @@ export class JpdictDatabase {
     };
 
     // Check if we have been canceled while waiting to become ready
-    if (!this.inProgressUpdate) {
+    const majorSeries: MajorDataSeries =
+      series === 'radicals' ? 'kanji' : series;
+    if (!this.inProgressUpdates[majorSeries]) {
       reducer({ type: 'error', checkDate: null });
       throw new AbortError();
     }
@@ -358,7 +339,7 @@ export class JpdictDatabase {
       if (this.verbose) {
         console.log(
           `Requesting download stream for ${series} series with current version ${JSON.stringify(
-            this.dataVersion[series] || undefined
+            this[series].version || undefined
           )}`
         );
       }
@@ -367,13 +348,13 @@ export class JpdictDatabase {
         series,
         lang,
         majorVersion: MAJOR_VERSION[series],
-        currentVersion: this.dataVersion[series] || undefined,
+        currentVersion: this[series].version || undefined,
         forceFetch,
         isEntryLine,
         isDeletionLine,
       });
 
-      if (!this.inProgressUpdate) {
+      if (!this.inProgressUpdates[majorSeries]) {
         throw new AbortError();
       }
 
@@ -385,7 +366,7 @@ export class JpdictDatabase {
         verbose: this.verbose,
       });
 
-      if (!this.inProgressUpdate) {
+      if (!this.inProgressUpdates[majorSeries]) {
         throw new AbortError();
       }
 
@@ -401,11 +382,23 @@ export class JpdictDatabase {
     }
   }
 
-  async cancelUpdate(): Promise<boolean> {
-    this.inProgressUpdate = undefined;
-    this.updateQueue = [];
+  async cancelUpdate({
+    series,
+  }: {
+    series: MajorDataSeries;
+  }): Promise<boolean> {
+    this.inProgressUpdates[series] = undefined;
 
-    return await cancelUpdate(this.store);
+    let result = false;
+
+    if (series === 'kanji') {
+      result = result || (await cancelUpdate(this.store, 'kanji'));
+      result = result || (await cancelUpdate(this.store, 'radicals'));
+    } else {
+      result = await cancelUpdate(this.store, series);
+    }
+
+    return result;
   }
 
   async destroy() {
@@ -416,7 +409,7 @@ export class JpdictDatabase {
     }
 
     const hasData = allDataSeries.some(
-      (key: DataSeries) => this.dataState[key] !== DataSeriesState.Unavailable
+      (key: DataSeries) => this[key].state !== DataSeriesState.Unavailable
     );
     if (hasData) {
       // Wait for radicals query to finish before tidying up
@@ -424,18 +417,22 @@ export class JpdictDatabase {
       await this.store.destroy();
     }
 
-    if (this.verbose && this.inProgressUpdate) {
+    const hasInProgressUpdate = Object.keys(this.inProgressUpdates).some(
+      (key) =>
+        typeof this.inProgressUpdates[key as MajorDataSeries] !== 'undefined'
+    );
+    if (this.verbose && hasInProgressUpdate) {
       console.log('Destroying database while there is an in-progress update');
     }
 
     this.store = new JpdictStore();
-    this.dataState = {
-      kanji: DataSeriesState.Empty,
-      radicals: DataSeriesState.Empty,
-      names: DataSeriesState.Empty,
-    };
-    this.dataVersion = { kanji: null, radicals: null, names: null };
-    this.updateState = { state: 'idle', lastCheck: null };
+    for (const series of allDataSeries) {
+      this[series] = {
+        state: DataSeriesState.Empty,
+        version: null,
+        updateState: { state: 'idle', lastCheck: null },
+      };
+    }
     this.notifyChanged('deleted');
   }
 
@@ -455,14 +452,15 @@ export class JpdictDatabase {
       return;
     }
 
-    const hadUpdate = await this.cancelUpdate();
+    // TODO: Fix this
+    const hadUpdate = await this.cancelUpdate({ series: 'kanji' });
 
     // Clobber any data for which there is data for the newly-set language.
     for (const series of [<const>'kanji', <const>'radicals']) {
       // No need to clear the data if it's already empty (unless we had an
       // update in progress that we canceled since that might have left some
       // data there).
-      if (this.dataState[series] === DataSeriesState.Empty && !hadUpdate) {
+      if (this[series].state === DataSeriesState.Empty && !hadUpdate) {
         continue;
       }
 
@@ -506,12 +504,12 @@ export class JpdictDatabase {
     //    and should be kept in sync)
     // 3. Names (only English)
     //
-    if (this.dataState.kanji === DataSeriesState.Ok) {
-      return this.dataVersion.kanji!.lang;
+    if (this.kanji.state === DataSeriesState.Ok) {
+      return this.kanji.version!.lang;
     }
 
-    if (this.dataState.radicals === DataSeriesState.Ok) {
-      return this.dataVersion.radicals!.lang;
+    if (this.radicals.state === DataSeriesState.Ok) {
+      return this.radicals.version!.lang;
     }
 
     return null;
@@ -521,13 +519,13 @@ export class JpdictDatabase {
     await this.ready;
 
     if (
-      this.dataState.kanji !== DataSeriesState.Ok ||
-      this.dataState.radicals !== DataSeriesState.Ok
+      this.kanji.state !== DataSeriesState.Ok ||
+      this.radicals.state !== DataSeriesState.Ok
     ) {
       return [];
     }
 
-    const lang = this.dataVersion.kanji!.lang;
+    const lang = this.kanji.version!.lang;
 
     const ids = kanji.map((kanji) => kanji.codePointAt(0)!);
     const kanjiRecords = await this.store.getKanji(ids);
