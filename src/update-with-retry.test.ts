@@ -700,11 +700,8 @@ describe('updateWithRetry', function () {
         lang: 'en',
         onUpdateComplete: resolve,
         onUpdateError: ({ error, nextRetry }) => {
-          console.log(`Got update error: ${error}`);
-          console.log(`Next retry: ${nextRetry}`);
           errors.push(error);
           if (!nextRetry) {
-            console.log('Rejecting');
             reject(error);
           }
         },
