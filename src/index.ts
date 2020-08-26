@@ -1,3 +1,4 @@
+export { DataSeries, MajorDataSeries } from './data-series';
 export { DataVersion } from './data-version';
 export {
   AbortError,
