@@ -86,7 +86,7 @@ describe('database', function () {
 `
     );
 
-    await db.update({ series: 'kanji' });
+    await db.update({ series: 'kanji', lang: 'en' });
 
     assert.deepEqual(
       stripFields(db.kanji.version!, ['lang']),
@@ -117,7 +117,7 @@ describe('database', function () {
     );
 
     const updateStart = new Date();
-    await db.update({ series: 'kanji' });
+    await db.update({ series: 'kanji', lang: 'en' });
     const updateEnd = new Date();
 
     assert.deepEqual(db.kanji.updateState.state, 'idle');
@@ -145,8 +145,8 @@ describe('database', function () {
 `
     );
 
-    const firstUpdate = db.update({ series: 'kanji' });
-    const secondUpdate = db.update({ series: 'kanji' });
+    const firstUpdate = db.update({ series: 'kanji', lang: 'en' });
+    const secondUpdate = db.update({ series: 'kanji', lang: 'en' });
 
     await Promise.all([firstUpdate, secondUpdate]);
 
@@ -157,12 +157,72 @@ describe('database', function () {
     );
   });
 
+  it('should cancel an existing update if the requested language changes', async () => {
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
+    fetchMock.mock(
+      'end:kanji-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+`
+    );
+    fetchMock.mock(
+      'end:radicals-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+`
+    );
+
+    fetchMock.mock('end:jpdict-rc-fr-version.json', VERSION_3_0_0);
+    fetchMock.mock(
+      'end:kanji-rc-fr-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+`
+    );
+    fetchMock.mock(
+      'end:radicals-rc-fr-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+`
+    );
+
+    db.update({ series: 'kanji', lang: 'en' });
+    const secondUpdate = db.update({ series: 'kanji', lang: 'fr' });
+
+    await secondUpdate;
+
+    assert.equal(db.kanji.version!.lang, 'fr');
+  });
+
+  it('should allow different series to be downloaded in parallel', async () => {
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
+    fetchMock.mock(
+      'end:kanji-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+`
+    );
+    fetchMock.mock(
+      'end:radicals-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+`
+    );
+    fetchMock.mock(
+      'end:names-rc-en-1.0.0-full.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+`
+    );
+
+    const kanjiUpdate = db.update({ series: 'kanji', lang: 'en' });
+    const namesUpdate = db.update({ series: 'names', lang: 'en' });
+
+    await Promise.all([kanjiUpdate, namesUpdate]);
+
+    assert.equal(db.kanji.version!.major, 3);
+    assert.equal(db.names.version!.major, 1);
+  });
+
   it('should handle error actions', async () => {
     fetchMock.mock('end:jpdict-rc-en-version.json', 404);
 
     let exception;
     try {
-      await db.update({ series: 'kanji' });
+      await db.update({ series: 'kanji', lang: 'en' });
     } catch (e) {
       exception = e;
     }
@@ -195,7 +255,7 @@ describe('database', function () {
 `
     );
 
-    const update = db.update({ series: 'kanji' });
+    const update = db.update({ series: 'kanji', lang: 'en' });
     db.cancelUpdate({ series: 'kanji' });
 
     let exception;
@@ -234,7 +294,7 @@ describe('database', function () {
       return '';
     });
 
-    const update = db.update({ series: 'kanji' });
+    const update = db.update({ series: 'kanji', lang: 'en' });
 
     let exception;
     try {
@@ -279,7 +339,7 @@ describe('database', function () {
       return '';
     });
 
-    const update = db.update({ series: 'kanji' });
+    const update = db.update({ series: 'kanji', lang: 'en' });
 
     let exception;
     try {
@@ -318,7 +378,7 @@ describe('database', function () {
     stub.throws(constraintError);
 
     try {
-      await db.update({ series: 'kanji' });
+      await db.update({ series: 'kanji', lang: 'en' });
     } catch (e) {
       // Ignore
     }
@@ -347,7 +407,7 @@ describe('database', function () {
 `
     );
 
-    await db.update({ series: 'kanji' });
+    await db.update({ series: 'kanji', lang: 'en' });
 
     assert.equal(db.kanji.state, DataSeriesState.Ok);
 
@@ -440,7 +500,7 @@ describe('database', function () {
 `
     );
 
-    await db.update({ series: 'kanji' });
+    await db.update({ series: 'kanji', lang: 'en' });
 
     assert.equal(db.kanji.state, DataSeriesState.Ok);
 
@@ -492,7 +552,7 @@ describe('database', function () {
 `
     );
 
-    await db.update({ series: 'kanji' });
+    await db.update({ series: 'kanji', lang: 'en' });
 
     assert.equal(db.kanji.state, DataSeriesState.Ok);
 
@@ -577,7 +637,7 @@ describe('database', function () {
 `
     );
 
-    await db.update({ series: 'kanji' });
+    await db.update({ series: 'kanji', lang: 'en' });
 
     assert.equal(db.kanji.state, DataSeriesState.Ok);
 
@@ -667,7 +727,7 @@ describe('database', function () {
 `
     );
 
-    await db.update({ series: 'kanji' });
+    await db.update({ series: 'kanji', lang: 'en' });
 
     assert.equal(db.kanji.state, DataSeriesState.Ok);
 
@@ -716,7 +776,7 @@ describe('database', function () {
 `
     );
 
-    await db.update({ series: 'names' });
+    await db.update({ series: 'names', lang: 'en' });
 
     assert.equal(db.names.state, DataSeriesState.Ok);
 
@@ -744,7 +804,7 @@ describe('database', function () {
 `
     );
 
-    await db.update({ series: 'names' });
+    await db.update({ series: 'names', lang: 'en' });
 
     const result = await db.getNames('こくろう');
     const expected: Array<NameResult> = [

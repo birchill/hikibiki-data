@@ -112,6 +112,11 @@ type DataSeriesInfo = {
   updateState: UpdateState;
 };
 
+type InProgressUpdate = {
+  promise: Promise<void>;
+  lang: string;
+};
+
 export class JpdictDatabase {
   kanji: DataSeriesInfo = {
     state: DataSeriesState.Initializing,
@@ -133,10 +138,9 @@ export class JpdictDatabase {
   onWarning?: (message: string) => void;
   verbose: boolean = false;
 
-  private preferredLang: string | null = null;
   private readyPromise: Promise<any>;
   private inProgressUpdates: {
-    [series in MajorDataSeries]: Promise<void> | undefined;
+    [series in MajorDataSeries]: InProgressUpdate | undefined;
   } = { kanji: undefined, names: undefined };
   private radicalsPromise: Promise<Map<string, RadicalRecord>> | undefined;
   private charToRadicalMap: Map<string, string> = new Map();
@@ -228,75 +232,107 @@ export class JpdictDatabase {
     this.notifyChanged('stateupdated');
   }
 
-  async update({ series }: { series: MajorDataSeries }) {
+  async update({
+    series,
+    lang = 'en',
+  }: {
+    series: MajorDataSeries;
+    lang?: string;
+  }) {
     // Check for an existing update
-    if (this.inProgressUpdates[series]) {
+    const existingUpdate = this.inProgressUpdates[series];
+    if (existingUpdate && existingUpdate.lang === lang) {
       if (this.verbose) {
         console.log(
           `Detected overlapping update for ${series}. Re-using existing update.`
         );
       }
 
-      return this.inProgressUpdates[series];
+      return existingUpdate.promise;
     }
 
-    this.inProgressUpdates[series] = (async () => {
-      try {
-        await this.ready;
-
-        // TODO: This needs to take into account the available languages for
-        // each data series.
-        const lang = this.preferredLang || (await this.getDbLang()) || 'en';
-
-        switch (series) {
-          case 'kanji':
-            await this.doUpdate({
-              series: 'kanji',
-              lang,
-              forceFetch: true,
-              isEntryLine: isKanjiEntryLine,
-              isDeletionLine: isKanjiDeletionLine,
-              update: updateKanji,
-            });
-
-            await this.doUpdate({
-              series: 'radicals',
-              lang,
-              forceFetch: true,
-              isEntryLine: isRadicalEntryLine,
-              isDeletionLine: isRadicalDeletionLine,
-              update: updateRadicals,
-            });
-            break;
-
-          case 'names':
-            await this.doUpdate({
-              series: 'names',
-              lang,
-              forceFetch: true,
-              isEntryLine: isNameEntryLine,
-              isDeletionLine: isNameDeletionLine,
-              update: updateNames,
-            });
-            break;
-        }
-
-        // Check if we were canceled.
-        if (!this.inProgressUpdates[series]) {
-          throw new AbortError();
-        }
-      } finally {
-        this.inProgressUpdates[series] = undefined;
-        this.notifyChanged('stateupdated');
+    // Cancel the existing update since the language doesn't match
+    if (existingUpdate) {
+      if (this.verbose) {
+        console.log(
+          `Cancelling existing update for ${series} since the requested language (${lang}) doesn't match that of the existing update(${existingUpdate.lang})`
+        );
       }
-    })();
 
-    return this.inProgressUpdates[series];
+      await this.cancelUpdate({ series });
+    }
+
+    this.inProgressUpdates[series] = {
+      lang,
+      promise: (async () => {
+        try {
+          await this.ready;
+
+          const abortIfCancelled = () => {
+            if (
+              !this.inProgressUpdates[series] ||
+              this.inProgressUpdates[series]!.lang !== lang
+            ) {
+              throw new AbortError();
+            }
+          };
+
+          abortIfCancelled();
+
+          switch (series) {
+            case 'kanji':
+              await this.doUpdate({
+                series: 'kanji',
+                lang,
+                forceFetch: true,
+                isEntryLine: isKanjiEntryLine,
+                isDeletionLine: isKanjiDeletionLine,
+                update: updateKanji,
+              });
+
+              await this.doUpdate({
+                series: 'radicals',
+                lang,
+                forceFetch: true,
+                isEntryLine: isRadicalEntryLine,
+                isDeletionLine: isRadicalDeletionLine,
+                update: updateRadicals,
+              });
+              break;
+
+            case 'names':
+              await this.doUpdate({
+                series: 'names',
+                lang,
+                forceFetch: true,
+                isEntryLine: isNameEntryLine,
+                isDeletionLine: isNameDeletionLine,
+                update: updateNames,
+              });
+              break;
+          }
+
+          abortIfCancelled();
+        } finally {
+          // Reset the in progress update but only if the language wasn't
+          // changed (since we don't want to clobber the new request).
+          if (
+            this.inProgressUpdates[series] &&
+            this.inProgressUpdates[series]!.lang === lang
+          ) {
+            this.inProgressUpdates[series] = undefined;
+          }
+          this.notifyChanged('stateupdated');
+        }
+      })(),
+    };
+
+    return this.inProgressUpdates[series]!.promise;
   }
 
   private async doUpdate<EntryLine, DeletionLine>({
     series,
-    lang,
+    lang: requestedLang,
     forceFetch = false,
     isEntryLine,
     isDeletionLine,
@@ -326,7 +362,10 @@ export class JpdictDatabase {
     // Check if we have been canceled while waiting to become ready
     const majorSeries: MajorDataSeries =
       series === 'radicals' ? 'kanji' : series;
-    if (!this.inProgressUpdates[majorSeries]) {
+    const wasCancelled = () =>
+      !this.inProgressUpdates[majorSeries] ||
+      this.inProgressUpdates[majorSeries]!.lang !== requestedLang;
+    if (wasCancelled()) {
       reducer({ type: 'error', checkDate: null });
       throw new AbortError();
     }
@@ -335,6 +374,32 @@ export class JpdictDatabase {
 
     try {
       reducer({ type: 'start', series });
+
+      // Check if the requested language is available for this series, and
+      // fallback to English if not.
+      const lang =
+        requestedLang !== 'en' &&
+        (await hasLanguage({
+          series,
+          lang: requestedLang,
+          majorVersion: MAJOR_VERSION[series],
+        }))
+          ? requestedLang
+          : 'en';
+
+      // If the language we have stored (if any) differs from the language we
+      // are about to update to, clobber the existing data for this series.
+      const currentLang: string | undefined =
+        this[series].state === DataSeriesState.Ok
+          ? this[series].version!.lang
+          : undefined;
+      if (currentLang && currentLang !== lang) {
+        if (this.verbose) {
+          console.log(`Clobbering ${series} data to change lang to ${lang}`);
+        }
+        await this.store.clearTable(series);
+        this.updateDataVersion(series, null);
+      }
 
       if (this.verbose) {
         console.log(
@@ -354,7 +419,7 @@ export class JpdictDatabase {
         isDeletionLine,
       });
 
-      if (!this.inProgressUpdates[majorSeries]) {
+      if (wasCancelled()) {
         throw new AbortError();
       }
 
@@ -366,7 +431,7 @@ export class JpdictDatabase {
         verbose: this.verbose,
       });
 
-      if (!this.inProgressUpdates[majorSeries]) {
+      if (wasCancelled()) {
         throw new AbortError();
       }
 
@@ -434,85 +499,6 @@ export class JpdictDatabase {
       };
     }
     this.notifyChanged('deleted');
-  }
-
-  getPreferredLang(): string | null {
-    return this.preferredLang;
-  }
-
-  async setPreferredLang(lang: string | null) {
-    if (this.preferredLang === lang) {
-      return;
-    }
-
-    this.preferredLang = lang;
-
-    // Check if the language actually matches the language we already have
-    if (lang && lang === (await this.getDbLang())) {
-      return;
-    }
-
-    // TODO: Fix this
-    const hadUpdate = await this.cancelUpdate({ series: 'kanji' });
-
-    // Clobber any data for which there is data for the newly-set language.
-    for (const series of [<const>'kanji', <const>'radicals']) {
-      // No need to clear the data if it's already empty (unless we had an
-      // update in progress that we canceled since that might have left some
-      // data there).
-      if (this[series].state === DataSeriesState.Empty && !hadUpdate) {
-        continue;
-      }
-
-      // No need to clear the data if the new target language is not available
-      // for this data series.
-      if (
-        lang &&
-        !(await hasLanguage({
-          series,
-          lang,
-          majorVersion: MAJOR_VERSION[series],
-        }))
-      ) {
-        continue;
-      }
-
-      if (this.verbose) {
-        console.log(`Clobbering ${series} data to change lang to ${lang}`);
-      }
-      await this.store.clearTable(series);
-      this.updateDataVersion(series, null);
-    }
-
-    // We _could_ detect if we had data or had an in-progress update and
-    // automatically call update() here in that case, but it seems simpler to
-    // just let the client be responsible for deciding if/when they want to
-    // update.
-  }
-
-  async getDbLang(): Promise<string | null> {
-    try {
-      await this.ready;
-    } catch (e) {
-      /* Ignore, we will handle the unavailable state below explicitly. */
-    }
-
-    // The priority for determining the database language is as follows:
-    //
-    // 1. Words (superset of all other data series) -- not yet implemented
-    // 2. Kanji / Radicals (subset of words, should have the same set of values
-    //    and should be kept in sync)
-    // 3. Names (only English)
-    //
-    if (this.kanji.state === DataSeriesState.Ok) {
-      return this.kanji.version!.lang;
-    }
-
-    if (this.radicals.state === DataSeriesState.Ok) {
-      return this.radicals.version!.lang;
-    }
-
-    return null;
   }
 
   async getKanji(kanji: Array<string>): Promise<Array<KanjiResult>> {

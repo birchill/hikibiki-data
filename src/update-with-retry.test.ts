@@ -57,7 +57,7 @@ describe('updateWithRetry', function () {
     }
   });
 
-  it('should call the onUpdateComplete callback easy success', async () => {
+  it('should call the onUpdateComplete callback on success', async () => {
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
     fetchMock.mock(
       'end:kanji-rc-en-3.0.0-full.ljson',
@@ -74,6 +74,7 @@ describe('updateWithRetry', function () {
       updateWithRetry({
         db,
         series: 'kanji',
+        lang: 'en',
         onUpdateComplete: resolve,
         onUpdateError: ({ error }) => reject(error),
       });
@@ -102,6 +103,7 @@ describe('updateWithRetry', function () {
       updateWithRetry({
         db,
         series: 'kanji',
+        lang: 'en',
         onUpdateComplete: resolve,
         onUpdateError: ({ error }) => reject(error),
       });
@@ -136,6 +138,7 @@ describe('updateWithRetry', function () {
       updateWithRetry({
         db,
         series: 'kanji',
+        lang: 'en',
         onUpdateComplete: resolve,
         onUpdateError: (params) => {
           errors.push(params);
@@ -188,6 +191,7 @@ describe('updateWithRetry', function () {
       updateWithRetry({
         db,
         series: 'kanji',
+        lang: 'en',
         onUpdateComplete: resolve,
         onUpdateError: ({ error }) => {
           assert.equal(error.name, 'OfflineError');
@@ -234,6 +238,7 @@ describe('updateWithRetry', function () {
       updateWithRetry({
         db,
         series: 'kanji',
+        lang: 'en',
         onUpdateComplete: resolve,
         onUpdateError: ({ error, nextRetry, retryCount }) => {
           errors.push({
@@ -291,6 +296,7 @@ describe('updateWithRetry', function () {
       updateWithRetry({
         db,
         series: 'kanji',
+        lang: 'en',
         onUpdateComplete: resolve,
         onUpdateError: () => {
           clock.next();
@@ -303,6 +309,7 @@ describe('updateWithRetry', function () {
       updateWithRetry({
         db,
         series: 'kanji',
+        lang: 'en',
         onUpdateComplete: () => {
           secondCompletionCallbackCalled = true;
           resolve();
@@ -340,6 +347,7 @@ describe('updateWithRetry', function () {
         updateWithRetry({
           db,
           series: 'kanji',
+          lang: 'en',
           onUpdateComplete: reject,
           onUpdateError: firstErrorResolve,
         });
@@ -354,6 +362,7 @@ describe('updateWithRetry', function () {
       updateWithRetry({
         db,
         series: 'kanji',
+        lang: 'en',
         forceUpdate: true,
         onUpdateComplete: resolve,
         onUpdateError: ({ error }) => reject(error),
@@ -361,6 +370,65 @@ describe('updateWithRetry', function () {
     });
 
     await Promise.race([firstInvocation, secondInvocation]);
+  });
+
+  it('should NOT coalesce overlapping requests when the requested language changes', async () => {
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
+    fetchMock.mock('end:jpdict-rc-fr-version.json', VERSION_3_0_0);
+    fetchMock.once('end:.ljson', 404);
+    fetchMock.mock(
+      'end:kanji-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+`
+    );
+    fetchMock.mock(
+      'end:radicals-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+`
+    );
+    fetchMock.mock(
+      'end:kanji-rc-fr-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+`
+    );
+    fetchMock.mock(
+      'end:radicals-rc-fr-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+`
+    );
+
+    // Wait for the first invocation to error
+
+    let firstInvocation;
+    const firstError = new Promise((firstErrorResolve) => {
+      firstInvocation = new Promise((_, reject) => {
+        updateWithRetry({
+          db,
+          series: 'kanji',
+          lang: 'en',
+          onUpdateComplete: reject,
+          onUpdateError: firstErrorResolve,
+        });
+      });
+    });
+
+    await firstError;
+
+    // Then try again while it is waiting
+
+    const secondInvocation = new Promise((resolve, reject) => {
+      updateWithRetry({
+        db,
+        series: 'kanji',
+        lang: 'fr',
+        onUpdateComplete: resolve,
+        onUpdateError: ({ error }) => reject(error),
+      });
+    });
+
+    await Promise.race([firstInvocation, secondInvocation]);
+
+    assert.equal(db.kanji.version!.lang, 'fr');
   });
 
   it('should allow canceling the retries', async () => {
@@ -388,6 +456,56 @@ describe('updateWithRetry', function () {
       updateWithRetry({
         db,
         series: 'kanji',
+        lang: 'en',
+        onUpdateComplete: () => {
+          completeCalled = true;
+        },
+        onUpdateError: resolve,
+      });
+    });
+
+    // Then cancel
+
+    await cancelUpdateWithRetry({ db, series: 'kanji' });
+
+    // Then make sure that the completion doesn't happen
+
+    clock.next();
+    clock.restore();
+
+    // It turns out we need to wait quiet a few frames to be sure the completion
+    // would happen if we hadn't canceled things.
+    await waitForAnimationFrames(8);
+
+    assert.isFalse(completeCalled);
+  });
+
+  it('should allow canceling the retries', async () => {
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_3_0_0);
+    fetchMock.once('end:.ljson', 404);
+    fetchMock.mock(
+      'end:kanji-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+`
+    );
+    fetchMock.mock(
+      'end:radicals-rc-en-3.0.0-full.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
+`
+    );
+
+    // Wait for first error
+
+    const clock = sinon.useFakeTimers({
+      toFake: ['setTimeout', 'clearTimeout'],
+    });
+
+    let completeCalled = false;
+    await new Promise((resolve) => {
+      updateWithRetry({
+        db,
+        series: 'kanji',
+        lang: 'en',
         onUpdateComplete: () => {
           completeCalled = true;
         },
@@ -436,6 +554,7 @@ describe('updateWithRetry', function () {
       updateWithRetry({
         db,
         series: 'kanji',
+        lang: 'en',
         onUpdateComplete: () => {
           completeCalled = true;
         },
@@ -488,6 +607,7 @@ describe('updateWithRetry', function () {
       updateWithRetry({
         db,
         series: 'kanji',
+        lang: 'en',
         onUpdateComplete: resolve,
         onUpdateError: ({ error, nextRetry, retryCount }) => {
           errors.push({
@@ -541,6 +661,7 @@ describe('updateWithRetry', function () {
       updateWithRetry({
         db,
         series: 'kanji',
+        lang: 'en',
         onUpdateComplete: resolve,
         onUpdateError: ({ error }) => reject(error),
       });
@@ -576,6 +697,7 @@ describe('updateWithRetry', function () {
       updateWithRetry({
         db,
         series: 'kanji',
+        lang: 'en',
         onUpdateComplete: resolve,
         onUpdateError: ({ error, nextRetry }) => {
           errors.push(error);

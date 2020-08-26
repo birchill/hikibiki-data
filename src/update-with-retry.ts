@@ -8,6 +8,7 @@ import {
 import { getUpdateKey } from './update-key';
 
 interface RetryStatus {
+  lang: string;
   onlineCallback?: () => any;
   changeCallback: ChangeCallback;
   setTimeoutHandle?: number;
@@ -62,12 +63,14 @@ export type UpdateErrorCallback = (params: {
 export async function updateWithRetry({
   db,
   series,
+  lang,
   forceUpdate = false,
   onUpdateComplete,
   onUpdateError,
 }: {
   db: JpdictDatabase;
   series: MajorDataSeries;
+  lang: string;
   forceUpdate?: boolean;
   onUpdateComplete?: UpdateCompleteCallback;
   onUpdateError?: UpdateErrorCallback;
@@ -75,63 +78,77 @@ export async function updateWithRetry({
   const updateKey = getUpdateKey(db, series);
 
   // Check if we have an in-progress update we can use.
-  {
-    const currentRetryStatus = inProgressUpdates.get(updateKey);
-    if (currentRetryStatus) {
-      // If we are not trying to force an update then just use the existing
-      // in-progress update.
-      if (!forceUpdate) {
-        if (db.verbose) {
-          console.info(
-            'Overlapping calls to updateWithRetry. Re-using existing invocation. This could be problematic if different callback functions were passed on each invocation.'
-          );
-        }
-        return;
-      }
+  let currentRetryStatus = inProgressUpdates.get(updateKey);
 
-      // If we're offline, then we're not even going to try updating until we
-      // are online (at which point we will retry immediately).
-      if (currentRetryStatus.onlineCallback) {
-        if (db.verbose) {
-          console.info('Deferring forced update. Currently offline.');
-        }
-        return;
-      }
+  // If the languages differ, we should cancel the existing update.
+  if (currentRetryStatus && currentRetryStatus.lang !== lang) {
+    if (db.verbose) {
+      console.info(
+        'Canceling existing call to updateWithRetry because the requested language has changed.'
+      );
+    }
+    await cancelUpdateWithRetry({ db, series });
+    currentRetryStatus = undefined;
+  }
 
-      // Even if we are trying to force the update, if we just started an update
-      // (or are retrying rapidly) then use the existing update.
-      if (!currentRetryStatus.retryIntervalMs) {
-        if (db.verbose) {
-          console.info('Ignoring forced update. Already retrying presently.');
-        }
-        return;
-      }
-
-      // And even if we have a timeout, if we are currently running the update,
-      // just let it run but reset the timeout.
-      const isRunningUpdate =
-        series === 'kanji'
-          ? db.kanji.updateState.state !== 'idle' ||
-            db.radicals.updateState.state !== 'idle'
-          : db[series].updateState.state;
-      if (isRunningUpdate) {
-        inProgressUpdates.set(updateKey, {
-          ...currentRetryStatus,
-          retryIntervalMs: undefined,
-          retryCount: undefined,
-        });
-        if (db.verbose) {
-          console.info('Skipping forced update. Already updating.');
-        }
-        return;
-      }
-
-      // Otherwise, cancel the in-progress update.
-      if (db.verbose) {
-        console.log('Canceling existing queued retry.');
-      }
+  if (currentRetryStatus) {
+    if (currentRetryStatus.lang !== lang) {
       await cancelUpdateWithRetry({ db, series });
     }
+
+    // If we are not trying to force an update then just use the existing
+    // in-progress update.
+    if (!forceUpdate) {
+      if (db.verbose) {
+        console.info(
+          'Overlapping calls to updateWithRetry. Re-using existing invocation. This could be problematic if different callback functions were passed on each invocation.'
+        );
+      }
+      return;
+    }
+
+    // If we're offline, then we're not even going to try updating until we
+    // are online (at which point we will retry immediately).
+    if (currentRetryStatus.onlineCallback) {
+      if (db.verbose) {
+        console.info('Deferring forced update. Currently offline.');
+      }
+      return;
+    }
+
+    // Even if we are trying to force the update, if we just started an update
+    // (or are retrying rapidly) then use the existing update.
+    if (!currentRetryStatus.retryIntervalMs) {
+      if (db.verbose) {
+        console.info('Ignoring forced update. Already retrying presently.');
+      }
+      return;
+    }
+
+    // And even if we have a timeout, if we are currently running the update,
+    // just let it run but reset the timeout.
+    const isRunningUpdate =
+      series === 'kanji'
+        ? db.kanji.updateState.state !== 'idle' ||
+          db.radicals.updateState.state !== 'idle'
+        : db[series].updateState.state;
+    if (isRunningUpdate) {
+      inProgressUpdates.set(updateKey, {
+        ...currentRetryStatus,
+        retryIntervalMs: undefined,
+        retryCount: undefined,
+      });
+      if (db.verbose) {
+        console.info('Skipping forced update. Already updating.');
+      }
+      return;
+    }
+
+    // Otherwise, cancel the in-progress update.
+    if (db.verbose) {
+      console.log('Canceling existing queued retry.');
+    }
+    await cancelUpdateWithRetry({ db, series });
   }
 
   // If we have a in-progress update here, it means we got an overlapping
@@ -144,17 +161,19 @@ export async function updateWithRetry({
     return;
   }
 
-  await doUpdate({ db, series, onUpdateComplete, onUpdateError });
+  await doUpdate({ db, series, lang, onUpdateComplete, onUpdateError });
 }
 
 async function doUpdate({
   db,
   series,
+  lang,
   onUpdateComplete,
   onUpdateError,
 }: {
   db: JpdictDatabase;
   series: MajorDataSeries;
+  lang: string;
   onUpdateComplete?: UpdateCompleteCallback;
   onUpdateError?: UpdateErrorCallback;
 }) {
@@ -169,6 +188,7 @@ async function doUpdate({
         await doUpdate({
           db,
           series,
+          lang,
           onUpdateComplete,
           onUpdateError,
         });
@@ -184,7 +204,7 @@ async function doUpdate({
     };
     addEventListener('online', onlineCallback, { once: true });
 
-    setInProgressUpdate({ db, series, onlineCallback });
+    setInProgressUpdate({ db, series, lang, onlineCallback });
 
     if (onUpdateError) {
       onUpdateError({ error: new OfflineError() });
@@ -197,11 +217,11 @@ async function doUpdate({
   // overlapping calls.
   const updateKey = getUpdateKey(db, series);
   if (!inProgressUpdates.has(updateKey)) {
-    setInProgressUpdate({ db, series });
+    setInProgressUpdate({ db, series, lang });
   }
 
   try {
-    await db.update({ series });
+    await db.update({ series, lang });
 
     deleteInProgressUpdate({ db, series });
 
@@ -255,6 +275,7 @@ async function doUpdate({
         doUpdate({
           db,
           series,
+          lang,
           onUpdateComplete,
           onUpdateError,
         });
@@ -265,6 +286,7 @@ async function doUpdate({
       setInProgressUpdate({
         db,
         series,
+        lang,
         setTimeoutHandle,
         retryIntervalMs,
         retryCount,
@@ -294,6 +316,7 @@ async function doUpdate({
           doUpdate({
             db,
             series,
+            lang,
             onUpdateComplete,
             onUpdateError,
           });
@@ -304,6 +327,7 @@ async function doUpdate({
       setInProgressUpdate({
         db,
         series,
+        lang,
         requestIdleCallbackHandle,
         retryCount,
       });
@@ -323,6 +347,7 @@ async function doUpdate({
 function setInProgressUpdate({
   db,
   series,
+  lang,
   onlineCallback,
   setTimeoutHandle,
   requestIdleCallbackHandle,
@@ -345,6 +370,7 @@ function setInProgressUpdate({
   }
 
   inProgressUpdates.set(updateKey, {
+    lang,
     onlineCallback,
     changeCallback,
     setTimeoutHandle,
