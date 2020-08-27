@@ -1,4 +1,11 @@
-export { DataSeries, MajorDataSeries } from './data-series';
+export {
+  DataSeries,
+  MajorDataSeries,
+  allDataSeries,
+  allMajorDataSeries,
+  isDataSeries,
+  isMajorDataSeries,
+} from './data-series';
 export { DataVersion } from './data-version';
 export {
   AbortError,
