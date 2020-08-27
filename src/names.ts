@@ -34,7 +34,7 @@ export type NameType =
   | 'org'
   | 'ok';
 
-const nameTypes: Array<NameType> = [
+export const allNameTypes: ReadonlyArray<NameType> = [
   'surname',
   'place',
   'unclass',
@@ -49,6 +49,10 @@ const nameTypes: Array<NameType> = [
   'org',
   'ok',
 ];
+
+export function isNameType(a: unknown): a is NameType {
+  return typeof a === 'string' && allNameTypes.includes(a as NameType);
+}
 
 export interface NameDeletionLine {
   id: number;
@@ -81,9 +85,7 @@ function isNameTranslation(a: any): a is NameTranslation {
     a !== null &&
     (typeof a.type === 'undefined' ||
       (isArrayOfStrings(a.type) &&
-        (a.type as Array<NameType>).every((type) =>
-          nameTypes.includes(type)
-        ))) &&
+        (a.type as Array<NameType>).every(isNameType))) &&
     isArrayOfStrings(a.det) &&
     (typeof a.cf === 'undefined' || isArrayOfStrings(a.cf))
   );

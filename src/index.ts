@@ -17,6 +17,7 @@ export {
   NameResult,
 } from './database';
 export { DownloadError, DownloadErrorCode } from './download';
+export { NameTranslation, NameType, allNameTypes, isNameType } from './names';
 export { UpdateErrorState, toUpdateErrorState } from './update-error-state';
 export {
   CheckingUpdateState,
