@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.1.1](https://github.com/birchill/hikibiki-data/compare/v5.1.0...v5.1.1) (2020-08-27)
+
+
+### Bug Fixes
+
+* Expose useful types and methods for dealing with names ([f6cb9e0](https://github.com/birchill/hikibiki-data/commit/f6cb9e03a5f77610de9160d5861daeb724c0d282))
+
 ## [5.1.0](https://github.com/birchill/hikibiki-data/compare/v5.0.1...v5.1.0) (2020-08-27)
 
 
