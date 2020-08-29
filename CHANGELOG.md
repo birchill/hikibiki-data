@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.3.2](https://github.com/birchill/hikibiki-data/compare/v5.3.1...v5.3.2) (2020-08-29)
+
+
+### Bug Fixes
+
+* Remove spurious warning ([4fee4c1](https://github.com/birchill/hikibiki-data/commit/4fee4c152c6c1169aa107d2f3d3881a76d52e047))
+
 ### [5.3.1](https://github.com/birchill/hikibiki-data/compare/v5.3.0...v5.3.1) (2020-08-29)
 
 
