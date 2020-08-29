@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.2.0](https://github.com/birchill/hikibiki-data/compare/v5.1.1...v5.2.0) (2020-08-29)
+
+
+### Features
+
+* Report progress for updating the database ([6905c4e](https://github.com/birchill/hikibiki-data/commit/6905c4e1ce48ce99b764cfe1758ce634d4ed89c4))
+
 ### [5.1.1](https://github.com/birchill/hikibiki-data/compare/v5.1.0...v5.1.1) (2020-08-27)
 
 
