@@ -26,9 +26,9 @@ import {
 import { stripFields } from './utils';
 
 const MAJOR_VERSION: { [series in DataSeries]: number } = {
-  kanji: 3,
-  radicals: 3,
-  names: 1,
+  kanji: 4,
+  radicals: 4,
+  names: 2,
 };
 
 export const enum DataSeriesState {

@@ -144,7 +144,6 @@ async function update<
   let recordsToDelete: Array<IdType> = [];
 
   let currentVersion: DataVersion | undefined;
-  let partialVersion: boolean = false;
 
   const finishCurrentVersion = async () => {
     if (!currentVersion) {
@@ -167,7 +166,7 @@ async function update<
       await store.bulkUpdateTable({
         table: series,
         put: recordsToPut,
-        drop: partialVersion ? recordsToDelete : '*',
+        drop: currentVersion.patch === 0 ? '*' : recordsToDelete,
         version: currentVersion,
         onProgress,
       });
@@ -191,7 +190,6 @@ async function update<
     const appliedVersion = currentVersion;
 
     currentVersion = undefined;
-    partialVersion = false;
 
     callback({ type: 'finishpatch', version: appliedVersion });
   };
@@ -233,8 +231,7 @@ async function update<
           );
         }
 
-        currentVersion = { ...stripFields(value, ['type', 'partial']), lang };
-        partialVersion = value.partial;
+        currentVersion = { ...stripFields(value, ['type']), lang };
 
         callback({
           type: 'startdownload',
@@ -268,10 +265,6 @@ async function update<
         break;
 
       case 'deletion':
-        console.assert(
-          partialVersion,
-          'Should not get deletion events if we are doing a full update'
-        );
         recordsToDelete.push(getId(value));
         break;
 

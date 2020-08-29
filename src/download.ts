@@ -17,7 +17,6 @@ export interface VersionEvent {
   patch: number;
   databaseVersion?: string;
   dateOfCreation: string;
-  partial: boolean;
 }
 
 export interface VersionEndEvent {
@@ -46,7 +45,6 @@ interface VersionInfo {
   major: number;
   minor: number;
   patch: number;
-  snapshot: number;
   databaseVersion: string;
   dateOfCreation: string;
 }
@@ -79,7 +77,6 @@ export const enum DownloadErrorCode {
   DatabaseFileVersionMismatch,
   DatabaseFileInvalidJSON,
   DatabaseFileInvalidRecord,
-  DatabaseFileDeletionInSnapshot,
   DatabaseTooOld,
 }
 
@@ -191,14 +188,6 @@ export function download<EntryLine, DeletionLine>({
         return;
       }
 
-      // When we come to apply this approach to other databases it might make
-      // sense to have a tolerance here where we skip loading all the
-      // intermediate patches and jump to the nearest snapshot and start from
-      // there instead.
-      //
-      // I suspect that tolerance would be pretty high, however, e.g. 100 or
-      // more before it actually makes any sense.
-
       let currentPatch: number;
       if (
         !currentVersion ||
@@ -208,7 +197,7 @@ export function download<EntryLine, DeletionLine>({
           patch: 0,
         }) < 0
       ) {
-        currentPatch = versionInfo.snapshot;
+        currentPatch = 0;
         try {
           for await (const event of getEvents({
             baseUrl,
@@ -218,9 +207,8 @@ export function download<EntryLine, DeletionLine>({
             version: {
               major: versionInfo.major,
               minor: versionInfo.minor,
-              patch: versionInfo.snapshot,
+              patch: 0,
             },
-            fileType: 'full',
             signal: abortController.signal,
             isEntryLine,
             isDeletionLine,
@@ -256,7 +244,6 @@ export function download<EntryLine, DeletionLine>({
               minor: versionInfo.minor,
               patch: currentPatch,
             },
-            fileType: 'patch',
             signal: abortController.signal,
             isEntryLine,
             isDeletionLine,
@@ -426,7 +413,6 @@ function getCurrentVersionInfo(
     typeof a[series][majorVersion].major !== 'number' ||
     typeof a[series][majorVersion].minor !== 'number' ||
     typeof a[series][majorVersion].patch !== 'number' ||
-    typeof a[series][majorVersion].snapshot !== 'number' ||
     (typeof a[series][majorVersion].databaseVersion !== 'string' &&
       typeof a[series][majorVersion].databaseVersion !== 'undefined') ||
     typeof a[series][majorVersion].dateOfCreation !== 'string'
@@ -440,7 +426,6 @@ function getCurrentVersionInfo(
     versionInfo.major < 1 ||
     versionInfo.minor < 0 ||
     versionInfo.patch < 0 ||
-    versionInfo.snapshot < 0 ||
     !versionInfo.dateOfCreation.length
   ) {
     return null;
@@ -478,7 +463,6 @@ async function* getEvents<EntryLine, DeletionLine>({
   lang,
   maxProgressResolution,
   version,
-  fileType,
   signal,
   isEntryLine,
   isDeletionLine,
@@ -488,12 +472,11 @@ async function* getEvents<EntryLine, DeletionLine>({
   lang: string;
   maxProgressResolution: number;
   version: Version;
-  fileType: 'full' | 'patch';
   signal: AbortSignal;
   isEntryLine: (a: any) => a is EntryLine;
   isDeletionLine: (a: any) => a is DeletionLine;
 }): AsyncIterableIterator<DownloadEvent<EntryLine, DeletionLine>> {
-  const url = `${baseUrl}${series}-rc-${lang}-${version.major}.${version.minor}.${version.patch}-${fileType}.ljson`;
+  const url = `${baseUrl}${series}-rc-${lang}-${version.major}.${version.minor}.${version.patch}.ljson`;
 
   // Fetch rejects the promise for network errors, but not for HTTP errors :(
   let response;
@@ -550,7 +533,6 @@ async function* getEvents<EntryLine, DeletionLine>({
       const versionEvent: VersionEvent = {
         ...line.version,
         type: 'version',
-        partial: fileType === 'patch',
       };
       yield versionEvent;
 
@@ -573,14 +555,6 @@ async function* getEvents<EntryLine, DeletionLine>({
         };
         yield entryEvent;
       } else if (isDeletionLine(line)) {
-        // We shouldn't have deletion records when doing a full snapshot
-        if (fileType === 'full') {
-          throw new DownloadError({
-            code: DownloadErrorCode.DatabaseFileDeletionInSnapshot,
-            url,
-          });
-        }
-
         const deletionEvent: DeletionEvent<DeletionLine> = {
           type: 'deletion',
           ...line,

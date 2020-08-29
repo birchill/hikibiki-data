@@ -52,7 +52,6 @@ describe('updateKanji', function () {
     const versionEvent: VersionEvent = {
       ...VERSION_1_0_0,
       type: 'version',
-      partial: false,
     };
     const versionEndEvent: VersionEndEvent = { type: 'versionend' };
     const downloadStream = mockStream(versionEvent, versionEndEvent);
@@ -70,7 +69,6 @@ describe('updateKanji', function () {
     const versionEvent: VersionEvent = {
       ...VERSION_1_0_0,
       type: 'version',
-      partial: false,
     };
     const versionEndEvent: VersionEndEvent = { type: 'versionend' };
     const downloadStream = mockStream(versionEvent, versionEndEvent);
@@ -85,7 +83,6 @@ describe('updateKanji', function () {
     const versionEvent: VersionEvent = {
       ...VERSION_1_0_0,
       type: 'version',
-      partial: false,
     };
     const entryEvents: Array<KanjiEntryEvent> = [
       {
@@ -180,7 +177,6 @@ describe('updateKanji', function () {
       ...VERSION_1_0_0,
       patch: 1,
       type: 'version',
-      partial: true,
     };
     const deletionEvent: KanjiDeletionEvent = {
       type: 'deletion',
@@ -205,7 +201,6 @@ describe('updateKanji', function () {
     const versionEvent: VersionEvent = {
       ...VERSION_1_0_0,
       type: 'version',
-      partial: false,
     };
     const progressEventA: ProgressEvent = {
       type: 'progress',
@@ -254,7 +249,6 @@ describe('updateKanji', function () {
       {
         ...VERSION_1_0_0,
         type: 'version',
-        partial: false,
       },
       {
         type: 'entry',
@@ -281,7 +275,6 @@ describe('updateKanji', function () {
         ...VERSION_1_0_0,
         patch: 1,
         type: 'version',
-        partial: true,
       },
       {
         type: 'entry',
@@ -310,7 +303,6 @@ describe('updateKanji', function () {
         ...VERSION_1_0_0,
         patch: 2,
         type: 'version',
-        partial: true,
       },
       {
         type: 'entry',
@@ -368,7 +360,6 @@ describe('updateKanji', function () {
       {
         ...VERSION_1_0_0,
         type: 'version',
-        partial: false,
       },
       {
         type: 'entry',
@@ -395,7 +386,6 @@ describe('updateKanji', function () {
         ...VERSION_1_0_0,
         minor: 1,
         type: 'version',
-        partial: false,
       },
       {
         type: 'entry',
