@@ -299,16 +299,21 @@ export class JpdictStore {
     put,
     drop,
     version,
+    onProgress,
   }: {
     table: Name;
     put: Array<JpdictSchema[Name]['value']>;
     drop: Array<JpdictSchema[Name]['key']> | '*';
     version: DataVersion | null;
+    onProgress?: (params: { processed: number; total: number }) => void;
   }) {
     await this.open();
 
     const tx = this.db!.transaction([table, 'version'], 'readwrite');
     const targetTable = tx.objectStore(table);
+
+    // Calculate the total number of records we will process.
+    const totalRecords = (drop !== '*' ? drop.length : 0) + put.length;
 
     try {
       if (drop === '*') {
@@ -318,6 +323,9 @@ export class JpdictStore {
           // We could possibly skip waiting on the result of this like we do
           // below, but we don't normally delete a lot of records so it seems
           // safest to wait for now.
+          //
+          // This is also the reason we don't report progress for delete
+          // actions.
           await targetTable.delete(id);
         }
       }
@@ -339,16 +347,32 @@ export class JpdictStore {
     }
 
     try {
-      const putPromises: Array<Promise<JpdictSchema[Name]['key']>> = [];
-      for (const record of put) {
-        // The important thing here is NOT to wait on the result of put.
-        // This speeds up the operation by an order of magnitude or two and
-        // is Dexie's secret sauce.
-        //
-        // See: https://jsfiddle.net/birtles/vx4urLkw/17/
-        putPromises.push(targetTable.put(record));
+      let processed = 0;
+
+      // Batch updates so we can report progress.
+      //
+      // 4,000 gives us enough granularity when dealing with small data sets
+      // like the kanji data (~13k records) while avoiding being too spammy with
+      // large data sets like the names data (~740k records).
+      const BATCH_SIZE = 4000;
+      while (put.length) {
+        const batch = put.splice(0, BATCH_SIZE);
+        const putPromises: Array<Promise<JpdictSchema[Name]['key']>> = [];
+        for (const record of batch) {
+          // The important thing here is NOT to wait on the result of put.
+          // This speeds up the operation by an order of magnitude or two and
+          // is Dexie's secret sauce.
+          //
+          // See: https://jsfiddle.net/birtles/vx4urLkw/17/
+          putPromises.push(targetTable.put(record));
+        }
+        await Promise.all(putPromises);
+
+        processed += batch.length;
+        if (onProgress) {
+          onProgress({ processed, total: totalRecords });
+        }
       }
-      await Promise.all(putPromises);
     } catch (e) {
       console.log('Error during put portion of bulk update');
       console.log(JSON.stringify(put));

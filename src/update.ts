@@ -154,11 +154,22 @@ async function update<
     callback({ type: 'finishdownload', version: currentVersion });
 
     try {
+      const onProgress = ({
+        processed,
+        total,
+      }: {
+        processed: number;
+        total: number;
+      }) => {
+        callback({ type: 'progress', loaded: processed, total });
+      };
+
       await store.bulkUpdateTable({
         table: series,
         put: recordsToPut,
         drop: partialVersion ? recordsToDelete : '*',
         version: currentVersion,
+        onProgress,
       });
     } catch (e) {
       if (verbose) {

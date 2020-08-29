@@ -34,6 +34,7 @@ export type UpdatingDbUpdateState = {
   state: 'updatingdb';
   series: DataSeries;
   downloadVersion: DataVersion;
+  progress: number;
   lastCheck: Date | null;
 };
 

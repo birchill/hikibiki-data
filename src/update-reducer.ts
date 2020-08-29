@@ -21,15 +21,15 @@ export function reducer(state: UpdateState, action: UpdateAction): UpdateState {
 
     case 'progress':
       console.assert(
-        state.state === 'downloading',
+        state.state === 'downloading' || state.state === 'updatingdb',
         'Should only get a progress action when we are downloading'
       );
-      if (state.state !== 'downloading') {
+      if (state.state !== 'downloading' && state.state !== 'updatingdb') {
         return state;
       }
 
       return {
-        state: 'downloading',
+        state: state.state,
         series: state.series,
         downloadVersion: state.downloadVersion,
         progress: action.total ? action.loaded / action.total : 0,
@@ -49,6 +49,7 @@ export function reducer(state: UpdateState, action: UpdateAction): UpdateState {
         state: 'updatingdb',
         series: state.series,
         downloadVersion: state.downloadVersion,
+        progress: 0,
         lastCheck: state.lastCheck,
       };
 
