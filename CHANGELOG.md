@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.3.1](https://github.com/birchill/hikibiki-data/compare/v5.3.0...v5.3.1) (2020-08-29)
+
+
+### Bug Fixes
+
+* Make download stream more pull-based ([63a8130](https://github.com/birchill/hikibiki-data/commit/63a81304e6b60d5b7b4efb51a194dc63fe4e2e25))
+
 ## [5.3.0](https://github.com/birchill/hikibiki-data/compare/v5.2.0...v5.3.0) (2020-08-29)
 
 
