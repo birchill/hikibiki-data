@@ -204,16 +204,8 @@ export function download<EntryLine, DeletionLine>({
         DownloadEvent<EntryLine, DeletionLine>
       >
     ) {
-      // Check the current patch is in range.
-      //
-      // This should never happen but for now let's play it safe.
       if (currentPatch > versionInfo.patch) {
-        console.log(
-          `Got unexpected request for ${currentPatch} when the maximum patch level is ${versionInfo.patch}`
-        );
-        try {
-          controller.close();
-        } catch (_) {}
+        controller.close();
         return;
       }
 
@@ -248,9 +240,6 @@ export function download<EntryLine, DeletionLine>({
       controller.enqueue({ type: 'versionend' });
 
       currentPatch++;
-      if (currentPatch > versionInfo.patch) {
-        controller.close();
-      }
     },
 
     cancel() {
