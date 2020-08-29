@@ -142,6 +142,8 @@ export function download<EntryLine, DeletionLine>({
   isDeletionLine,
 }: DownloadOptions<EntryLine, DeletionLine>): ReadableStream {
   const abortController = new AbortController();
+  let currentPatch: number;
+  let versionInfo: VersionInfo;
 
   // Edge does not yet support ReadableStream constructor so this will break
   return new ReadableStream({
@@ -150,8 +152,6 @@ export function download<EntryLine, DeletionLine>({
         DownloadEvent<EntryLine, DeletionLine>
       >
     ) {
-      // Get the current version info
-      let versionInfo: VersionInfo;
       try {
         versionInfo = await getVersionInfo({
           series,
@@ -188,83 +188,69 @@ export function download<EntryLine, DeletionLine>({
         return;
       }
 
-      let currentPatch: number;
       if (
         !currentVersion ||
         // Check for a change in minor version
-        compareVersions(currentVersion, {
-          ...versionInfo,
-          patch: 0,
-        }) < 0
+        compareVersions(currentVersion, { ...versionInfo, patch: 0 }) < 0
       ) {
         currentPatch = 0;
-        try {
-          for await (const event of getEvents({
-            baseUrl,
-            series,
-            lang,
-            maxProgressResolution,
-            version: {
-              major: versionInfo.major,
-              minor: versionInfo.minor,
-              patch: 0,
-            },
-            signal: abortController.signal,
-            isEntryLine,
-            isDeletionLine,
-          })) {
-            if (abortController.signal.aborted) {
-              const abortError = new Error();
-              abortError.name = 'AbortError';
-              throw abortError;
-            }
-            controller.enqueue(event);
-          }
-        } catch (e) {
-          controller.error(e);
-          controller.close();
-          return;
-        }
-        controller.enqueue({ type: 'versionend' });
       } else {
-        currentPatch = currentVersion.patch;
+        currentPatch = currentVersion.patch + 1;
       }
+    },
 
-      // Do incremental updates
-      while (currentPatch < versionInfo.patch) {
-        currentPatch++;
+    async pull(
+      controller: ReadableStreamDefaultController<
+        DownloadEvent<EntryLine, DeletionLine>
+      >
+    ) {
+      // Check the current patch is in range.
+      //
+      // This should never happen but for now let's play it safe.
+      if (currentPatch > versionInfo.patch) {
+        console.log(
+          `Got unexpected request for ${currentPatch} when the maximum patch level is ${versionInfo.patch}`
+        );
         try {
-          for await (const event of getEvents({
-            baseUrl,
-            series,
-            lang,
-            maxProgressResolution,
-            version: {
-              major: versionInfo.major,
-              minor: versionInfo.minor,
-              patch: currentPatch,
-            },
-            signal: abortController.signal,
-            isEntryLine,
-            isDeletionLine,
-          })) {
-            if (abortController.signal.aborted) {
-              const abortError = new Error();
-              abortError.name = 'AbortError';
-              throw abortError;
-            }
-            controller.enqueue(event);
-          }
-        } catch (e) {
-          controller.error(e);
           controller.close();
-          return;
-        }
-
-        controller.enqueue({ type: 'versionend' });
+        } catch (_) {}
+        return;
       }
 
-      controller.close();
+      try {
+        for await (const event of getEvents({
+          baseUrl,
+          series,
+          lang,
+          maxProgressResolution,
+          version: {
+            major: versionInfo.major,
+            minor: versionInfo.minor,
+            patch: currentPatch,
+          },
+          signal: abortController.signal,
+          isEntryLine,
+          isDeletionLine,
+        })) {
+          if (abortController.signal.aborted) {
+            const abortError = new Error();
+            abortError.name = 'AbortError';
+            throw abortError;
+          }
+          controller.enqueue(event);
+        }
+      } catch (e) {
+        controller.error(e);
+        controller.close();
+        return;
+      }
+
+      controller.enqueue({ type: 'versionend' });
+
+      currentPatch++;
+      if (currentPatch > versionInfo.patch) {
+        controller.close();
+      }
     },
 
     cancel() {
