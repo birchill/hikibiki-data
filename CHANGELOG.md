@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [5.3.3](https://github.com/birchill/hikibiki-data/compare/v5.3.2...v5.3.3) (2020-08-31)
+
+
+### Bug Fixes
+
+* Convert download stream to an async generator instead ([15fc5be](https://github.com/birchill/hikibiki-data/commit/15fc5be91da0cb8ab415dcb880957eec870aa46f))
+
 ### [5.3.2](https://github.com/birchill/hikibiki-data/compare/v5.3.1...v5.3.2) (2020-08-29)
 
 
