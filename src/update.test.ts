@@ -54,9 +54,9 @@ describe('updateKanji', function () {
       type: 'version',
     };
     const versionEndEvent: VersionEndEvent = { type: 'versionend' };
-    const downloadStream = mockStream(versionEvent, versionEndEvent);
+    const downloadIterator = mockStream(versionEvent, versionEndEvent);
 
-    await updateKanji({ downloadStream, lang: 'en', store, callback });
+    await updateKanji({ downloadIterator, lang: 'en', store, callback });
 
     assert.deepEqual(actions, [
       { type: 'startdownload', series: 'kanji', version: VERSION_1_0_0 },
@@ -71,9 +71,9 @@ describe('updateKanji', function () {
       type: 'version',
     };
     const versionEndEvent: VersionEndEvent = { type: 'versionend' };
-    const downloadStream = mockStream(versionEvent, versionEndEvent);
+    const downloadIterator = mockStream(versionEvent, versionEndEvent);
 
-    await updateKanji({ downloadStream, lang: 'en', store, callback });
+    await updateKanji({ downloadIterator, lang: 'en', store, callback });
 
     const dataVersion = await store.getDataVersion('kanji');
     assert.deepEqual(dataVersion, VERSION_1_0_0);
@@ -112,13 +112,13 @@ describe('updateKanji', function () {
       },
     ];
     const versionEndEvent: VersionEndEvent = { type: 'versionend' };
-    const downloadStream = mockStream(
+    const downloadIterator = mockStream(
       versionEvent,
       ...entryEvents,
       versionEndEvent
     );
 
-    await updateKanji({ downloadStream, lang: 'en', store, callback });
+    await updateKanji({ downloadIterator, lang: 'en', store, callback });
 
     const chars = await store.getKanji([13314, 13318]);
     assert.deepEqual(chars[0], {
@@ -184,13 +184,13 @@ describe('updateKanji', function () {
       deleted: true,
     };
     const versionEndEvent: VersionEndEvent = { type: 'versionend' };
-    const downloadStream = mockStream(
+    const downloadIterator = mockStream(
       versionEvent,
       deletionEvent,
       versionEndEvent
     );
 
-    await updateKanji({ downloadStream, lang: 'en', store, callback });
+    await updateKanji({ downloadIterator, lang: 'en', store, callback });
 
     const result = await store.getKanji([13314, 13318]);
     assert.lengthOf(result, 1);
@@ -223,7 +223,7 @@ describe('updateKanji', function () {
     };
     const versionEndEvent: VersionEndEvent = { type: 'versionend' };
 
-    const downloadStream = mockStream(
+    const downloadIterator = mockStream(
       versionEvent,
       progressEventA,
       entryEvent,
@@ -231,7 +231,7 @@ describe('updateKanji', function () {
       versionEndEvent
     );
 
-    await updateKanji({ downloadStream, lang: 'en', store, callback });
+    await updateKanji({ downloadIterator, lang: 'en', store, callback });
 
     assert.deepEqual(actions, [
       { type: 'startdownload', series: 'kanji', version: VERSION_1_0_0 },
@@ -316,9 +316,9 @@ describe('updateKanji', function () {
       { type: 'versionend' },
     ];
 
-    const downloadStream = mockStream(...events);
+    const downloadIterator = mockStream(...events);
 
-    await updateKanji({ downloadStream, lang: 'en', store, callback });
+    await updateKanji({ downloadIterator, lang: 'en', store, callback });
 
     assert.deepEqual(await store.getKanji([13314, 13318, 13356, 13358]), [
       {
@@ -399,9 +399,9 @@ describe('updateKanji', function () {
       { type: 'versionend' },
     ];
 
-    const downloadStream = mockStream(...events);
+    const downloadIterator = mockStream(...events);
 
-    await updateKanji({ downloadStream, lang: 'en', store, callback });
+    await updateKanji({ downloadIterator, lang: 'en', store, callback });
 
     assert.deepEqual(await store.getKanji([13314, 13318]), [
       {
@@ -416,15 +416,10 @@ describe('updateKanji', function () {
   });
 });
 
-function mockStream(
+async function* mockStream(
   ...events: Array<KanjiDownloadEvent>
-): ReadableStream<KanjiDownloadEvent> {
-  return new ReadableStream({
-    start(controller: ReadableStreamDefaultController<KanjiDownloadEvent>) {
-      for (const event of events) {
-        controller.enqueue(event);
-      }
-      controller.close();
-    },
-  });
+): AsyncIterableIterator<KanjiDownloadEvent> {
+  for (const event of events) {
+    yield event;
+  }
 }

@@ -1,3 +1,4 @@
+export { AbortError } from './abort-error';
 export {
   DataSeries,
   MajorDataSeries,
@@ -8,7 +9,6 @@ export {
 } from './data-series';
 export { DataVersion } from './data-version';
 export {
-  AbortError,
   ChangeCallback,
   ChangeTopic,
   DataSeriesState,

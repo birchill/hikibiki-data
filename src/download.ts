@@ -1,10 +1,8 @@
+import { AbortError } from './abort-error';
 import { DataSeries } from './data-series';
 import { DataVersion } from './data-version';
 
-// Produces a ReadableStream of DownloadEvents
-//
-// This really should have been an async generator instead of a stream but
-// I didn't realize that until later. Oh well.
+// Produces an async interator of DownloadEvents
 
 export type EntryEvent<EntryLine> = { type: 'entry' } & EntryLine;
 
@@ -59,6 +57,7 @@ export type DownloadOptions<EntryLine, DeletionLine> = {
     patch: number;
   };
   lang: string;
+  signal: AbortSignal;
   maxProgressResolution?: number;
   forceFetch?: boolean;
   isEntryLine: (a: any) => a is EntryLine;
@@ -130,122 +129,77 @@ export async function hasLanguage({
   }
 }
 
-export function download<EntryLine, DeletionLine>({
+export async function* download<EntryLine, DeletionLine>({
   baseUrl = DEFAULT_BASE_URL,
   series,
   majorVersion,
   currentVersion,
   lang,
+  signal,
   maxProgressResolution = DEFAULT_MAX_PROGRESS_RESOLUTION,
   forceFetch = false,
   isEntryLine,
   isDeletionLine,
-}: DownloadOptions<EntryLine, DeletionLine>): ReadableStream {
-  const abortController = new AbortController();
-  let currentPatch: number;
-  let versionInfo: VersionInfo;
-
-  // Edge does not yet support ReadableStream constructor so this will break
-  return new ReadableStream({
-    async start(
-      controller: ReadableStreamDefaultController<
-        DownloadEvent<EntryLine, DeletionLine>
-      >
-    ) {
-      try {
-        versionInfo = await getVersionInfo({
-          series,
-          majorVersion,
-          baseUrl,
-          lang,
-          signal: abortController.signal,
-          forceFetch,
-        });
-      } catch (e) {
-        controller.error(e);
-        controller.close();
-        return;
-      }
-
-      // Check the local database is not ahead of what we're about to download
-      //
-      // This can happen when the version file gets cached because we can
-      // download a more recent version (e.g. we have DevTools open with "skip
-      // cache" ticked) and then try again to fetch the file but get the older
-      // version.
-      if (currentVersion && compareVersions(currentVersion, versionInfo) > 0) {
-        const versionToString = ({ major, minor, patch }: Version) =>
-          `${major}.${minor}.${patch}`;
-        controller.error(
-          new DownloadError(
-            { code: DownloadErrorCode.DatabaseTooOld },
-            `Database version (${versionToString(
-              versionInfo
-            )}) older than current version (${versionToString(currentVersion)})`
-          )
-        );
-        controller.close();
-        return;
-      }
-
-      if (
-        !currentVersion ||
-        // Check for a change in minor version
-        compareVersions(currentVersion, { ...versionInfo, patch: 0 }) < 0
-      ) {
-        currentPatch = 0;
-      } else {
-        currentPatch = currentVersion.patch + 1;
-      }
-    },
-
-    async pull(
-      controller: ReadableStreamDefaultController<
-        DownloadEvent<EntryLine, DeletionLine>
-      >
-    ) {
-      if (currentPatch > versionInfo.patch) {
-        controller.close();
-        return;
-      }
-
-      try {
-        for await (const event of getEvents({
-          baseUrl,
-          series,
-          lang,
-          maxProgressResolution,
-          version: {
-            major: versionInfo.major,
-            minor: versionInfo.minor,
-            patch: currentPatch,
-          },
-          signal: abortController.signal,
-          isEntryLine,
-          isDeletionLine,
-        })) {
-          if (abortController.signal.aborted) {
-            const abortError = new Error();
-            abortError.name = 'AbortError';
-            throw abortError;
-          }
-          controller.enqueue(event);
-        }
-      } catch (e) {
-        controller.error(e);
-        controller.close();
-        return;
-      }
-
-      controller.enqueue({ type: 'versionend' });
-
-      currentPatch++;
-    },
-
-    cancel() {
-      abortController.abort();
-    },
+}: DownloadOptions<EntryLine, DeletionLine>): AsyncIterableIterator<
+  DownloadEvent<EntryLine, DeletionLine>
+> {
+  const versionInfo = await getVersionInfo({
+    series,
+    majorVersion,
+    baseUrl,
+    lang,
+    signal,
+    forceFetch,
   });
+
+  // Check the local database is not ahead of what we're about to download
+  //
+  // This can happen when the version file gets cached because we can
+  // download a more recent version (e.g. we have DevTools open with "skip
+  // cache" ticked) and then try again to fetch the file but get the older
+  // version.
+  if (currentVersion && compareVersions(currentVersion, versionInfo) > 0) {
+    const versionToString = ({ major, minor, patch }: Version) =>
+      `${major}.${minor}.${patch}`;
+    throw new DownloadError(
+      { code: DownloadErrorCode.DatabaseTooOld },
+      `Database version (${versionToString(
+        versionInfo
+      )}) older than current version (${versionToString(currentVersion)})`
+    );
+  }
+
+  let nextPatch: number;
+  if (
+    !currentVersion ||
+    // Check for a change in minor version
+    compareVersions(currentVersion, { ...versionInfo, patch: 0 }) < 0
+  ) {
+    nextPatch = 0;
+  } else {
+    nextPatch = currentVersion.patch + 1;
+  }
+
+  while (nextPatch <= versionInfo.patch) {
+    yield* getEvents({
+      baseUrl,
+      series,
+      lang,
+      maxProgressResolution,
+      version: {
+        major: versionInfo.major,
+        minor: versionInfo.minor,
+        patch: nextPatch,
+      },
+      signal,
+      isEntryLine,
+      isDeletionLine,
+    });
+
+    yield { type: 'versionend' };
+
+    nextPatch++;
+  }
 }
 
 type Version = {
@@ -309,6 +263,10 @@ async function getVersionInfo({
     try {
       response = await fetch(url, { signal });
     } catch (e) {
+      if (e.name === 'AbortError') {
+        throw e;
+      }
+
       throw new DownloadError(
         { code: DownloadErrorCode.VersionFileNotAccessible, url },
         `Version file ${url} not accessible (${e.message})`
@@ -458,6 +416,10 @@ async function* getEvents<EntryLine, DeletionLine>({
   try {
     response = await fetch(url, { signal });
   } catch (e) {
+    if (e.name === 'AbortError') {
+      throw e;
+    }
+
     throw new DownloadError(
       { code: DownloadErrorCode.DatabaseFileNotFound, url },
       `Database file ${url} not accessible (${e.message})`
@@ -487,7 +449,10 @@ async function* getEvents<EntryLine, DeletionLine>({
   let recordsRead = 0;
   let totalRecords = 0;
 
-  for await (const line of ljsonStreamIterator(response.body)) {
+  for await (const line of ljsonStreamIterator({
+    stream: response.body,
+    signal,
+  })) {
     if (isHeaderLine(line)) {
       if (headerRead) {
         throw new DownloadError(
@@ -563,18 +528,21 @@ async function* getEvents<EntryLine, DeletionLine>({
   }
 }
 
-async function* ljsonStreamIterator(
-  stream: ReadableStream<Uint8Array>
-): AsyncIterableIterator<object> {
+async function* ljsonStreamIterator({
+  stream,
+  signal,
+}: {
+  stream: ReadableStream<Uint8Array>;
+  signal: AbortSignal;
+}): AsyncIterableIterator<object> {
   const reader = stream.getReader();
   const lineEnd = /\n|\r|\r\n/m;
   const decoder = new TextDecoder('utf-8');
   let buffer = '';
 
   const parseLine = (line: string): any => {
-    let json;
     try {
-      json = JSON.parse(line);
+      return JSON.parse(line);
     } catch (e) {
       reader.releaseLock();
       throw new DownloadError(
@@ -582,8 +550,6 @@ async function* ljsonStreamIterator(
         `Could not parse JSON in database file: ${line}`
       );
     }
-
-    return json;
   };
 
   while (true) {
@@ -592,6 +558,10 @@ async function* ljsonStreamIterator(
       readResult = await reader.read();
     } catch (e) {
       reader.releaseLock();
+      if (e.name === 'AbortError') {
+        throw e;
+      }
+
       throw new DownloadError(
         { code: DownloadErrorCode.DatabaseFileNotAccessible },
         `Could not read database file (${e?.message ?? String(e)})`
@@ -620,6 +590,10 @@ async function* ljsonStreamIterator(
     buffer = lines.length ? lines.splice(lines.length - 1, 1)[0] : '';
 
     for (const line of lines) {
+      if (signal.aborted) {
+        throw new AbortError();
+      }
+
       if (!line) {
         continue;
       }

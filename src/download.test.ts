@@ -1,6 +1,8 @@
-import { assert } from 'chai';
+import chai, { assert } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
 import fetchMock from 'fetch-mock';
 
+import { AbortError } from './abort-error';
 import {
   download,
   DownloadEvent,
@@ -18,6 +20,7 @@ import {
 } from './kanji';
 
 mocha.setup('bdd');
+chai.use(chaiAsPromised);
 
 const VERSION_1_0_0 = {
   kanji: {
@@ -35,14 +38,22 @@ type KanjiDownloadEvent = DownloadEvent<KanjiEntryLine, KanjiDeletionLine>;
 
 type KanjiDownloadOptions = Omit<
   DownloadOptions<KanjiEntryLine, KanjiDeletionLine>,
-  'lang' | 'majorVersion' | 'series' | 'isEntryLine' | 'isDeletionLine'
-> & { lang?: string; majorVersion?: number };
+  | 'lang'
+  | 'majorVersion'
+  | 'series'
+  | 'signal'
+  | 'isEntryLine'
+  | 'isDeletionLine'
+> & { lang?: string; majorVersion?: number; signal?: AbortSignal };
 
 const kanjiDownload = (options: KanjiDownloadOptions = {}) => {
+  const abortController = new AbortController();
+
   return download({
     lang: 'en',
     forceFetch: true,
     majorVersion: 1,
+    signal: abortController.signal,
     ...options,
     series: 'kanji',
     isEntryLine: isKanjiEntryLine,
@@ -60,8 +71,8 @@ describe('download', () => {
       `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"2019-173","dateOfCreation":"2019-06-22"},"records":0}
 `
     );
-    const reader = kanjiDownload().getReader();
-    const events = await drainEvents(reader);
+    const downloader = kanjiDownload();
+    const events = await drainEvents(downloader);
 
     assert.deepEqual(events, [
       {
@@ -79,9 +90,9 @@ describe('download', () => {
   it('should fail if there is no version file available', async () => {
     fetchMock.mock('end:jpdict-rc-en-version.json', 404);
 
-    const reader = kanjiDownload().getReader();
+    const downloader = kanjiDownload();
     try {
-      await drainEvents(reader);
+      await drainEvents(downloader);
       assert.fail('Should have thrown an exception');
     } catch (e) {
       const [downloadError, events] = parseDrainError(e);
@@ -116,9 +127,9 @@ describe('download', () => {
   it('should fail if the version file is corrupt', async () => {
     fetchMock.mock('end:jpdict-rc-en-version.json', 'yer');
 
-    const reader = kanjiDownload().getReader();
+    const downloader = kanjiDownload();
     try {
-      await drainEvents(reader);
+      await drainEvents(downloader);
       assert.fail('Should have thrown an exception');
     } catch (e) {
       const [downloadError, events] = parseDrainError(e);
@@ -142,9 +153,9 @@ describe('download', () => {
       },
     });
 
-    const reader = kanjiDownload().getReader();
+    const downloader = kanjiDownload();
     try {
-      await drainEvents(reader);
+      await drainEvents(downloader);
       assert.fail('Should have thrown an exception');
     } catch (e) {
       const [downloadError, events] = parseDrainError(e);
@@ -161,9 +172,9 @@ describe('download', () => {
       kanji: { '1': { ...VERSION_1_0_0.kanji['1'], major: 0 } },
     });
 
-    const reader = kanjiDownload().getReader();
+    const downloader = kanjiDownload();
     try {
-      await drainEvents(reader);
+      await drainEvents(downloader);
       assert.fail('Should have thrown an exception');
     } catch (e) {
       const [downloadError, events] = parseDrainError(e);
@@ -188,13 +199,13 @@ describe('download', () => {
     });
     mockAllDataFilesWithEmpty();
 
-    const reader = kanjiDownload({
+    const downloader = kanjiDownload({
       majorVersion: 2,
       currentVersion: { major: 2, minor: 0, patch: 1 },
-    }).getReader();
+    });
 
     try {
-      await drainEvents(reader);
+      await drainEvents(downloader);
       assert.fail('Should have thrown an exception');
     } catch (e) {
       const [downloadError] = parseDrainError(e);
@@ -209,9 +220,9 @@ describe('download', () => {
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_1_0_0);
     fetchMock.mock('end:kanji-rc-en-1.0.0.ljson', 404);
 
-    const reader = kanjiDownload().getReader();
+    const downloader = kanjiDownload();
     try {
-      await drainEvents(reader);
+      await drainEvents(downloader);
       assert.fail('Should have thrown an exception');
     } catch (e) {
       const [downloadError, events] = parseDrainError(e);
@@ -231,9 +242,9 @@ describe('download', () => {
 `
     );
 
-    const reader = kanjiDownload().getReader();
+    const downloader = kanjiDownload();
     try {
-      await drainEvents(reader);
+      await drainEvents(downloader);
       assert.fail('Should have thrown an exception');
     } catch (e) {
       const [downloadError, events] = parseDrainError(e);
@@ -256,8 +267,8 @@ describe('download', () => {
 `
     );
 
-    const reader = kanjiDownload().getReader();
-    const events = await drainEvents(reader);
+    const downloader = kanjiDownload();
+    const events = await drainEvents(downloader);
 
     assert.strictEqual(events.length, 4);
     assert.deepEqual(events[1], {
@@ -297,9 +308,9 @@ describe('download', () => {
 `
     );
 
-    const reader = kanjiDownload().getReader();
+    const downloader = kanjiDownload();
     try {
-      await drainEvents(reader);
+      await drainEvents(downloader);
       assert.fail('Should have thrown an exception');
     } catch (e) {
       const [downloadError, events] = parseDrainError(e);
@@ -322,9 +333,9 @@ describe('download', () => {
 `
     );
 
-    const reader = kanjiDownload().getReader();
+    const downloader = kanjiDownload();
     try {
-      await drainEvents(reader);
+      await drainEvents(downloader);
       assert.fail('Should have thrown an exception');
     } catch (e) {
       const [downloadError, events] = parseDrainError(e);
@@ -348,9 +359,9 @@ describe('download', () => {
 `
     );
 
-    const reader = kanjiDownload().getReader();
+    const downloader = kanjiDownload();
     try {
-      await drainEvents(reader);
+      await drainEvents(downloader);
       assert.fail('Should have thrown an exception');
     } catch (e) {
       const [downloadError, events] = parseDrainError(e);
@@ -421,9 +432,9 @@ ${entry}
 `
       );
 
-      const reader = kanjiDownload().getReader();
+      const downloader = kanjiDownload();
       try {
-        await drainEvents(reader);
+        await drainEvents(downloader);
         assert.fail(`Should have thrown an exception for input ${entry}`);
       } catch (e) {
         const [downloadError, events] = parseDrainError(e);
@@ -457,9 +468,9 @@ ${entry}
 `
     );
 
-    const reader = kanjiDownload().getReader();
+    const downloader = kanjiDownload();
     try {
-      await drainEvents(reader);
+      await drainEvents(downloader);
       assert.fail('Should have thrown an exception');
     } catch (e) {
       const [downloadError, events] = parseDrainError(e);
@@ -484,7 +495,7 @@ ${entry}
     });
     mockAllDataFilesWithEmpty();
 
-    await drainEvents(kanjiDownload().getReader());
+    await drainEvents(kanjiDownload());
 
     assert.isTrue(
       fetchMock.called('end:kanji-rc-en-1.0.0.ljson'),
@@ -514,7 +525,7 @@ ${entry}
     await drainEvents(
       kanjiDownload({
         currentVersion: { major: 1, minor: 0, patch: 1 },
-      }).getReader()
+      })
     );
 
     assert.isFalse(
@@ -549,7 +560,7 @@ ${entry}
     const events = await drainEvents(
       kanjiDownload({
         currentVersion: { major: 1, minor: 0, patch: 1 },
-      }).getReader()
+      })
     );
 
     assert.deepEqual(events[1], {
@@ -570,9 +581,9 @@ ${entry}
     );
     fetchMock.mock('end:kanji-rc-en-1.0.1.ljson', 404);
 
-    const reader = kanjiDownload().getReader();
+    const downloader = kanjiDownload();
     try {
-      await drainEvents(reader);
+      await drainEvents(downloader);
       assert.fail('Should have thrown an exception');
     } catch (e) {
       const [downloadError, events] = parseDrainError(e);
@@ -595,9 +606,9 @@ ${entry}
     );
     fetchMock.mock('end:kanji-rc-en-1.0.1.ljson', 'yer');
 
-    const reader = kanjiDownload().getReader();
+    const downloader = kanjiDownload();
     try {
-      await drainEvents(reader);
+      await drainEvents(downloader);
       assert.fail('Should have thrown an exception');
     } catch (e) {
       const [downloadError, events] = parseDrainError(e);
@@ -624,9 +635,9 @@ ${entry}
 {"c":"㐂","r":{},"m":[],"rad":{"x":2},"refs":{"nelson_c":265,"halpern_njecd":2028},"misc":{"sc":6}}`
     );
 
-    const reader = kanjiDownload().getReader();
+    const downloader = kanjiDownload();
     try {
-      await drainEvents(reader);
+      await drainEvents(downloader);
       assert.fail('Should have thrown an exception');
     } catch (e) {
       const [downloadError, events] = parseDrainError(e);
@@ -643,11 +654,11 @@ ${entry}
       kanji: { '1': { ...VERSION_1_0_0.kanji['1'], patch: 1 } },
     });
 
-    const reader = kanjiDownload({
+    const downloader = kanjiDownload({
       currentVersion: { major: 1, minor: 0, patch: 2 },
-    }).getReader();
+    });
     try {
-      await drainEvents(reader);
+      await drainEvents(downloader);
       assert.fail('Should have thrown an exception');
     } catch (e) {
       const [downloadError] = parseDrainError(e);
@@ -660,38 +671,37 @@ ${entry}
       kanji: { '1': { ...VERSION_1_0_0.kanji['1'], patch: 1 } },
     });
 
-    const reader = kanjiDownload({
+    const downloader = kanjiDownload({
       currentVersion: { major: 1, minor: 0, patch: 1 },
-    }).getReader();
+    });
 
-    const events = await drainEvents(reader);
+    const events = await drainEvents(downloader);
     assert.strictEqual(events.length, 0);
   });
 
-  it('should re-download from the latest snapshot when there is a new minor version', async () => {
+  it('should re-download from the first file when there is a new minor version', async () => {
     fetchMock.mock('end:jpdict-rc-en-version.json', {
       kanji: {
         '1': {
           ...VERSION_1_0_0.kanji['1'],
           minor: 2,
           patch: 11,
-          snapshot: 10,
         },
       },
     });
     mockAllDataFilesWithEmpty();
 
-    const reader = kanjiDownload({
+    const downloader = kanjiDownload({
       currentVersion: { major: 1, minor: 0, patch: 2 },
-    }).getReader();
-    await drainEvents(reader);
+    });
+    await drainEvents(downloader);
 
     assert.isTrue(
-      fetchMock.called('end:kanji-rc-en-1.2.10.ljson'),
+      fetchMock.called('end:kanji-rc-en-1.2.0.ljson'),
       'Should get snapshot'
     );
     assert.isTrue(
-      fetchMock.called('end:kanji-rc-en-1.2.11.ljson'),
+      fetchMock.called('end:kanji-rc-en-1.2.1.ljson'),
       'Should get first patch'
     );
   });
@@ -709,11 +719,11 @@ ${entry}
     });
     mockAllDataFilesWithEmpty();
 
-    const reader = kanjiDownload({
+    const downloader = kanjiDownload({
       majorVersion: 3,
       currentVersion: { major: 1, minor: 0, patch: 2 },
-    }).getReader();
-    await drainEvents(reader);
+    });
+    await drainEvents(downloader);
 
     assert.isTrue(
       fetchMock.called('end:kanji-rc-en-3.0.0.ljson'),
@@ -733,7 +743,7 @@ ${entry}
 `
     );
 
-    await drainEvents(kanjiDownload({ lang: 'fr' }).getReader());
+    await drainEvents(kanjiDownload({ lang: 'fr' }));
 
     assert.isFalse(
       fetchMock.called('end:jpdict-rc-en-version.json'),
@@ -762,19 +772,16 @@ ${entry}
 {"c":"㐆","r":{},"m":["to follow","to trust to","to put confidence in","to depend on","to turn around","to turn the body"],"rad":{"x":4},"refs":{},"misc":{"sc":6}}`
     );
 
-    const stream = kanjiDownload();
-    const reader = stream.getReader();
+    const abortController = new AbortController();
+    const downloader = kanjiDownload({ signal: abortController.signal });
 
     // Read version event
-    let readResult = await reader.read();
-    assert.isFalse(readResult.done, 'Stream should not have finished yet');
+    let readResult = await downloader.next();
+    assert.isFalse(readResult.done, 'Iterator should not have finished yet');
 
-    // At least in Chrome and Firefox, calling cancel on the stream doesn't work
-    // but calling it on the reader does.
-    reader.cancel();
+    abortController.abort();
 
-    readResult = await reader.read();
-    assert.isTrue(readResult.done, 'Stream should be done');
+    return assert.isRejected(downloader.next(), AbortError);
   });
 
   it('should produce progress events', async () => {
@@ -812,7 +819,7 @@ ${entry}
     );
 
     const events = await drainEvents(
-      kanjiDownload({ maxProgressResolution: 0.05 }).getReader(),
+      kanjiDownload({ maxProgressResolution: 0.05 }),
       {
         includeProgressEvents: true,
       }
@@ -883,34 +890,21 @@ class DrainError extends Error {
   }
 }
 
-function drainEvents(
-  reader: ReadableStreamDefaultReader,
+async function drainEvents(
+  downloader: AsyncIterableIterator<KanjiDownloadEvent>,
   { includeProgressEvents = false }: { includeProgressEvents?: boolean } = {}
 ): Promise<Array<KanjiDownloadEvent>> {
-  return new Promise((resolve, reject) => {
-    const events: Array<KanjiDownloadEvent> = [];
+  const events: Array<KanjiDownloadEvent> = [];
 
-    async function readEvent(): Promise<void> {
-      let readResult: ReadableStreamReadResult<KanjiDownloadEvent>;
-      try {
-        readResult = await reader.read();
-      } catch (e) {
-        reject(new DrainError(e, events));
-        return;
+  try {
+    for await (const event of downloader) {
+      if (includeProgressEvents || event.type !== 'progress') {
+        events.push(event);
       }
-
-      const { done, value } = readResult;
-      if (value && (includeProgressEvents || value.type !== 'progress')) {
-        events.push(value);
-      }
-      if (done) {
-        resolve(events);
-        return;
-      }
-
-      return readEvent();
     }
+  } catch (e) {
+    throw new DrainError(e, events);
+  }
 
-    return readEvent();
-  });
+  return events;
 }

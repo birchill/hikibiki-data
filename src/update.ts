@@ -17,7 +17,6 @@ import {
   NameRecord,
 } from './store';
 import { UpdateAction } from './update-actions';
-import { getUpdateKey } from './update-key';
 import { stripFields } from './utils';
 
 export type UpdateCallback = (action: UpdateAction) => void;
@@ -60,12 +59,6 @@ export type UpdateCallback = (action: UpdateAction) => void;
 // IndexedDB. So, for now, we just have to recommend only updating once database
 // at a time to limit memory usage.
 
-// We allow one update per store-series pair at a time
-const inProgressUpdates: Map<
-  string,
-  ReadableStreamDefaultReader<DownloadEvent<any, any>>
-> = new Map();
-
 export async function updateKanji(
   options: UpdateOptions<KanjiEntryLine, KanjiDeletionLine>
 ) {
@@ -100,7 +93,9 @@ export async function updateNames(
 }
 
 export interface UpdateOptions<EntryLine, DeletionLine> {
-  downloadStream: ReadableStream<DownloadEvent<EntryLine, DeletionLine>>;
+  downloadIterator: AsyncIterableIterator<
+    DownloadEvent<EntryLine, DeletionLine>
+  >;
   lang: string;
   store: JpdictStore;
   callback: UpdateCallback;
@@ -113,7 +108,7 @@ async function update<
   RecordType extends KanjiRecord | RadicalRecord | NameRecord,
   IdType extends number | string
 >({
-  downloadStream,
+  downloadIterator,
   store,
   lang,
   series,
@@ -122,7 +117,9 @@ async function update<
   callback,
   verbose = false,
 }: {
-  downloadStream: ReadableStream<DownloadEvent<EntryLine, DeletionLine>>;
+  downloadIterator: AsyncIterableIterator<
+    DownloadEvent<EntryLine, DeletionLine>
+  >;
   store: JpdictStore;
   lang: string;
   series: DataSeries;
@@ -131,15 +128,6 @@ async function update<
   callback: UpdateCallback;
   verbose?: boolean;
 }) {
-  const updateKey = getUpdateKey(store, series);
-  if (inProgressUpdates.has(updateKey)) {
-    throw new Error('Overlapping calls to update');
-  }
-
-  const reader = downloadStream.getReader();
-
-  inProgressUpdates.set(updateKey, reader);
-
   let recordsToPut: Array<RecordType> = [];
   let recordsToDelete: Array<IdType> = [];
 
@@ -194,44 +182,16 @@ async function update<
     callback({ type: 'finishpatch', version: appliedVersion });
   };
 
-  while (true) {
-    let readResult: ReadableStreamReadResult<DownloadEvent<
-      EntryLine,
-      DeletionLine
-    >>;
-    try {
-      readResult = await reader.read();
-    } catch (e) {
-      reader.releaseLock();
-      inProgressUpdates.delete(updateKey);
-      throw e;
-    }
-
-    if (readResult.done) {
-      if (inProgressUpdates.has(updateKey)) {
-        inProgressUpdates.delete(updateKey);
-        if (currentVersion) {
-          throw new Error(
-            `Unfinished version: ${JSON.stringify(currentVersion)}`
-          );
-        }
-      }
-      return;
-    }
-
-    const value = readResult.value;
-
-    switch (value.type) {
+  for await (const event of downloadIterator) {
+    switch (event.type) {
       case 'version':
         if (currentVersion) {
-          reader.releaseLock();
-          inProgressUpdates.delete(updateKey);
           throw new Error(
             `Unfinished version: ${JSON.stringify(currentVersion)}`
           );
         }
 
-        currentVersion = { ...stripFields(value, ['type']), lang };
+        currentVersion = { ...stripFields(event, ['type']), lang };
 
         callback({
           type: 'startdownload',
@@ -241,13 +201,7 @@ async function update<
         break;
 
       case 'versionend':
-        try {
-          await finishCurrentVersion();
-        } catch (e) {
-          reader.releaseLock();
-          inProgressUpdates.delete(updateKey);
-          throw e;
-        }
+        await finishCurrentVersion();
         break;
 
       case 'entry':
@@ -258,35 +212,19 @@ async function update<
           //   https://stackoverflow.com/questions/57815891/how-to-define-an-object-type-that-does-not-include-a-specific-member
           //
           const recordToPut = toRecord(
-            (stripFields(value, ['type']) as unknown) as EntryLine
+            (stripFields(event, ['type']) as unknown) as EntryLine
           );
           recordsToPut.push(recordToPut);
         }
         break;
 
       case 'deletion':
-        recordsToDelete.push(getId(value));
+        recordsToDelete.push(getId(event));
         break;
 
       case 'progress':
-        callback(value);
+        callback(event);
         break;
     }
   }
-}
-
-export async function cancelUpdate(
-  store: JpdictStore,
-  series: DataSeries
-): Promise<boolean> {
-  const updateKey = getUpdateKey(store, series);
-  const reader = inProgressUpdates.get(updateKey);
-  if (!reader) {
-    return false;
-  }
-
-  inProgressUpdates.delete(updateKey);
-  await reader.cancel();
-
-  return true;
 }

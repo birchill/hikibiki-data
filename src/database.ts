@@ -1,5 +1,6 @@
 import { jsonEqualish } from '@birchill/json-equalish';
 
+import { AbortError } from './abort-error';
 import { DataSeries, MajorDataSeries, allDataSeries } from './data-series';
 import { DataVersion } from './data-version';
 import { hasLanguage, download } from './download';
@@ -17,7 +18,6 @@ import { UpdateAction } from './update-actions';
 import { UpdateState } from './update-state';
 import { reducer as updateReducer } from './update-reducer';
 import {
-  cancelUpdate,
   updateKanji,
   updateRadicals,
   updateNames,
@@ -90,19 +90,6 @@ export interface RelatedKanji {
 
 export type { NameRecord as NameResult };
 
-export class AbortError extends Error {
-  constructor(...params: any[]) {
-    super(...params);
-    Object.setPrototypeOf(this, AbortError.prototype);
-
-    if (typeof (Error as any).captureStackTrace === 'function') {
-      (Error as any).captureStackTrace(this, AbortError);
-    }
-
-    this.name = 'AbortError';
-  }
-}
-
 export type ChangeTopic = 'stateupdated' | 'deleted';
 export type ChangeCallback = (topic: ChangeTopic) => void;
 
@@ -114,6 +101,7 @@ type DataSeriesInfo = {
 
 type InProgressUpdate = {
   promise: Promise<void>;
+  controller: AbortController;
   lang: string;
 };
 
@@ -262,22 +250,17 @@ export class JpdictDatabase {
       await this.cancelUpdate({ series });
     }
 
+    const controller = new AbortController();
     this.inProgressUpdates[series] = {
       lang,
+      controller,
       promise: (async () => {
         try {
           await this.ready;
 
-          const abortIfCancelled = () => {
-            if (
-              !this.inProgressUpdates[series] ||
-              this.inProgressUpdates[series]!.lang !== lang
-            ) {
-              throw new AbortError();
-            }
-          };
-
-          abortIfCancelled();
+          if (controller.signal.aborted) {
+            throw new AbortError();
+          }
 
           switch (series) {
             case 'kanji':
@@ -312,7 +295,9 @@ export class JpdictDatabase {
               break;
           }
 
-          abortIfCancelled();
+          if (controller.signal.aborted) {
+            throw new AbortError();
+          }
         } finally {
           // Reset the in progress update but only if the language wasn't
           // changed (since we don't want to clobber the new request).
@@ -345,6 +330,15 @@ export class JpdictDatabase {
     isDeletionLine: (a: any) => a is DeletionLine;
     update: (options: UpdateOptions<EntryLine, DeletionLine>) => Promise<void>;
   }) {
+    // Fetch the AbortSignal so we can check if we have been aborted even after
+    // our InProgressUpdate is removed.
+    const majorSeries: MajorDataSeries =
+      series === 'radicals' ? 'kanji' : series;
+    if (!this.inProgressUpdates[majorSeries]) {
+      throw new AbortError();
+    }
+    const signal = this.inProgressUpdates[majorSeries]!.controller.signal;
+
     let wroteSomething = false;
 
     const reducer = (action: UpdateAction) => {
@@ -360,12 +354,7 @@ export class JpdictDatabase {
     };
 
     // Check if we have been canceled while waiting to become ready
-    const majorSeries: MajorDataSeries =
-      series === 'radicals' ? 'kanji' : series;
-    const wasCancelled = () =>
-      !this.inProgressUpdates[majorSeries] ||
-      this.inProgressUpdates[majorSeries]!.lang !== requestedLang;
-    if (wasCancelled()) {
+    if (signal.aborted) {
       reducer({ type: 'error', checkDate: null });
       throw new AbortError();
     }
@@ -403,35 +392,36 @@ export class JpdictDatabase {
 
       if (this.verbose) {
         console.log(
-          `Requesting download stream for ${series} series with current version ${JSON.stringify(
+          `Requesting download for ${series} series with current version ${JSON.stringify(
             this[series].version || undefined
           )}`
         );
       }
 
-      const downloadStream = await download({
+      const downloadIterator = await download({
         series,
         lang,
         majorVersion: MAJOR_VERSION[series],
         currentVersion: this[series].version || undefined,
+        signal,
         forceFetch,
         isEntryLine,
         isDeletionLine,
       });
 
-      if (wasCancelled()) {
+      if (signal.aborted) {
         throw new AbortError();
       }
 
       await update({
-        downloadStream,
+        downloadIterator,
         lang,
         store: this.store,
         callback: reducer,
         verbose: this.verbose,
       });
 
-      if (wasCancelled()) {
+      if (signal.aborted) {
         throw new AbortError();
       }
 
@@ -447,23 +437,15 @@ export class JpdictDatabase {
     }
   }
 
-  async cancelUpdate({
-    series,
-  }: {
-    series: MajorDataSeries;
-  }): Promise<boolean> {
-    this.inProgressUpdates[series] = undefined;
-
-    let result = false;
-
-    if (series === 'kanji') {
-      result = result || (await cancelUpdate(this.store, 'kanji'));
-      result = result || (await cancelUpdate(this.store, 'radicals'));
-    } else {
-      result = await cancelUpdate(this.store, series);
+  cancelUpdate({ series }: { series: MajorDataSeries }): boolean {
+    const inProgressUpdate = this.inProgressUpdates[series];
+    if (!inProgressUpdate) {
+      return false;
     }
 
-    return result;
+    inProgressUpdate.controller.abort();
+
+    return true;
   }
 
   async destroy() {
