@@ -13,8 +13,6 @@ export {
   ChangeTopic,
   DataSeriesState,
   JpdictDatabase,
-  KanjiResult,
-  NameResult,
 } from './database';
 export { DownloadError, DownloadErrorCode } from './download';
 export { NameTranslation, NameType, allNameTypes, isNameType } from './names';
@@ -33,3 +31,4 @@ export {
   UpdateErrorCallback,
   updateWithRetry,
 } from './update-with-retry';
+export { getKanji, getNames, KanjiResult, NameResult } from './query';

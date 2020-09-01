@@ -68,7 +68,7 @@ describe('store', function () {
 
     // Re-open and check that the data is deleted
     await store.open();
-    const result = await store.getKanji([13314]);
+    const result = await store._getKanji([13314]);
     assert.lengthOf(result, 0);
 
     // Tidy up

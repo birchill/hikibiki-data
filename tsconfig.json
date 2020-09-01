@@ -10,6 +10,7 @@
       "dom.iterable",
       "es2017",
       "es2017.object",
+      "es2018.promise",
       "esnext.asynciterable"
     ],
     "moduleResolution": "node",

@@ -66,7 +66,7 @@ function getVersionKey(series: DataSeries): 1 | 2 | 3 {
   }
 }
 
-interface JpdictSchema extends DBSchema {
+export interface JpdictSchema extends DBSchema {
   kanji: {
     key: number;
     value: KanjiRecord;
@@ -120,6 +120,8 @@ export class JpdictStore {
 
     this.state = 'opening';
 
+    const self = this;
+
     this.openPromise = openDB<JpdictSchema>('jpdict', 2, {
       upgrade(
         db: IDBPDatabase<JpdictSchema>,
@@ -158,15 +160,17 @@ export class JpdictStore {
         console.log('Opening blocked');
       },
       blocking() {
-        if (this.db) {
-          this.db.close();
-          this.db = undefined;
-          this.state = 'idle';
+        if (self.db) {
+          try {
+            self.db.close();
+          } catch (_) {}
+          self.db = undefined;
+          self.state = 'idle';
         }
       },
     }).then((db) => {
-      this.db = db;
-      this.state = 'open';
+      self.db = db;
+      self.state = 'open';
       return db;
     });
 
@@ -246,52 +250,6 @@ export class JpdictStore {
     }
 
     return stripFields(versionDoc, ['id']);
-  }
-
-  async getKanji(kanji: Array<number>): Promise<Array<KanjiRecord>> {
-    await this.open();
-
-    const result: Array<KanjiRecord> = [];
-    {
-      const tx = this.db!.transaction('kanji');
-      for (const c of kanji) {
-        const record = await tx.store.get(c);
-        if (record) {
-          result.push(record);
-        }
-      }
-    }
-
-    return result;
-  }
-
-  async getAllRadicals(): Promise<Array<RadicalRecord>> {
-    await this.open();
-
-    return this.db!.getAll('radicals');
-  }
-
-  async getNames(search: string): Promise<Array<NameRecord>> {
-    await this.open();
-
-    const result: Set<NameRecord> = new Set();
-
-    // Try the k (kanji) index first
-    const kanjiIndex = this.db!.transaction('names').store.index('k');
-    // (We explicitly use IDBKeyRange.only because otherwise the idb TS typings
-    // fail to recognize that these indices are multi-entry and hence it is
-    // valid to supply a single string instead of an array of strings.)
-    for await (const cursor of kanjiIndex.iterate(IDBKeyRange.only(search))) {
-      result.add(cursor.value);
-    }
-
-    // Then the r (reading) index
-    const readingIndex = this.db!.transaction('names').store.index('r');
-    for await (const cursor of readingIndex.iterate(IDBKeyRange.only(search))) {
-      result.add(cursor.value);
-    }
-
-    return [...result];
   }
 
   async bulkUpdateTable<Name extends DataSeries>({
@@ -415,5 +373,23 @@ export class JpdictStore {
     }
 
     await tx.done;
+  }
+
+  // Test API
+  async _getKanji(kanji: Array<number>): Promise<Array<KanjiRecord>> {
+    await this.open();
+
+    const result: Array<KanjiRecord> = [];
+    {
+      const tx = this.db!.transaction('kanji');
+      for (const c of kanji) {
+        const record = await tx.store.get(c);
+        if (record) {
+          result.push(record);
+        }
+      }
+    }
+
+    return result;
   }
 }

@@ -120,7 +120,7 @@ describe('updateKanji', function () {
 
     await updateKanji({ downloadIterator, lang: 'en', store, callback });
 
-    const chars = await store.getKanji([13314, 13318]);
+    const chars = await store._getKanji([13314, 13318]);
     assert.deepEqual(chars[0], {
       c: 13314,
       r: {},
@@ -192,7 +192,7 @@ describe('updateKanji', function () {
 
     await updateKanji({ downloadIterator, lang: 'en', store, callback });
 
-    const result = await store.getKanji([13314, 13318]);
+    const result = await store._getKanji([13314, 13318]);
     assert.lengthOf(result, 1);
     assert.equal(result[0].c, 13318);
   });
@@ -320,7 +320,7 @@ describe('updateKanji', function () {
 
     await updateKanji({ downloadIterator, lang: 'en', store, callback });
 
-    assert.deepEqual(await store.getKanji([13314, 13318, 13356, 13358]), [
+    assert.deepEqual(await store._getKanji([13314, 13318, 13356, 13358]), [
       {
         c: 13314,
         r: {},
@@ -403,7 +403,7 @@ describe('updateKanji', function () {
 
     await updateKanji({ downloadIterator, lang: 'en', store, callback });
 
-    assert.deepEqual(await store.getKanji([13314, 13318]), [
+    assert.deepEqual(await store._getKanji([13314, 13318]), [
       {
         c: 13318,
         r: {},
