@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.0.0](https://github.com/birchill/hikibiki-data/compare/v5.3.3...v6.0.0) (2020-09-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* The query methods are no longer attached to the
+JpdictDatabase object and they require the language to be passed-in.
+
+### Features
+
+* Split querying methods into separate file ([9f0633b](https://github.com/birchill/hikibiki-data/commit/9f0633baaef8fd49f14388a7f462fba9c9d276ad))
+
 ### [5.3.3](https://github.com/birchill/hikibiki-data/compare/v5.3.2...v5.3.3) (2020-08-31)
 
 
