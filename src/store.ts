@@ -5,6 +5,7 @@ import {
   IDBPTransaction,
   openDB,
 } from 'idb/with-async-ittr';
+import { kanaToHiragana } from '@birchill/normal-jp';
 
 import { DataSeries } from './data-series';
 import { DataVersion } from './data-version';
@@ -39,10 +40,31 @@ export function getIdForRadicalRecord(entry: RadicalDeletionLine): string {
   return entry.id;
 }
 
-export type NameRecord = NameEntryLine;
+export type NameRecord = NameEntryLine & {
+  // r and k strings with all kana converted to hiragana
+  h: Array<string>;
+};
 
 export function toNameRecord(entry: NameEntryLine): NameRecord {
-  return entry;
+  return {
+    ...entry,
+    h: keysToHiragana([...(entry.k || []), ...entry.r]),
+  };
+}
+
+function keysToHiragana(values: Array<string>): Array<string> {
+  return Array.from(
+    new Set(values.map((value) => kanaToHiragana(value)).filter(hasHiragana))
+  );
+}
+
+// We only add hiragana keys for words that actually have some hiragana in
+// them. Any purely kanji keys should match on the 'k' index and won't benefit
+// from converting the input and source to hiragana so we can match them.
+function hasHiragana(str: string): boolean {
+  return [...str]
+    .map((c) => c.codePointAt(0)!)
+    .some((c) => c >= 0x3041 && c <= 0x309f);
 }
 
 export function getIdForNameRecord(entry: NameDeletionLine): number {
@@ -91,6 +113,7 @@ export interface JpdictSchema extends DBSchema {
     indexes: {
       k: Array<string>;
       r: Array<string>;
+      h: Array<string>;
     };
   };
   version: {
@@ -122,7 +145,7 @@ export class JpdictStore {
 
     const self = this;
 
-    this.openPromise = openDB<JpdictSchema>('jpdict', 2, {
+    this.openPromise = openDB<JpdictSchema>('jpdict', 3, {
       upgrade(
         db: IDBPDatabase<JpdictSchema>,
         oldVersion: number,
@@ -154,6 +177,10 @@ export class JpdictStore {
           });
           namesTable.createIndex('k', 'k', { multiEntry: true });
           namesTable.createIndex('r', 'r', { multiEntry: true });
+        }
+        if (oldVersion < 3) {
+          const namesTable = transaction.objectStore('names');
+          namesTable.createIndex('h', 'h', { multiEntry: true });
         }
       },
       blocked() {

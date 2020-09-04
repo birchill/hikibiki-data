@@ -464,4 +464,36 @@ describe('database', function () {
 
     assert.deepEqual(result, expected);
   });
+
+  it('should fetch names by kana-equivalence', async () => {
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_INFO);
+    fetchMock.mock(
+      'end:names-rc-en-2.0.0.ljson',
+      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"n/a","dateOfCreation":"2020-08-22"},"records":3}
+{"r":["マルタ"],"id":5082405,"tr":[{"type":["place"],"det":["Malta"]},{"type":["fem"],"det":["Marta","Martha"]}]}
+{"r":["まるた"],"k":["円田"],"id":5143227,"tr":[{"type":["surname"],"det":["Maruta"]}]}
+{"r":["まるた"],"k":["丸太"],"id":5193528,"tr":[{"type":["place","surname"],"det":["Maruta"]}]}
+`
+    );
+
+    await db.update({ series: 'names', lang: 'en' });
+
+    // The katakana result should come last
+    let result = await getNames('まるた');
+    let expectedIds: Array<number> = [5143227, 5193528, 5082405];
+
+    assert.deepEqual(
+      result.map((result) => result.id),
+      expectedIds
+    );
+
+    // If we repeat the search using katakana, however, it should come first
+    result = await getNames('マルタ');
+    expectedIds = [5082405, 5143227, 5193528];
+
+    assert.deepEqual(
+      result.map((result) => result.id),
+      expectedIds
+    );
+  });
 });

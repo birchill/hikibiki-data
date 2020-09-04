@@ -1,4 +1,5 @@
 import { IDBPDatabase, IDBPTransaction, openDB } from 'idb/with-async-ittr';
+import { kanaToHiragana } from '@birchill/normal-jp';
 
 import { KanjiEntryLine, Misc, Readings } from './kanji';
 import { KanjiRecord, NameRecord, JpdictSchema, RadicalRecord } from './store';
@@ -36,7 +37,7 @@ async function open(): Promise<IDBPDatabase<JpdictSchema> | null> {
 
   _state = 'opening';
 
-  _openPromise = openDB<JpdictSchema>('jpdict', 2, {
+  _openPromise = openDB<JpdictSchema>('jpdict', 3, {
     upgrade(
       _db: IDBPDatabase<JpdictSchema>,
       _oldVersion: number,
@@ -670,29 +671,50 @@ async function getCharToRadicalMapping(): Promise<Map<string, string>> {
  *
  * -----------------------------------------------------------------------*/
 
-export type { NameRecord as NameResult };
+export type NameResult = Omit<NameRecord, 'h'>;
 
-export async function getNames(search: string): Promise<Array<NameRecord>> {
+export async function getNames(search: string): Promise<Array<NameResult>> {
   const db = await open();
   if (!db) {
     return [];
   }
 
-  const result: Set<NameRecord> = new Set();
+  // Normalize search string
+  const lookup = search.normalize();
+
+  // Set up our output value.
+  const addedRecords: Set<number> = new Set();
+  const result: Array<NameResult> = [];
+
+  const maybeAddRecord = (record: NameRecord) => {
+    if (!addedRecords.has(record.id)) {
+      result.push(stripFields(record, ['h']));
+      addedRecords.add(record.id);
+    }
+  };
 
   // Try the k (kanji) index first
   const kanjiIndex = db!.transaction('names').store.index('k');
   // (We explicitly use IDBKeyRange.only because otherwise the idb TS typings
   // fail to recognize that these indices are multi-entry and hence it is
   // valid to supply a single string instead of an array of strings.)
-  for await (const cursor of kanjiIndex.iterate(IDBKeyRange.only(search))) {
-    result.add(cursor.value);
+  for await (const cursor of kanjiIndex.iterate(IDBKeyRange.only(lookup))) {
+    maybeAddRecord(cursor.value);
   }
 
   // Then the r (reading) index
   const readingIndex = db!.transaction('names').store.index('r');
-  for await (const cursor of readingIndex.iterate(IDBKeyRange.only(search))) {
-    result.add(cursor.value);
+  for await (const cursor of readingIndex.iterate(IDBKeyRange.only(lookup))) {
+    maybeAddRecord(cursor.value);
+  }
+
+  // Then finally try converting to hiragana and using the hiragana index
+  const hiraganaIndex = db!.transaction('names').store.index('h');
+  const hiragana = kanaToHiragana(lookup);
+  for await (const cursor of hiraganaIndex.iterate(
+    IDBKeyRange.only(hiragana)
+  )) {
+    maybeAddRecord(cursor.value);
   }
 
   return [...result];
