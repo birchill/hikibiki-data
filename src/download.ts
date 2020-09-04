@@ -39,6 +39,8 @@ const DEFAULT_BASE_URL = 'https://d907hooix2fo8.cloudfront.net/';
 // How many percentage should change before we dispatch a new progress event.
 const DEFAULT_MAX_PROGRESS_RESOLUTION = 0.05;
 
+const FETCH_TIMEOUT_MS = 20 * 1000; // 20s
+
 interface VersionInfo {
   major: number;
   minor: number;
@@ -77,6 +79,7 @@ export const enum DownloadErrorCode {
   DatabaseFileInvalidJSON,
   DatabaseFileInvalidRecord,
   DatabaseTooOld,
+  Timeout,
 }
 
 interface DownloadErrorOptions {
@@ -237,6 +240,27 @@ let cachedVersionFile:
     }
   | undefined;
 
+function waitWithTimeout<T>(promise: Promise<T>, url?: string): Promise<T> {
+  let timeoutId: number;
+
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      clearTimeout(timeoutId);
+      reject(
+        new DownloadError(
+          { code: DownloadErrorCode.Timeout, url },
+          `Download timed out after ${FETCH_TIMEOUT_MS / 1000} seconds.`
+        )
+      );
+    }, FETCH_TIMEOUT_MS);
+  });
+
+  return Promise.race([promise, timeoutPromise]).then((val: T) => {
+    clearTimeout(timeoutId);
+    return val;
+  });
+}
+
 async function getVersionInfo({
   baseUrl,
   majorVersion,
@@ -258,12 +282,11 @@ async function getVersionInfo({
   if (forceFetch || !cachedVersionFile || cachedVersionFile.lang !== lang) {
     const url = `${baseUrl}jpdict-rc-${lang}-version.json`;
 
-    // Fetch rejects the promise for network errors, but not for HTTP errors :(
     let response;
     try {
-      response = await fetch(url, { signal });
+      response = await waitWithTimeout(fetch(url, { signal }), url);
     } catch (e) {
-      if (e.name === 'AbortError') {
+      if (e.name === 'AbortError' || e.name === 'DownloadError') {
         throw e;
       }
 
@@ -273,6 +296,7 @@ async function getVersionInfo({
       );
     }
 
+    // Fetch rejects the promise for network errors, but not for HTTP errors :(
     if (!response.ok) {
       const code =
         response.status === 404
@@ -414,9 +438,9 @@ async function* getEvents<EntryLine, DeletionLine>({
   // Fetch rejects the promise for network errors, but not for HTTP errors :(
   let response;
   try {
-    response = await fetch(url, { signal });
+    response = await waitWithTimeout(fetch(url, { signal }), url);
   } catch (e) {
-    if (e.name === 'AbortError') {
+    if (e.name === 'AbortError' || e.name === 'DownloadError') {
       throw e;
     }
 
@@ -452,6 +476,7 @@ async function* getEvents<EntryLine, DeletionLine>({
   for await (const line of ljsonStreamIterator({
     stream: response.body,
     signal,
+    url,
   })) {
     if (isHeaderLine(line)) {
       if (headerRead) {
@@ -531,9 +556,11 @@ async function* getEvents<EntryLine, DeletionLine>({
 async function* ljsonStreamIterator({
   stream,
   signal,
+  url,
 }: {
   stream: ReadableStream<Uint8Array>;
   signal: AbortSignal;
+  url: string;
 }): AsyncIterableIterator<object> {
   const reader = stream.getReader();
   const lineEnd = /\n|\r|\r\n/m;
@@ -546,7 +573,7 @@ async function* ljsonStreamIterator({
     } catch (e) {
       reader.releaseLock();
       throw new DownloadError(
-        { code: DownloadErrorCode.DatabaseFileInvalidJSON },
+        { code: DownloadErrorCode.DatabaseFileInvalidJSON, url },
         `Could not parse JSON in database file: ${line}`
       );
     }
@@ -555,15 +582,15 @@ async function* ljsonStreamIterator({
   while (true) {
     let readResult: ReadableStreamReadResult<Uint8Array>;
     try {
-      readResult = await reader.read();
+      readResult = await waitWithTimeout(reader.read(), url);
     } catch (e) {
       reader.releaseLock();
-      if (e.name === 'AbortError') {
+      if (e.name === 'AbortError' || e.name === 'DownloadError') {
         throw e;
       }
 
       throw new DownloadError(
-        { code: DownloadErrorCode.DatabaseFileNotAccessible },
+        { code: DownloadErrorCode.DatabaseFileNotAccessible, url },
         `Could not read database file (${e?.message ?? String(e)})`
       );
     }
