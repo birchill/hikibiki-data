@@ -30,6 +30,6 @@ otherwise should be fine.
 
 ```
 yarn release
-git push --follow-tags origin master
+git push --follow-tags origin main
 yarn publish
 ```
