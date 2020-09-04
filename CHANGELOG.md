@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.1.0](https://github.com/birchill/hikibiki-data/compare/v6.0.0...v6.1.0) (2020-09-04)
+
+
+### Features
+
+* Allow matching names on kana equivalence ([a324534](https://github.com/birchill/hikibiki-data/commit/a324534bb6f0dcfb7f39c8c615d8f141b3a16cfa))
+
 ## [6.0.0](https://github.com/birchill/hikibiki-data/compare/v5.3.3...v6.0.0) (2020-09-01)
 
 
