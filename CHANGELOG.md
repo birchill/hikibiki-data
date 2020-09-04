@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.2.0](https://github.com/birchill/hikibiki-data/compare/v6.1.0...v6.2.0) (2020-09-04)
+
+
+### Features
+
+* Add 20s timeout for download progress ([fd78e1e](https://github.com/birchill/hikibiki-data/commit/fd78e1ef54b6fcf2f61defae11a40dda8e02dafb))
+
 ## [6.1.0](https://github.com/birchill/hikibiki-data/compare/v6.0.0...v6.1.0) (2020-09-04)
 
 
