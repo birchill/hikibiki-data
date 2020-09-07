@@ -30,10 +30,10 @@
   resolved "https://registry.yarnpkg.com/@birchill/json-equalish/-/json-equalish-1.1.0.tgz#cb01ac1ef032209ada516b6a4bf3d7a2306e972d"
   integrity sha512-p6XZQQVTsqRh5wYg3Rf4EWuynWANMupIHykDS373RSVPzSJiZ2ID9gRvQs7/MZKdW7Ejaw587WLGV8C+wSitzw==
 
-"@birchill/normal-jp@^1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@birchill/normal-jp/-/normal-jp-1.0.0.tgz#22e9144f30e83fd2269e123a40db9761d0385fc5"
-  integrity sha512-oWgXQtTe195sUJ0nwubS0oKNtNopZ4vblP5QX19bnbWyb/WThE3y+E0kBbchq43T38YELcH1YsYbcyW1q+maWw==
+"@birchill/normal-jp@^1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@birchill/normal-jp/-/normal-jp-1.1.0.tgz#df727099368d1cd861ace927d6e1375b59d04c69"
+  integrity sha512-pZBgRxVne3jS0zjbU6aj4sVsKEb5Y6A1ZE4aReBKufMnPzZCMhmewg8Wi3Kbwm4PJilWg7bCLwy1LYNVEpbBeA==
 
 "@sinonjs/commons@^1", "@sinonjs/commons@^1.6.0", "@sinonjs/commons@^1.7.0", "@sinonjs/commons@^1.7.2":
   version "1.7.2"
