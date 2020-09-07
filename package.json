@@ -23,7 +23,7 @@
   "homepage": "https://github.com/birchill/hikibiki#readme",
   "dependencies": {
     "@birchill/json-equalish": "^1.0.1",
-    "@birchill/normal-jp": "^1.1.0",
+    "@birchill/normal-jp": "^1.1.1",
     "idb": "^5.0.0"
   },
   "devDependencies": {
