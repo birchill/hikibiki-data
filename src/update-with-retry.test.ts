@@ -42,6 +42,9 @@ const VERSION_INFO = {
 describe('updateWithRetry', function () {
   let db: JpdictDatabase;
 
+  // We time out some of these tests occasionally.
+  this.timeout(10000);
+
   beforeEach(() => {
     db = new JpdictDatabase();
   });
@@ -614,7 +617,11 @@ describe('updateWithRetry', function () {
               : undefined,
             retryCount,
           });
-          clock.next();
+          if (!nextRetry) {
+            reject(error);
+          } else {
+            clock.next();
+          }
         },
       });
     });
