@@ -588,14 +588,19 @@ describe('updateWithRetry', function () {
     let callCount = 0;
     fetchMock.mock('end:radicals-rc-en-4.0.0.ljson', () => {
       if (callCount++) {
+        console.log('Returning success');
         return `{"type":"header","version":{"major":4,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `;
       } else {
+        console.log(`Erroring with call count: ${callCount}`);
         return 404;
       }
     });
 
-    const clock = sinon.useFakeTimers({ toFake: ['setTimeout'] });
+    const clock = sinon.useFakeTimers({
+      now: Date.now(),
+      toFake: ['setTimeout'],
+    });
 
     const errors: Array<{
       error: Error;
@@ -609,7 +614,10 @@ describe('updateWithRetry', function () {
         db,
         series: 'kanji',
         lang: 'en',
-        onUpdateComplete: resolve,
+        onUpdateComplete: () => {
+          db.verbose = false;
+          resolve();
+        },
         onUpdateError: ({ error, nextRetry, retryCount }) => {
           console.log('onUpdateError');
           console.log(error, nextRetry, retryCount);
@@ -621,9 +629,10 @@ describe('updateWithRetry', function () {
             retryCount,
           });
           if (!nextRetry) {
+            db.verbose = false;
             reject(error);
           } else {
-            clock.next();
+            clock.runAllAsync();
           }
         },
       });
