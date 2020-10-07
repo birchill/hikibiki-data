@@ -588,11 +588,9 @@ describe('updateWithRetry', function () {
     let callCount = 0;
     fetchMock.mock('end:radicals-rc-en-4.0.0.ljson', () => {
       if (callCount++) {
-        console.log('Returning success');
         return `{"type":"header","version":{"major":4,"minor":0,"patch":0,"dateOfCreation":"2019-09-06"},"records":0}
 `;
       } else {
-        console.log(`Erroring with call count: ${callCount}`);
         return 404;
       }
     });
@@ -609,18 +607,12 @@ describe('updateWithRetry', function () {
     }> = [];
 
     await new Promise((resolve, reject) => {
-      db.verbose = true;
       updateWithRetry({
         db,
         series: 'kanji',
         lang: 'en',
-        onUpdateComplete: () => {
-          db.verbose = false;
-          resolve();
-        },
+        onUpdateComplete: resolve,
         onUpdateError: ({ error, nextRetry, retryCount }) => {
-          console.log('onUpdateError');
-          console.log(error, nextRetry, retryCount);
           errors.push({
             error,
             retryInterval: nextRetry
@@ -629,7 +621,6 @@ describe('updateWithRetry', function () {
             retryCount,
           });
           if (!nextRetry) {
-            db.verbose = false;
             reject(error);
           } else {
             clock.runAllAsync();
