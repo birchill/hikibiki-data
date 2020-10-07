@@ -604,12 +604,15 @@ describe('updateWithRetry', function () {
     }> = [];
 
     await new Promise((resolve, reject) => {
+      db.verbose = true;
       updateWithRetry({
         db,
         series: 'kanji',
         lang: 'en',
         onUpdateComplete: resolve,
         onUpdateError: ({ error, nextRetry, retryCount }) => {
+          console.log('onUpdateError');
+          console.log(error, nextRetry, retryCount);
           errors.push({
             error,
             retryInterval: nextRetry
