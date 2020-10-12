@@ -97,17 +97,17 @@ export type WordResult = Omit<
   WordRecord,
   'k' | 'km' | 'r' | 'rm' | 'h' | 'kc' | 'gt'
 > & {
-  kanji: Array<ExtendedKanjiEntry>;
-  kana: Array<ExtendedKanaEntry>;
+  k: Array<ExtendedKanjiEntry>;
+  r: Array<ExtendedKanaEntry>;
 };
 
-type ExtendedKanjiEntry = { k: string } & KanjiMeta;
-type ExtendedKanaEntry = { r: string } & ReadingMeta;
+type ExtendedKanjiEntry = { ent: string } & KanjiMeta;
+type ExtendedKanaEntry = { ent: string } & ReadingMeta;
 
 function toWordResult(record: WordRecord): WordResult {
   return {
-    kanji: mergeMeta(record.k, record.km, (key, meta) => ({ k: key, ...meta })),
-    kana: mergeMeta(record.r, record.rm, (key, meta) => ({ r: key, ...meta })),
+    k: mergeMeta(record.k, record.km, (key, meta) => ({ ent: key, ...meta })),
+    r: mergeMeta(record.r, record.rm, (key, meta) => ({ ent: key, ...meta })),
     ...stripFields(record, ['k', 'km', 'r', 'rm', 'h', 'kc', 'gt']),
   };
 }

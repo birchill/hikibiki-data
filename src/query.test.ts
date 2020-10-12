@@ -520,10 +520,10 @@ describe('query', function () {
     const expected: Array<WordResult> = [
       {
         id: 1004690,
-        kanji: [{ k: 'この間', p: ['i1'] }, { k: '此の間' }],
-        kana: [
-          { r: 'このあいだ', p: ['i1'], a: 0 },
-          { r: 'このかん', a: 3 },
+        k: [{ ent: 'この間', p: ['i1'] }, { ent: '此の間' }],
+        r: [
+          { ent: 'このあいだ', p: ['i1'], a: 0 },
+          { ent: 'このかん', a: 3 },
         ],
         s: [
           {
