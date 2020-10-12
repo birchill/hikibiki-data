@@ -9,6 +9,7 @@ import {
   JpdictSchema,
   RadicalRecord,
 } from './store';
+import { getTokens } from './tokenizer';
 import { stripFields } from './utils';
 import {
   sortResultsByFrequency,
@@ -169,14 +170,57 @@ export async function getWordsWithKanji(
   const results: Array<WordResult> = [];
 
   const kanjiComponentIndex = db!.transaction('words').store.index('kc');
-  // (We explicitly use IDBKeyRange.only because otherwise the idb TS typings
-  // fail to recognize that these indices are multi-entry and hence it is
-  // valid to supply a single string instead of an array of strings.)
   for await (const cursor of kanjiComponentIndex.iterate(
     IDBKeyRange.only(lookup)
   )) {
     results.push(toWordResult(cursor.value, lookup, MatchMode.Kanji));
   }
+
+  return sortResultsByFrequency(results);
+}
+
+export async function getWordsWithGloss(
+  search: string
+): Promise<Array<WordResult>> {
+  const db = await open();
+  if (!db) {
+    return [];
+  }
+
+  // Get search tokens
+  // TODO: Use target locale here
+  const tokens = getTokens(search.normalize(), 'en');
+  if (!tokens) {
+    return [];
+  }
+
+  // Set up our output value.
+  let records: Array<WordRecord> = [];
+
+  // Look up the longest token and then refine the search by dropping any
+  // results that don't contain the remaining tokens.
+  const longestToken = tokens.sort((a, b) => b.length - a.length)[0];
+  const glossIndex = db!.transaction('words').store.index('gt');
+  for await (const cursor of glossIndex.iterate(
+    IDBKeyRange.only(longestToken)
+  )) {
+    records.push(cursor.value);
+  }
+
+  // Now we want to filter out any records that don't have all the tokens.
+  //
+  // Ultimately we should do this by sense (since if the record has the two
+  // words spread across different senses, we don't really want to match it).
+  const containsAllTokens = (record: WordRecord) => {
+    const recordTokens = new Set(record.gt);
+    return tokens.every((token) => recordTokens.has(token));
+  };
+  records = records.filter(containsAllTokens);
+
+  // Prepare the result
+  const results: Array<WordResult> = records.map((record) =>
+    toWordResult(record, tokens, MatchMode.Gloss)
+  );
 
   return sortResultsByFrequency(results);
 }

@@ -6,6 +6,7 @@ import {
   getKanji,
   getNames,
   getWords,
+  getWordsWithGloss,
   getWordsWithKanji,
   NameResult,
 } from './query';
@@ -806,5 +807,76 @@ describe('query', function () {
     assert.deepEqual(result, expected);
   });
 
-  // XXX Should search by gloss
+  it('should search by gloss', async () => {
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_INFO);
+    fetchMock.mock(
+      'end:words-rc-en-1.0.0.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"n/a","dateOfCreation":"2020-08-22"},"records":2}
+{"r":["あっというまに","あっとゆうまに","アッというまに","アッとゆうまに"],"s":[{"pos":["exp","adv"],"gt":128,"g":["just like that","in the twinkling of an eye","in the blink of an eye","in the time it takes to say \\"ah!\\""]}],"k":["あっという間に","あっと言う間に","あっとゆう間に","アッという間に","アッと言う間に","アッとゆう間に"],"id":1000390,"km":[{"p":["s1"]}],"rm":[{"app":3,"p":["s1"]},{"app":6,"a":[{"i":1},{"i":0}]},{"app":24},{"app":48,"a":[{"i":1},{"i":0}]}]}
+{"r":["またたくまに"],"s":[{"pos":["adv"],"g":["in the twinkling of an eye","in a flash"]}],"k":["瞬く間に","またたく間に"],"id":1909530,"rm":[{"a":3}]}
+`
+    );
+
+    await db.update({ series: 'words', lang: 'en' });
+
+    const result = await getWordsWithGloss('Twinkling eye');
+    const expected: Array<WordResult> = [
+      {
+        id: 1000390,
+        k: [
+          { ent: 'あっという間に', p: ['s1'], match: true },
+          { ent: 'あっと言う間に', match: true },
+          { ent: 'あっとゆう間に', match: true },
+          { ent: 'アッという間に', match: true },
+          { ent: 'アッと言う間に', match: true },
+          { ent: 'アッとゆう間に', match: true },
+        ],
+        r: [
+          { ent: 'あっというまに', app: 3, p: ['s1'], match: true },
+          {
+            ent: 'あっとゆうまに',
+            app: 6,
+            a: [{ i: 1 }, { i: 0 }],
+            match: true,
+          },
+          { ent: 'アッというまに', app: 24, match: true },
+          {
+            ent: 'アッとゆうまに',
+            app: 48,
+            a: [{ i: 1 }, { i: 0 }],
+            match: true,
+          },
+        ],
+        s: [
+          {
+            g: [
+              { str: 'just like that' },
+              { str: 'in the twinkling of an eye' },
+              { str: 'in the blink of an eye' },
+              { str: 'in the time it takes to say "ah!"', type: 2 },
+            ],
+            pos: ['exp', 'adv'],
+            match: true,
+          },
+        ],
+      },
+      {
+        id: 1909530,
+        k: [
+          { ent: '瞬く間に', match: true },
+          { ent: 'またたく間に', match: true },
+        ],
+        r: [{ ent: 'またたくまに', a: 3, match: true }],
+        s: [
+          {
+            g: [{ str: 'in the twinkling of an eye' }, { str: 'in a flash' }],
+            pos: ['adv'],
+            match: true,
+          },
+        ],
+      },
+    ];
+
+    assert.deepEqual(result, expected);
+  });
 });

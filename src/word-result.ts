@@ -1,4 +1,5 @@
 import { stripFields } from './utils';
+import { getTokens } from './tokenizer';
 import { WordRecord } from './store';
 import {
   BITS_PER_GLOSS_TYPE,
@@ -30,18 +31,30 @@ type ExtendedSense = { match: boolean; g: Array<Gloss> } & Omit<
 export const enum MatchMode {
   Lexeme,
   Kanji,
+  Gloss,
 }
 
 export function toWordResult(
   record: WordRecord,
-  search: string,
+  search: string | Array<string>,
   matchMode: MatchMode
 ): WordResult {
-  const [kanjiMatches, kanaMatches, senseMatches] = getMatchMetadata(
-    record,
-    search,
-    matchMode
-  );
+  let kanjiMatches: number;
+  let kanaMatches: number;
+  let senseMatches: number;
+
+  if (matchMode === MatchMode.Gloss) {
+    [kanjiMatches, kanaMatches, senseMatches] = getMatchMetadataForGlossLookup(
+      record,
+      search as Array<string>
+    );
+  } else {
+    [kanjiMatches, kanaMatches, senseMatches] = getMatchMetadata(
+      record,
+      search as string,
+      matchMode
+    );
+  }
 
   return {
     id: record.id,
@@ -129,7 +142,7 @@ function getMatchMetadata(
         return true;
       }
     });
-  } else if (matchMode !== MatchMode.Kanji) {
+  } else if (matchMode === MatchMode.Lexeme) {
     // Case (2) from above: Find kana matches whilst also remembering which
     // kanji they apply to.
     for (const [i, r] of record.r.entries()) {
@@ -164,6 +177,56 @@ function kanjiMatchesForKana(record: WordRecord, i: number) {
   }
 
   return record.rm[i]!.app ?? wildCardMatch;
+}
+
+function getMatchMetadataForGlossLookup(
+  record: WordRecord,
+  search: Array<string>
+): [kanjiMatches: number, kanaMatches: number, senseMatches: number] {
+  let senseMatches = 0;
+  let kanjiMatches = 0;
+  let kanaMatches = 0;
+
+  const kanjiWildCard = (1 << (record.k || []).length) - 1;
+  const kanaWildCard = (1 << (record.r || []).length) - 1;
+
+  for (const [i, sense] of record.s.entries()) {
+    const senseTokens = getGlossTokensForSense(sense);
+    const containsAllTokens = search.every((token) => senseTokens.has(token));
+    if (containsAllTokens) {
+      senseMatches |= 1 << i;
+
+      if (sense.kapp) {
+        kanjiMatches |= sense.kapp;
+      } else {
+        // TODO: If we have rapp, we should only apply kanji that the reading
+        // applies to.
+        kanjiMatches = kanjiWildCard;
+      }
+
+      if (sense.rapp) {
+        kanaMatches |= sense.rapp;
+      } else {
+        // TODO: If we have kapp, we should only apply readings that match
+        // the kanji we applied.
+        kanaMatches = kanaWildCard;
+      }
+    }
+  }
+
+  return [kanjiMatches, kanaMatches, senseMatches];
+}
+
+// TODO: We have a very similar function in store.ts.
+// Move this to tokenizer.ts or somesuch.
+function getGlossTokensForSense(sense: WordSense): Set<string> {
+  return new Set(
+    sense.g.reduce(
+      (tokens: Array<string>, gloss: string) =>
+        tokens.concat(...getTokens(gloss, sense.lang || 'en')),
+      []
+    )
+  );
 }
 
 function arrayToBitfield<T>(arr: Array<T>, test: (elem: T) => boolean): number {
@@ -236,9 +299,7 @@ export function sortResultsByFrequency(
     idToScore.set(result.id, getScore(result));
   }
   results.sort((a, b) => {
-    const aScore = idToScore.get(a.id)!;
-    const bScore = idToScore.get(b.id)!;
-    return aScore === bScore ? 0 : aScore > bScore ? -1 : 1;
+    return idToScore.get(b.id)! - idToScore.get(a.id)!;
   });
 
   return results;

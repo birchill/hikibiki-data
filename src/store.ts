@@ -17,9 +17,11 @@ import { stripFields } from './utils';
 import {
   ReadingMeta,
   KanjiMeta,
-  WordEntryLine,
   WordDeletionLine,
+  WordEntryLine,
+  WordSense,
 } from './words';
+import { getTokens } from './tokenizer';
 
 // ---------------------------------------------------------------------------
 //
@@ -52,8 +54,7 @@ export function toWordRecord(entry: WordEntryLine): WordRecord {
       : undefined,
     h: keysToHiragana([...(entry.k || []), ...entry.r]),
     kc: getKanjiForEntry(entry),
-    // TODO
-    gt: [],
+    gt: getGlossTokensForEntry(entry),
   };
 
   // I'm not sure if IndexedDB preserves properties with undefined values
@@ -91,6 +92,24 @@ function getKanjiForEntry(entry: WordEntryLine): Array<string> {
   const flatKc = ([] as Array<string>).concat(...initialKc);
   // Return the de-duplicated set
   return [...new Set(flatKc)];
+}
+
+function getGlossTokensForEntry(entry: WordEntryLine): Array<string> {
+  const getTokensForSense = (sense: WordSense): Array<string> => {
+    return sense.g.reduce(
+      (tokens: Array<string>, gloss: string) =>
+        tokens.concat(...getTokens(gloss, sense.lang || 'en')),
+      []
+    );
+  };
+
+  const allTokens = entry.s.reduce(
+    (tokens: Array<string>, sense: WordSense) =>
+      tokens.concat(...getTokensForSense(sense)),
+    []
+  );
+
+  return [...new Set(allTokens)];
 }
 
 // ---------------------------------------------------------------------------
