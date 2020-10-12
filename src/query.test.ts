@@ -2,7 +2,7 @@ import { assert } from 'chai';
 import fetchMock from 'fetch-mock';
 
 import { JpdictDatabase } from './database';
-import { getKanji, getNames, NameResult } from './query';
+import { getKanji, getNames, getWords, NameResult, WordResult } from './query';
 
 mocha.setup('bdd');
 
@@ -30,6 +30,14 @@ const VERSION_INFO = {
       minor: 0,
       patch: 0,
       dateOfCreation: '2020-08-22',
+    },
+  },
+  words: {
+    '1': {
+      major: 1,
+      minor: 0,
+      patch: 0,
+      dateOfCreation: '2020-10-12',
     },
   },
 };
@@ -495,5 +503,38 @@ describe('query', function () {
       result.map((result) => result.id),
       expectedIds
     );
+  });
+
+  it('should fetch words by kanji', async () => {
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_INFO);
+    fetchMock.mock(
+      'end:words-rc-en-1.0.0.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"n/a","dateOfCreation":"2020-08-22"},"records":1}
+{"r":["このあいだ","このかん"],"s":[{"pos":["n-t","n-adv"],"g":["the other day","lately","recently","during this period"]},{"rapp":2,"g":["meanwhile","in the meantime"]}],"k":["この間","此の間"],"id":1004690,"km":[{"p":["i1"]}],"rm":[{"p":["i1"],"a":0},{"a":3}]}
+`
+    );
+
+    await db.update({ series: 'words', lang: 'en' });
+
+    const result = await getWords('この間');
+    const expected: Array<WordResult> = [
+      {
+        id: 1004690,
+        kanji: [{ k: 'この間', p: ['i1'] }, { k: '此の間' }],
+        kana: [
+          { r: 'このあいだ', p: ['i1'], a: 0 },
+          { r: 'このかん', a: 3 },
+        ],
+        s: [
+          {
+            pos: ['n-t', 'n-adv'],
+            g: ['the other day', 'lately', 'recently', 'during this period'],
+          },
+          { rapp: 2, g: ['meanwhile', 'in the meantime'] },
+        ],
+      },
+    ];
+
+    assert.deepEqual(result, expected);
   });
 });

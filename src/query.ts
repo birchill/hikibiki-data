@@ -2,8 +2,15 @@ import { IDBPDatabase, IDBPTransaction, openDB } from 'idb/with-async-ittr';
 import { kanaToHiragana } from '@birchill/normal-jp';
 
 import { KanjiEntryLine, Misc, Readings } from './kanji';
-import { KanjiRecord, NameRecord, JpdictSchema, RadicalRecord } from './store';
+import {
+  KanjiRecord,
+  NameRecord,
+  WordRecord,
+  JpdictSchema,
+  RadicalRecord,
+} from './store';
 import { stripFields } from './utils';
+import { KanjiMeta, ReadingMeta } from './words';
 
 // Database query methods
 //
@@ -16,11 +23,11 @@ import { stripFields } from './utils';
 // update methods are being run so that it is still possible for the user to
 // user the database while it is being updated.
 
-/* ------------------------------------------------------------------------
- *
- * Opening
- *
- * -----------------------------------------------------------------------*/
+// -------------------------------------------------------------------------
+//
+// Opening
+//
+// -------------------------------------------------------------------------
 
 let _state: 'idle' | 'opening' | 'open' = 'idle';
 let _db: IDBPDatabase<JpdictSchema> | undefined;
@@ -80,11 +87,101 @@ async function open(): Promise<IDBPDatabase<JpdictSchema> | null> {
   return _openPromise!;
 }
 
-/* ------------------------------------------------------------------------
- *
- * KANJI
- *
- * -----------------------------------------------------------------------*/
+// -------------------------------------------------------------------------
+//
+// WORDS
+//
+// -------------------------------------------------------------------------
+
+export type WordResult = Omit<
+  WordRecord,
+  'k' | 'km' | 'r' | 'rm' | 'h' | 'kc' | 'gt'
+> & {
+  kanji: Array<ExtendedKanjiEntry>;
+  kana: Array<ExtendedKanaEntry>;
+};
+
+type ExtendedKanjiEntry = { k: string } & KanjiMeta;
+type ExtendedKanaEntry = { r: string } & ReadingMeta;
+
+function toWordResult(record: WordRecord): WordResult {
+  return {
+    kanji: mergeMeta(record.k, record.km, (key, meta) => ({ k: key, ...meta })),
+    kana: mergeMeta(record.r, record.rm, (key, meta) => ({ r: key, ...meta })),
+    ...stripFields(record, ['k', 'km', 'r', 'rm', 'h', 'kc', 'gt']),
+  };
+}
+
+function mergeMeta<MetaType extends KanjiMeta | ReadingMeta, MergedType>(
+  keys: Array<string> | undefined,
+  meta: Array<null | MetaType> | undefined,
+  merge: (key: string, meta?: MetaType) => MergedType
+): Array<MergedType> {
+  const result: Array<MergedType> = [];
+
+  for (const [i, key] of (keys || []).entries()) {
+    if (meta && meta.length >= i + 1 && meta[i] !== null) {
+      result.push(merge(key, meta[i]!));
+    } else {
+      result.push(merge(key));
+    }
+  }
+
+  return result;
+}
+
+export async function getWords(search: string): Promise<Array<WordResult>> {
+  const db = await open();
+  if (!db) {
+    return [];
+  }
+
+  // Normalize search string
+  const lookup = search.normalize();
+
+  // Set up our output value.
+  const addedRecords: Set<number> = new Set();
+  const result: Array<WordResult> = [];
+
+  const maybeAddRecord = (record: WordRecord) => {
+    if (!addedRecords.has(record.id)) {
+      result.push(toWordResult(record));
+      addedRecords.add(record.id);
+    }
+  };
+
+  // Try the k (kanji) index first
+  const kanjiIndex = db!.transaction('words').store.index('k');
+  // (We explicitly use IDBKeyRange.only because otherwise the idb TS typings
+  // fail to recognize that these indices are multi-entry and hence it is
+  // valid to supply a single string instead of an array of strings.)
+  for await (const cursor of kanjiIndex.iterate(IDBKeyRange.only(lookup))) {
+    maybeAddRecord(cursor.value);
+  }
+
+  // Then the r (reading) index
+  const readingIndex = db!.transaction('words').store.index('r');
+  for await (const cursor of readingIndex.iterate(IDBKeyRange.only(lookup))) {
+    maybeAddRecord(cursor.value);
+  }
+
+  // Then finally try converting to hiragana and using the hiragana index
+  const hiraganaIndex = db!.transaction('words').store.index('h');
+  const hiragana = kanaToHiragana(lookup);
+  for await (const cursor of hiraganaIndex.iterate(
+    IDBKeyRange.only(hiragana)
+  )) {
+    maybeAddRecord(cursor.value);
+  }
+
+  return [...result];
+}
+
+// -------------------------------------------------------------------------
+//
+// KANJI
+//
+// -------------------------------------------------------------------------
 
 export interface KanjiResult
   extends Omit<KanjiEntryLine, 'rad' | 'comp' | 'm_lang' | 'var' | 'cf'> {
@@ -665,11 +762,11 @@ async function getCharToRadicalMapping(): Promise<Map<string, string>> {
   return mapping;
 }
 
-/* ------------------------------------------------------------------------
- *
- * NAMES
- *
- * -----------------------------------------------------------------------*/
+// -------------------------------------------------------------------------
+//
+// NAMES
+//
+// -------------------------------------------------------------------------
 
 export type NameResult = Omit<NameRecord, 'h'>;
 
