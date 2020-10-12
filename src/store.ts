@@ -9,6 +9,7 @@ import { kanaToHiragana } from '@birchill/normal-jp';
 
 import { DataSeries } from './data-series';
 import { DataVersion } from './data-version';
+import { hasHiragana, isKanji } from './japanese';
 import { KanjiEntryLine, KanjiDeletionLine } from './kanji';
 import { RadicalEntryLine, RadicalDeletionLine } from './radicals';
 import { NameEntryLine, NameDeletionLine } from './names';
@@ -50,8 +51,8 @@ export function toWordRecord(entry: WordEntryLine): WordRecord {
       ? entry.km.map((elem) => (elem === 0 ? null : elem))
       : undefined,
     h: keysToHiragana([...(entry.k || []), ...entry.r]),
+    kc: getKanjiForEntry(entry),
     // TODO
-    kc: [],
     gt: [],
   };
 
@@ -74,18 +75,22 @@ export function getIdForWordRecord(entry: WordDeletionLine): number {
 }
 
 function keysToHiragana(values: Array<string>): Array<string> {
+  // We only add hiragana keys for words that actually have some hiragana in
+  // them. Any purely kanji keys should match on the 'k' index and won't benefit
+  // from converting the input and source to hiragana so we can match them.
   return Array.from(
     new Set(values.map((value) => kanaToHiragana(value)).filter(hasHiragana))
   );
 }
 
-// We only add hiragana keys for words that actually have some hiragana in
-// them. Any purely kanji keys should match on the 'k' index and won't benefit
-// from converting the input and source to hiragana so we can match them.
-function hasHiragana(str: string): boolean {
-  return [...str]
-    .map((c) => c.codePointAt(0)!)
-    .some((c) => c >= 0x3041 && c <= 0x309f);
+// Get the set of kanji characters in an entry
+function getKanjiForEntry(entry: WordEntryLine): Array<string> {
+  // Extract them into an array of arrays
+  const initialKc = (entry.k || []).map((k) => [...k].filter(isKanji));
+  // Flatten the array (Array.flat() is not available in TS DOM typings yet.)
+  const flatKc = ([] as Array<string>).concat(...initialKc);
+  // Return the de-duplicated set
+  return [...new Set(flatKc)];
 }
 
 // ---------------------------------------------------------------------------

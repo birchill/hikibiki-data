@@ -2,7 +2,13 @@ import { assert } from 'chai';
 import fetchMock from 'fetch-mock';
 
 import { JpdictDatabase } from './database';
-import { getKanji, getNames, getWords, NameResult } from './query';
+import {
+  getKanji,
+  getNames,
+  getWords,
+  getWordsWithKanji,
+  NameResult,
+} from './query';
 import { WordResult } from './word-result';
 import { GlossType } from './words';
 
@@ -599,7 +605,7 @@ describe('query', function () {
     assert.deepEqual(result, expected);
   });
 
-  it('should fetch words by converting to hiragana', async () => {
+  it('should fetch words by kana-equivalence', async () => {
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_INFO);
     fetchMock.mock(
       'end:words-rc-en-1.0.0.ljson',
@@ -746,6 +752,59 @@ describe('query', function () {
     assert.deepEqual(result, expected);
   });
 
-  // XXX Should search by kanji
+  it('should search by individual kanji', async () => {
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_INFO);
+    fetchMock.mock(
+      'end:words-rc-en-1.0.0.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"n/a","dateOfCreation":"2020-08-22"},"records":3}
+{"r":["せんにん"],"s":[{"pos":["n"],"g":["immortal mountain wizard (in Taoism)","mountain man (esp. a hermit)"]},{"g":["one not bound by earthly desires or the thoughts of normal men"]}],"k":["仙人","僊人"],"id":1387170,"km":[{"p":["n2","nf34","s2"]}],"rm":[{"p":["n2","nf34","s2"],"a":3}]}
+{"r":["せんだい"],"s":[{"pos":["n"],"g":["Sendai (city in Miyagi)"]}],"k":["仙台"],"id":2164680,"km":[{"p":["s1"]}],"rm":[{"p":["s1"],"a":1}]}
+`
+    );
+
+    await db.update({ series: 'words', lang: 'en' });
+
+    const result = await getWordsWithKanji('仙');
+    const expected: Array<WordResult> = [
+      {
+        id: 1387170,
+        k: [
+          { ent: '仙人', p: ['n2', 'nf34', 's2'], match: true },
+          { ent: '僊人', match: false },
+        ],
+        r: [{ ent: 'せんにん', p: ['n2', 'nf34', 's2'], a: 3, match: true }],
+        s: [
+          {
+            g: [
+              { str: 'immortal mountain wizard (in Taoism)' },
+              { str: 'mountain man (esp. a hermit)' },
+            ],
+            pos: ['n'],
+            match: true,
+          },
+          {
+            g: [
+              {
+                str:
+                  'one not bound by earthly desires or the thoughts of normal men',
+              },
+            ],
+            match: true,
+          },
+        ],
+      },
+      {
+        id: 2164680,
+        k: [{ ent: '仙台', p: ['s1'], match: true }],
+        r: [{ ent: 'せんだい', p: ['s1'], a: 1, match: true }],
+        s: [
+          { g: [{ str: 'Sendai (city in Miyagi)' }], pos: ['n'], match: true },
+        ],
+      },
+    ];
+
+    assert.deepEqual(result, expected);
+  });
+
   // XXX Should search by gloss
 });

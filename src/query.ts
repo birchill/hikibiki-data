@@ -10,7 +10,12 @@ import {
   RadicalRecord,
 } from './store';
 import { stripFields } from './utils';
-import { getScore, toWordResult, WordResult } from './word-result';
+import {
+  sortResultsByFrequency,
+  toWordResult,
+  MatchMode,
+  WordResult,
+} from './word-result';
 
 // Database query methods
 //
@@ -111,7 +116,7 @@ export async function getWords(search: string): Promise<Array<WordResult>> {
       return;
     }
 
-    results.push(toWordResult(record, term));
+    results.push(toWordResult(record, term, MatchMode.Lexeme));
     addedRecords.add(record.id);
   };
 
@@ -139,18 +144,41 @@ export async function getWords(search: string): Promise<Array<WordResult>> {
     maybeAddRecord(cursor.value, hiragana);
   }
 
-  // Sort result by frequency.
-  const idToScore: Map<number, number> = new Map();
-  for (const result of results) {
-    idToScore.set(result.id, getScore(result));
-  }
-  results.sort((a, b) => {
-    const aScore = idToScore.get(a.id)!;
-    const bScore = idToScore.get(b.id)!;
-    return aScore === bScore ? 0 : aScore > bScore ? -1 : 1;
-  });
+  return sortResultsByFrequency(results);
+}
 
-  return [...results];
+export async function getWordsWithKanji(
+  search: string
+): Promise<Array<WordResult>> {
+  const db = await open();
+  if (!db) {
+    return [];
+  }
+
+  // Check input. In future we may allow specifying a series of kanji and
+  // only returning words with all the kanji present, but we don't yet need
+  // that so for now just check we have a single character.
+  if ([...search].length !== 1) {
+    throw new Error(`Search string should be a single character: ${search}`);
+  }
+
+  // Normalize search string
+  const lookup = search.normalize();
+
+  // Set up our output value.
+  const results: Array<WordResult> = [];
+
+  const kanjiComponentIndex = db!.transaction('words').store.index('kc');
+  // (We explicitly use IDBKeyRange.only because otherwise the idb TS typings
+  // fail to recognize that these indices are multi-entry and hence it is
+  // valid to supply a single string instead of an array of strings.)
+  for await (const cursor of kanjiComponentIndex.iterate(
+    IDBKeyRange.only(lookup)
+  )) {
+    results.push(toWordResult(cursor.value, lookup, MatchMode.Kanji));
+  }
+
+  return sortResultsByFrequency(results);
 }
 
 // -------------------------------------------------------------------------
@@ -790,5 +818,5 @@ export async function getNames(search: string): Promise<Array<NameResult>> {
     maybeAddRecord(cursor.value);
   }
 
-  return [...result];
+  return result;
 }

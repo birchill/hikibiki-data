@@ -27,10 +27,20 @@ type ExtendedSense = { match: boolean; g: Array<Gloss> } & Omit<
   'g' | 'gt'
 >;
 
-export function toWordResult(record: WordRecord, search: string): WordResult {
+export const enum MatchMode {
+  Lexeme,
+  Kanji,
+}
+
+export function toWordResult(
+  record: WordRecord,
+  search: string,
+  matchMode: MatchMode
+): WordResult {
   const [kanjiMatches, kanaMatches, senseMatches] = getMatchMetadata(
     record,
-    search
+    search,
+    matchMode
   );
 
   return {
@@ -55,7 +65,8 @@ export function toWordResult(record: WordRecord, search: string): WordResult {
 
 function getMatchMetadata(
   record: WordRecord,
-  search: string
+  search: string,
+  matchMode: MatchMode
 ): [kanjiMatches: number, kanaMatches: number, senseMatches: number] {
   // There are three cases:
   //
@@ -89,7 +100,11 @@ function getMatchMetadata(
   // Because of (3), we just always search both arrays.
 
   // First build up a bitfield of all kanji matches.
-  let kanjiMatches = arrayToBitfield(record.k || [], (k) => k === search);
+  const kanjiMatcher: (k: string) => boolean =
+    matchMode === MatchMode.Lexeme
+      ? (k) => k === search
+      : (k) => [...k].includes(search);
+  let kanjiMatches = arrayToBitfield(record.k || [], kanjiMatcher);
 
   let kanaMatches = 0;
   let senseMatches = 0;
@@ -114,7 +129,7 @@ function getMatchMetadata(
         return true;
       }
     });
-  } else {
+  } else if (matchMode !== MatchMode.Kanji) {
     // Case (2) from above: Find kana matches whilst also remembering which
     // kanji they apply to.
     for (const [i, r] of record.r.entries()) {
@@ -205,6 +220,30 @@ function expandGlosses(sense: WordSense): Array<Gloss> {
   });
 }
 
+// ---------------------------------------------------------------------------
+//
+// Sorting
+//
+// ---------------------------------------------------------------------------
+
+// As with Array.prototype.sort, sorts `results` in-place, but returns the
+// result to support chaining.
+export function sortResultsByFrequency(
+  results: Array<WordResult>
+): Array<WordResult> {
+  const idToScore: Map<number, number> = new Map();
+  for (const result of results) {
+    idToScore.set(result.id, getScore(result));
+  }
+  results.sort((a, b) => {
+    const aScore = idToScore.get(a.id)!;
+    const bScore = idToScore.get(b.id)!;
+    return aScore === bScore ? 0 : aScore > bScore ? -1 : 1;
+  });
+
+  return results;
+}
+
 export function getScore(result: WordResult): number {
   // Go through each _matching_ kanji / reading and look for priority
   // information and return the highest score.
@@ -252,7 +291,7 @@ const SCORE_ASSIGNMENTS: Map<string, number> = new Map([
   ['g2', 15],
 ]);
 
-export function getScoreForPriority(p: string): number {
+function getScoreForPriority(p: string): number {
   if (SCORE_ASSIGNMENTS.has(p)) {
     return SCORE_ASSIGNMENTS.get(p)!;
   }
