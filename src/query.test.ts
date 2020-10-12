@@ -580,6 +580,78 @@ describe('query', function () {
     assert.deepEqual(result, expected);
   });
 
+  it('should fetch words by converting to hiragana', async () => {
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_INFO);
+    fetchMock.mock(
+      'end:words-rc-en-1.0.0.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"n/a","dateOfCreation":"2020-08-22"},"records":1}
+{"r":["はんぺん","はんぺい"],"s":[{"pos":["n"],"g":["pounded fish cake"],"misc":["uk"]},{"kapp":1,"g":["half a slice","half a ticket","ticket stub"]}],"k":["半片","半平"],"id":1010230,"rm":[{"a":[{"i":0},{"i":3}]},{"app":2,"a":[{"i":0},{"i":1}]}]}
+`
+    );
+
+    await db.update({ series: 'words', lang: 'en' });
+
+    const result = await getWords('ハンペイ');
+    const expected: Array<WordResult> = [
+      {
+        id: 1010230,
+        k: [
+          {
+            ent: '半片',
+            match: false,
+          },
+          {
+            ent: '半平',
+            match: true,
+          },
+        ],
+        r: [
+          {
+            ent: 'はんぺん',
+            a: [
+              {
+                i: 0,
+              },
+              {
+                i: 3,
+              },
+            ],
+            match: false,
+          },
+          {
+            ent: 'はんぺい',
+            app: 2,
+            a: [
+              {
+                i: 0,
+              },
+              {
+                i: 1,
+              },
+            ],
+            match: true,
+          },
+        ],
+        s: [
+          {
+            pos: ['n'],
+            g: ['pounded fish cake'],
+            misc: ['uk'],
+            match: true,
+          },
+          {
+            kapp: 1,
+            g: ['half a slice', 'half a ticket', 'ticket stub'],
+            match: false,
+          },
+        ],
+      },
+    ];
+
+    assert.deepEqual(result, expected);
+  });
+
+  // XXX It should expand gloss type information
   // XXX It should sort by priority
   // XXX Should search by kanji
   // XXX Should search by gloss

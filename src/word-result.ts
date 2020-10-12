@@ -35,7 +35,9 @@ export function toWordResult(record: WordRecord, search: string): WordResult {
   //    -- All s entries that:
   //       -- Have a rapp field, and the corresponding r entry matches,
   //          should match.
-  //       -- Have no rapp field should match.
+  //       -- Have a kapp field, and the corresponding k entry matches,
+  //          should match.
+  //       -- Have no rapp or kapp field should match.
   //
   // 3) We matched on a hiragana index
   //
@@ -81,11 +83,15 @@ export function toWordResult(record: WordRecord, search: string): WordResult {
     }
     kanaMatches = arrayToBitfield(record.r, (r) => r === search);
 
-    senseMatches = arrayToBitfield(
-      record.s,
-      (sense) =>
-        typeof sense.rapp === 'undefined' || !!(sense.rapp & kanaMatches)
-    );
+    senseMatches = arrayToBitfield(record.s, (sense) => {
+      if (typeof sense.rapp !== 'undefined') {
+        return !!(sense.rapp & kanaMatches);
+      } else if (typeof sense.kapp !== 'undefined') {
+        return !!(sense.kapp & kanjiMatches);
+      } else {
+        return true;
+      }
+    });
   }
 
   return {

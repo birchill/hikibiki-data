@@ -106,12 +106,12 @@ export async function getWords(search: string): Promise<Array<WordResult>> {
   const addedRecords: Set<number> = new Set();
   const result: Array<WordResult> = [];
 
-  const maybeAddRecord = (record: WordRecord) => {
+  const maybeAddRecord = (record: WordRecord, term: string) => {
     if (addedRecords.has(record.id)) {
       return;
     }
 
-    result.push(toWordResult(record, search));
+    result.push(toWordResult(record, term));
     addedRecords.add(record.id);
   };
 
@@ -121,13 +121,13 @@ export async function getWords(search: string): Promise<Array<WordResult>> {
   // fail to recognize that these indices are multi-entry and hence it is
   // valid to supply a single string instead of an array of strings.)
   for await (const cursor of kanjiIndex.iterate(IDBKeyRange.only(lookup))) {
-    maybeAddRecord(cursor.value);
+    maybeAddRecord(cursor.value, lookup);
   }
 
   // Then the r (reading) index
   const readingIndex = db!.transaction('words').store.index('r');
   for await (const cursor of readingIndex.iterate(IDBKeyRange.only(lookup))) {
-    maybeAddRecord(cursor.value);
+    maybeAddRecord(cursor.value, lookup);
   }
 
   // Then finally try converting to hiragana and using the hiragana index
@@ -136,7 +136,7 @@ export async function getWords(search: string): Promise<Array<WordResult>> {
   for await (const cursor of hiraganaIndex.iterate(
     IDBKeyRange.only(hiragana)
   )) {
-    maybeAddRecord(cursor.value);
+    maybeAddRecord(cursor.value, hiragana);
   }
 
   return [...result];
