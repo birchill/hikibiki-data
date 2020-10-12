@@ -1,4 +1,4 @@
-import { isArrayOfStrings } from './utils';
+import { isArrayOfStrings, isFinitePositiveNumber } from './utils';
 
 export interface NameEntryLine {
   id: number;
@@ -64,9 +64,7 @@ export function isNameEntryLine(a: any): a is NameEntryLine {
     typeof a === 'object' &&
     a !== null &&
     // id
-    typeof a.id === 'number' &&
-    (a.id as number) > 0 &&
-    Number.isFinite(a.id) &&
+    isFinitePositiveNumber(a.id) &&
     // k
     (typeof a.k === 'undefined' || isArrayOfStrings(a.k)) &&
     // r
@@ -95,9 +93,7 @@ export function isNameDeletionLine(a: any): a is NameDeletionLine {
   return (
     typeof a === 'object' &&
     a !== null &&
-    typeof a.id === 'number' &&
-    (a.id as number) > 0 &&
-    Number.isFinite(a.id) &&
+    isFinitePositiveNumber(a.id) &&
     typeof a.deleted === 'boolean' &&
     a.deleted
   );

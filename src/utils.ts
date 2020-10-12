@@ -15,7 +15,7 @@ export function stripFields<T extends object, K extends keyof T>(
 export function isArrayOfStrings(a: any) {
   return (
     Array.isArray(a) &&
-    (a as Array<any>).every(elem => typeof elem === 'string')
+    (a as Array<any>).every((elem) => typeof elem === 'string')
   );
 }
 
@@ -23,7 +23,11 @@ export function isArrayOfStringsOrNumbers(a: any) {
   return (
     Array.isArray(a) &&
     (a as Array<any>).every(
-      elem => typeof elem === 'string' || typeof elem === 'number'
+      (elem) => typeof elem === 'string' || typeof elem === 'number'
     )
   );
+}
+
+export function isFinitePositiveNumber(a: unknown): a is number {
+  return typeof a === 'number' && (a as number) >= 0 && Number.isFinite(a);
 }
