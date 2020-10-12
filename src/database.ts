@@ -15,13 +15,16 @@ import {
   updateKanji,
   updateRadicals,
   updateNames,
+  updateWords,
   UpdateOptions,
 } from './update';
+import { isWordDeletionLine, isWordEntryLine } from './words';
 
 const MAJOR_VERSION: { [series in DataSeries]: number } = {
   kanji: 4,
   radicals: 4,
   names: 2,
+  words: 1,
 };
 
 export const enum DataSeriesState {
@@ -67,6 +70,11 @@ export class JpdictDatabase {
     version: null,
     updateState: { state: 'idle', lastCheck: null },
   };
+  words: DataSeriesInfo = {
+    state: DataSeriesState.Initializing,
+    version: null,
+    updateState: { state: 'idle', lastCheck: null },
+  };
 
   store: JpdictStore;
   verbose: boolean = false;
@@ -74,7 +82,7 @@ export class JpdictDatabase {
   private readyPromise: Promise<any>;
   private inProgressUpdates: {
     [series in MajorDataSeries]: InProgressUpdate | undefined;
-  } = { kanji: undefined, names: undefined };
+  } = { words: undefined, kanji: undefined, names: undefined };
   private changeListeners: ChangeCallback[] = [];
 
   constructor({ verbose = false }: { verbose?: boolean } = {}) {
@@ -192,6 +200,17 @@ export class JpdictDatabase {
           }
 
           switch (series) {
+            case 'words':
+              await this.doUpdate({
+                series: 'words',
+                lang,
+                forceFetch: true,
+                isEntryLine: isWordEntryLine,
+                isDeletionLine: isWordDeletionLine,
+                update: updateWords,
+              });
+              break;
+
             case 'kanji':
               await this.doUpdate({
                 series: 'kanji',

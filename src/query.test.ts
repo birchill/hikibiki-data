@@ -34,7 +34,7 @@ const VERSION_INFO = {
   },
 };
 
-describe('database', function () {
+describe('query', function () {
   let db: JpdictDatabase;
 
   this.timeout(15000);

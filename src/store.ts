@@ -13,6 +13,86 @@ import { KanjiEntryLine, KanjiDeletionLine } from './kanji';
 import { RadicalEntryLine, RadicalDeletionLine } from './radicals';
 import { NameEntryLine, NameDeletionLine } from './names';
 import { stripFields } from './utils';
+import {
+  ReadingMeta,
+  KanjiMeta,
+  WordEntryLine,
+  WordDeletionLine,
+} from './words';
+
+// ---------------------------------------------------------------------------
+//
+// Word records
+//
+// ---------------------------------------------------------------------------
+
+export type WordRecord = Omit<WordEntryLine, 'km' | 'rm'> & {
+  // When transporting via JSON we replace nulls with 0s but we should restore
+  // them here.
+  rm?: Array<null | ReadingMeta>;
+  km?: Array<null | KanjiMeta>;
+
+  // r and k strings with all kana converted to hiragana
+  h: Array<string>;
+  // Individual from k split out into separate strings
+  kc: Array<string>;
+  // Gloss tokens
+  gt: Array<string>;
+};
+
+export function toWordRecord(entry: WordEntryLine): WordRecord {
+  const result = {
+    ...entry,
+    rm: entry.rm
+      ? entry.rm.map((elem) => (elem === 0 ? null : elem))
+      : undefined,
+    km: entry.km
+      ? entry.km.map((elem) => (elem === 0 ? null : elem))
+      : undefined,
+    h: keysToHiragana([...(entry.k || []), ...entry.r]),
+    // TODO
+    kc: [],
+    gt: [],
+  };
+
+  // I'm not sure if IndexedDB preserves properties with undefined values
+  // (I think it does, although JSON does not) but just to be sure we don't
+  // end up storing unnecessary values, drop any undefined properties we may
+  // have just added.
+  if (!result.rm) {
+    delete result.rm;
+  }
+  if (!result.km) {
+    delete result.km;
+  }
+
+  return result;
+}
+
+export function getIdForWordRecord(entry: WordDeletionLine): number {
+  return entry.id;
+}
+
+function keysToHiragana(values: Array<string>): Array<string> {
+  return Array.from(
+    new Set(values.map((value) => kanaToHiragana(value)).filter(hasHiragana))
+  );
+}
+
+// We only add hiragana keys for words that actually have some hiragana in
+// them. Any purely kanji keys should match on the 'k' index and won't benefit
+// from converting the input and source to hiragana so we can match them.
+function hasHiragana(str: string): boolean {
+  return [...str]
+    .map((c) => c.codePointAt(0)!)
+    .some((c) => c >= 0x3041 && c <= 0x309f);
+}
+
+// ---------------------------------------------------------------------------
+//
+// Kanji records
+//
+// ---------------------------------------------------------------------------
 
 // Define a variant on KanjiEntryLine that turns 'c' into a number
 export interface KanjiRecord extends Omit<KanjiEntryLine, 'c'> {
@@ -40,6 +120,12 @@ export function getIdForRadicalRecord(entry: RadicalDeletionLine): string {
   return entry.id;
 }
 
+// ---------------------------------------------------------------------------
+//
+// Name records
+//
+// ---------------------------------------------------------------------------
+
 export type NameRecord = NameEntryLine & {
   // r and k strings with all kana converted to hiragana
   h: Array<string>;
@@ -52,31 +138,25 @@ export function toNameRecord(entry: NameEntryLine): NameRecord {
   };
 }
 
-function keysToHiragana(values: Array<string>): Array<string> {
-  return Array.from(
-    new Set(values.map((value) => kanaToHiragana(value)).filter(hasHiragana))
-  );
-}
-
-// We only add hiragana keys for words that actually have some hiragana in
-// them. Any purely kanji keys should match on the 'k' index and won't benefit
-// from converting the input and source to hiragana so we can match them.
-function hasHiragana(str: string): boolean {
-  return [...str]
-    .map((c) => c.codePointAt(0)!)
-    .some((c) => c >= 0x3041 && c <= 0x309f);
-}
-
 export function getIdForNameRecord(entry: NameDeletionLine): number {
   return entry.id;
 }
 
+// ---------------------------------------------------------------------------
+//
+// Common
+//
+// ---------------------------------------------------------------------------
+
 export interface DataVersionRecord extends DataVersion {
-  id: 1 | 2 | 3;
+  id: 1 | 2 | 3 | 4;
 }
 
-function getVersionKey(series: DataSeries): 1 | 2 | 3 {
+function getVersionKey(series: DataSeries): 1 | 2 | 3 | 4 {
   switch (series) {
+    case 'words':
+      return 4;
+
     case 'kanji':
       return 1;
 
@@ -89,6 +169,17 @@ function getVersionKey(series: DataSeries): 1 | 2 | 3 {
 }
 
 export interface JpdictSchema extends DBSchema {
+  words: {
+    key: number;
+    value: WordRecord;
+    indexes: {
+      k: Array<string>;
+      r: Array<string>;
+      h: Array<string>;
+      kc: Array<string>;
+      gt: Array<string>;
+    };
+  };
   kanji: {
     key: number;
     value: KanjiRecord;
@@ -145,7 +236,7 @@ export class JpdictStore {
 
     const self = this;
 
-    this.openPromise = openDB<JpdictSchema>('jpdict', 3, {
+    this.openPromise = openDB<JpdictSchema>('jpdict', 4, {
       upgrade(
         db: IDBPDatabase<JpdictSchema>,
         oldVersion: number,
@@ -181,6 +272,18 @@ export class JpdictStore {
         if (oldVersion < 3) {
           const namesTable = transaction.objectStore('names');
           namesTable.createIndex('h', 'h', { multiEntry: true });
+        }
+        if (oldVersion < 4) {
+          const wordsTable = db.createObjectStore<'words'>('words', {
+            keyPath: 'id',
+          });
+          wordsTable.createIndex('k', 'k', { multiEntry: true });
+          wordsTable.createIndex('r', 'r', { multiEntry: true });
+
+          wordsTable.createIndex('h', 'h', { multiEntry: true });
+
+          wordsTable.createIndex('kc', 'kc', { multiEntry: true });
+          wordsTable.createIndex('gt', 'gt', { multiEntry: true });
         }
       },
       blocked() {

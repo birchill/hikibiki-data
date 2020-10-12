@@ -8,16 +8,20 @@ import {
   getIdForKanjiRecord,
   getIdForRadicalRecord,
   getIdForNameRecord,
+  getIdForWordRecord,
   toKanjiRecord,
   toRadicalRecord,
   toNameRecord,
+  toWordRecord,
   JpdictStore,
   KanjiRecord,
   RadicalRecord,
   NameRecord,
+  WordRecord,
 } from './store';
 import { UpdateAction } from './update-actions';
 import { stripFields } from './utils';
+import { WordEntryLine, WordDeletionLine } from './words';
 
 export type UpdateCallback = (action: UpdateAction) => void;
 
@@ -58,6 +62,17 @@ export type UpdateCallback = (action: UpdateAction) => void;
 // at the last moment but as described in (b) above that's really awkward with
 // IndexedDB. So, for now, we just have to recommend only updating once database
 // at a time to limit memory usage.
+
+export async function updateWords(
+  options: UpdateOptions<WordEntryLine, WordDeletionLine>
+) {
+  return update<WordEntryLine, WordDeletionLine, WordRecord, number>({
+    ...options,
+    series: 'words',
+    toRecord: toWordRecord,
+    getId: getIdForWordRecord,
+  });
+}
 
 export async function updateKanji(
   options: UpdateOptions<KanjiEntryLine, KanjiDeletionLine>
@@ -105,7 +120,7 @@ export interface UpdateOptions<EntryLine, DeletionLine> {
 async function update<
   EntryLine extends Omit<object, 'type'>,
   DeletionLine,
-  RecordType extends KanjiRecord | RadicalRecord | NameRecord,
+  RecordType extends WordRecord | KanjiRecord | RadicalRecord | NameRecord,
   IdType extends number | string
 >({
   downloadIterator,

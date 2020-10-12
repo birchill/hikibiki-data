@@ -87,13 +87,13 @@ export async function updateWithRetry({
         'Canceling existing call to updateWithRetry because the requested language has changed.'
       );
     }
-    await cancelUpdateWithRetry({ db, series });
+    cancelUpdateWithRetry({ db, series });
     currentRetryStatus = undefined;
   }
 
   if (currentRetryStatus) {
     if (currentRetryStatus.lang !== lang) {
-      await cancelUpdateWithRetry({ db, series });
+      cancelUpdateWithRetry({ db, series });
     }
 
     // If we are not trying to force an update then just use the existing
@@ -148,7 +148,7 @@ export async function updateWithRetry({
     if (db.verbose) {
       console.log('Canceling existing queued retry.');
     }
-    await cancelUpdateWithRetry({ db, series });
+    cancelUpdateWithRetry({ db, series });
   }
 
   // If we have a in-progress update here, it means we got an overlapping
@@ -440,7 +440,7 @@ function onDatabaseChange({
   }
 }
 
-export async function cancelUpdateWithRetry({
+export function cancelUpdateWithRetry({
   db,
   series,
 }: {
@@ -471,7 +471,7 @@ export async function cancelUpdateWithRetry({
 
   deleteInProgressUpdate({ db, series });
 
-  await db.cancelUpdate({ series });
+  db.cancelUpdate({ series });
 
   // We _could_ take an updateAborted callback and call it here, but currently
   // no client needs it.

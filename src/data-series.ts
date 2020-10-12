@@ -1,6 +1,7 @@
-export type DataSeries = 'kanji' | 'radicals' | 'names';
+export type DataSeries = 'words' | 'kanji' | 'radicals' | 'names';
 
 export const allDataSeries: ReadonlyArray<DataSeries> = [
+  'words',
   'kanji',
   'radicals',
   'names',
@@ -13,9 +14,10 @@ export function isDataSeries(a: unknown): a is DataSeries {
 // For certain interface actions we lump kanji and radicals together.
 // e.g. If you want to update the kanji data set, you need to update the
 // radicals too since we cross-reference the two.
-export type MajorDataSeries = 'kanji' | 'names';
+export type MajorDataSeries = 'words' | 'kanji' | 'names';
 
 export const allMajorDataSeries: ReadonlyArray<MajorDataSeries> = [
+  'words',
   'kanji',
   'names',
 ];

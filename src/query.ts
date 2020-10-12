@@ -37,7 +37,7 @@ async function open(): Promise<IDBPDatabase<JpdictSchema> | null> {
 
   _state = 'opening';
 
-  _openPromise = openDB<JpdictSchema>('jpdict', 3, {
+  _openPromise = openDB<JpdictSchema>('jpdict', 4, {
     upgrade(
       _db: IDBPDatabase<JpdictSchema>,
       _oldVersion: number,
