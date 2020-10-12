@@ -533,9 +533,9 @@ describe('query', function () {
           {
             pos: ['n-t', 'n-adv'],
             g: ['the other day', 'lately', 'recently', 'during this period'],
-            // match: true
+            match: true,
           },
-          { rapp: 2, g: ['meanwhile', 'in the meantime'] /* match: false */ },
+          { g: ['meanwhile', 'in the meantime'], rapp: 2, match: true },
         ],
       },
     ];
@@ -543,7 +543,43 @@ describe('query', function () {
     assert.deepEqual(result, expected);
   });
 
-  // XXX It should mark unmatched fields
+  it('should fetch words by kana', async () => {
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_INFO);
+    fetchMock.mock(
+      'end:words-rc-en-1.0.0.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"n/a","dateOfCreation":"2020-08-22"},"records":1}
+{"r":["このあいだ","このかん"],"s":[{"pos":["n-t","n-adv"],"g":["the other day","lately","recently","during this period"]},{"rapp":2,"g":["meanwhile","in the meantime"]}],"k":["この間","此の間"],"id":1004690,"km":[{"p":["i1"]}],"rm":[{"p":["i1"],"a":0},{"a":3}]}
+`
+    );
+
+    await db.update({ series: 'words', lang: 'en' });
+
+    const result = await getWords('このあいだ');
+    const expected: Array<WordResult> = [
+      {
+        id: 1004690,
+        k: [
+          { ent: 'この間', match: true, p: ['i1'] },
+          { ent: '此の間', match: true },
+        ],
+        r: [
+          { ent: 'このあいだ', match: true, p: ['i1'], a: 0 },
+          { ent: 'このかん', match: false, a: 3 },
+        ],
+        s: [
+          {
+            pos: ['n-t', 'n-adv'],
+            g: ['the other day', 'lately', 'recently', 'during this period'],
+            match: true,
+          },
+          { g: ['meanwhile', 'in the meantime'], rapp: 2, match: false },
+        ],
+      },
+    ];
+
+    assert.deepEqual(result, expected);
+  });
+
   // XXX It should sort by priority
   // XXX Should search by kanji
   // XXX Should search by gloss

@@ -1,8 +1,6 @@
 import { WordRecord } from './store';
 import { KanjiMeta, ReadingMeta, WordSense } from './words';
 
-import { stripFields } from './utils';
-
 export type WordResult = {
   id: number;
   k: Array<ExtendedKanjiEntry>;
@@ -12,9 +10,7 @@ export type WordResult = {
 
 type ExtendedKanjiEntry = { ent: string; match: boolean } & KanjiMeta;
 type ExtendedKanaEntry = { ent: string; match: boolean } & ReadingMeta;
-// TODO
-// type ExtendedSense = { match: boolean } & WordSense;
-type ExtendedSense = WordSense;
+type ExtendedSense = { match: boolean } & WordSense;
 
 export function toWordResult(record: WordRecord, search: string): WordResult {
   // The hard part here is marking which parts of the result matched.
@@ -27,19 +23,19 @@ export function toWordResult(record: WordRecord, search: string): WordResult {
   //    -- All r entries that apply to the k entry should match.
   //       (i.e. no app field or one that matches).
   //    -- All s entries that:
-  //       -- Have no kapp or rapp field should match.
-  //       -- Have only a kapp field, and it matches, should match.
+  //       -- Have a kapp field, and it matches, should match.
   //       -- Have only a rapp field, and the corresponding r entry matches,
   //          should match.
+  //       -- Have no kapp or rapp field should match.
   //
   // 2) We matched on a reading (kana) entry
   //
   //    -- All r entries that exactly match `search` should match.
   //    -- All k entries to which the matching r entries apply should match.
   //    -- All s entries that:
-  //       -- Have rapp field should match.
   //       -- Have a rapp field, and the corresponding r entry matches,
   //          should match.
+  //       -- Have no rapp field should match.
   //
   // 3) We matched on a hiragana index
   //
@@ -50,7 +46,9 @@ export function toWordResult(record: WordRecord, search: string): WordResult {
 
   // First build up a bitfield of all kanji matches.
   let kanjiMatches = arrayToBitfield(record.k || [], (k) => k === search);
+
   let kanaMatches = 0;
+  let senseMatches = 0;
   if (kanjiMatches) {
     // Case (1) from above: Find corresponding kana matches
     const kanaIsMatch = (rm: ReadingMeta | null) =>
@@ -63,7 +61,15 @@ export function toWordResult(record: WordRecord, search: string): WordResult {
       kanaIsMatch
     );
 
-    // TODO: s matches
+    senseMatches = arrayToBitfield(record.s, (sense) => {
+      if (typeof sense.kapp !== 'undefined') {
+        return !!(sense.kapp & kanjiMatches);
+      } else if (typeof sense.rapp !== 'undefined') {
+        return !!(sense.rapp & kanaMatches);
+      } else {
+        return true;
+      }
+    });
   } else {
     // Case (2) from above: Find kana matches whilst also remembering which
     // kanji they apply to.
@@ -75,10 +81,15 @@ export function toWordResult(record: WordRecord, search: string): WordResult {
     }
     kanaMatches = arrayToBitfield(record.r, (r) => r === search);
 
-    // TODO: s matches
+    senseMatches = arrayToBitfield(
+      record.s,
+      (sense) =>
+        typeof sense.rapp === 'undefined' || !!(sense.rapp & kanaMatches)
+    );
   }
 
   return {
+    id: record.id,
     k: mergeMeta(record.k, record.km, kanjiMatches, (key, match, meta) => ({
       ent: key,
       ...meta,
@@ -89,7 +100,10 @@ export function toWordResult(record: WordRecord, search: string): WordResult {
       ...meta,
       match,
     })),
-    ...stripFields(record, ['k', 'km', 'r', 'rm', 'h', 'kc', 'gt']),
+    s: record.s.map((sense, i) => ({
+      ...sense,
+      match: !!(senseMatches & (1 << i)),
+    })),
   };
 }
 
