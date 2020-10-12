@@ -1,5 +1,12 @@
+import { stripFields } from './utils';
 import { WordRecord } from './store';
-import { KanjiMeta, ReadingMeta, WordSense } from './words';
+import {
+  BITS_PER_GLOSS_TYPE,
+  GlossType,
+  KanjiMeta,
+  ReadingMeta,
+  WordSense,
+} from './words';
 
 export type WordResult = {
   id: number;
@@ -8,13 +15,48 @@ export type WordResult = {
   s: Array<ExtendedSense>;
 };
 
+export type Gloss = {
+  str: string;
+  type?: GlossType; // undefined = GlossType.None
+};
+
 type ExtendedKanjiEntry = { ent: string; match: boolean } & KanjiMeta;
 type ExtendedKanaEntry = { ent: string; match: boolean } & ReadingMeta;
-type ExtendedSense = { match: boolean } & WordSense;
+type ExtendedSense = { match: boolean; g: Array<Gloss> } & Omit<
+  WordSense,
+  'g' | 'gt'
+>;
 
 export function toWordResult(record: WordRecord, search: string): WordResult {
-  // The hard part here is marking which parts of the result matched.
-  //
+  const [kanjiMatches, kanaMatches, senseMatches] = getMatchMetadata(
+    record,
+    search
+  );
+
+  return {
+    id: record.id,
+    k: mergeMeta(record.k, record.km, kanjiMatches, (key, match, meta) => ({
+      ent: key,
+      ...meta,
+      match,
+    })),
+    r: mergeMeta(record.r, record.rm, kanaMatches, (key, match, meta) => ({
+      ent: key,
+      ...meta,
+      match,
+    })),
+    s: record.s.map((sense, i) => ({
+      g: expandGlosses(sense),
+      ...stripFields(sense, ['g', 'gt']),
+      match: !!(senseMatches & (1 << i)),
+    })),
+  };
+}
+
+function getMatchMetadata(
+  record: WordRecord,
+  search: string
+): [kanjiMatches: number, kanaMatches: number, senseMatches: number] {
   // There are three cases:
   //
   // 1) We matched on a kanji entry
@@ -94,23 +136,7 @@ export function toWordResult(record: WordRecord, search: string): WordResult {
     });
   }
 
-  return {
-    id: record.id,
-    k: mergeMeta(record.k, record.km, kanjiMatches, (key, match, meta) => ({
-      ent: key,
-      ...meta,
-      match,
-    })),
-    r: mergeMeta(record.r, record.rm, kanaMatches, (key, match, meta) => ({
-      ent: key,
-      ...meta,
-      match,
-    })),
-    s: record.s.map((sense, i) => ({
-      ...sense,
-      match: !!(senseMatches & (1 << i)),
-    })),
-  };
+  return [kanjiMatches, kanaMatches, senseMatches];
 }
 
 function kanjiMatchesForKana(record: WordRecord, i: number) {
@@ -158,4 +184,23 @@ function extendWithNulls<T>(
 ): Array<T | null> {
   const extra = Math.max(len - arr.length, 0);
   return arr.concat(Array(extra).fill(null));
+}
+
+function expandGlosses(sense: WordSense): Array<Gloss> {
+  const gt = sense.gt || 0;
+  const typeMask = (1 << BITS_PER_GLOSS_TYPE) - 1;
+  const glossTypeAtIndex = (i: number): GlossType => {
+    return (gt >> (i * BITS_PER_GLOSS_TYPE)) & typeMask;
+  };
+  return sense.g.map((gloss, i) => {
+    // This rather convoluted mess is because our test harness differentiates
+    // between properties that are not set and those that are set to
+    // undefined.
+    const result: Gloss = { str: gloss };
+    const type = glossTypeAtIndex(i);
+    if (type !== GlossType.None) {
+      result.type = type;
+    }
+    return result;
+  });
 }

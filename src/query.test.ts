@@ -4,6 +4,7 @@ import fetchMock from 'fetch-mock';
 import { JpdictDatabase } from './database';
 import { getKanji, getNames, getWords, NameResult } from './query';
 import { WordResult } from './word-result';
+import { GlossType } from './words';
 
 mocha.setup('bdd');
 
@@ -532,10 +533,19 @@ describe('query', function () {
         s: [
           {
             pos: ['n-t', 'n-adv'],
-            g: ['the other day', 'lately', 'recently', 'during this period'],
+            g: [
+              { str: 'the other day' },
+              { str: 'lately' },
+              { str: 'recently' },
+              { str: 'during this period' },
+            ],
             match: true,
           },
-          { g: ['meanwhile', 'in the meantime'], rapp: 2, match: true },
+          {
+            g: [{ str: 'meanwhile' }, { str: 'in the meantime' }],
+            rapp: 2,
+            match: true,
+          },
         ],
       },
     ];
@@ -569,10 +579,19 @@ describe('query', function () {
         s: [
           {
             pos: ['n-t', 'n-adv'],
-            g: ['the other day', 'lately', 'recently', 'during this period'],
+            g: [
+              { str: 'the other day' },
+              { str: 'lately' },
+              { str: 'recently' },
+              { str: 'during this period' },
+            ],
             match: true,
           },
-          { g: ['meanwhile', 'in the meantime'], rapp: 2, match: false },
+          {
+            g: [{ str: 'meanwhile' }, { str: 'in the meantime' }],
+            rapp: 2,
+            match: false,
+          },
         ],
       },
     ];
@@ -635,14 +654,66 @@ describe('query', function () {
         s: [
           {
             pos: ['n'],
-            g: ['pounded fish cake'],
+            g: [{ str: 'pounded fish cake' }],
             misc: ['uk'],
             match: true,
           },
           {
             kapp: 1,
-            g: ['half a slice', 'half a ticket', 'ticket stub'],
+            g: [
+              { str: 'half a slice' },
+              { str: 'half a ticket' },
+              { str: 'ticket stub' },
+            ],
             match: false,
+          },
+        ],
+      },
+    ];
+
+    assert.deepEqual(result, expected);
+  });
+
+  it('should expand gloss type information', async () => {
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_INFO);
+    fetchMock.mock(
+      'end:words-rc-en-1.0.0.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"n/a","dateOfCreation":"2020-08-22"},"records":1}
+{"r":["ばついち","バツいち","バツイチ"],"s":[{"xref":[{"sense":1,"k":"戸籍"}],"pos":["n"],"gt":32,"g":["being once divorced","one-time divorcee","one x mark (i.e. one name struck from the family register)"],"misc":["uk","joc"]}],"k":["罰一","ばつ一","バツ１"],"id":1010290,"rm":[{"app":3},{"app":4},{"app":0}]}
+`
+    );
+
+    await db.update({ series: 'words', lang: 'en' });
+
+    const result = await getWords('バツイチ');
+    const expected: Array<WordResult> = [
+      {
+        id: 1010290,
+        k: [
+          { ent: '罰一', match: false },
+          { ent: 'ばつ一', match: false },
+          { ent: 'バツ１', match: false },
+        ],
+        r: [
+          { ent: 'ばついち', app: 3, match: false },
+          { ent: 'バツいち', app: 4, match: false },
+          { ent: 'バツイチ', app: 0, match: true },
+        ],
+        s: [
+          {
+            xref: [{ sense: 1, k: '戸籍' }],
+            pos: ['n'],
+            g: [
+              { str: 'being once divorced' },
+              { str: 'one-time divorcee' },
+              {
+                str:
+                  'one x mark (i.e. one name struck from the family register)',
+                type: GlossType.Lit,
+              },
+            ],
+            misc: ['uk', 'joc'],
+            match: true,
           },
         ],
       },
