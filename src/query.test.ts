@@ -2,7 +2,8 @@ import { assert } from 'chai';
 import fetchMock from 'fetch-mock';
 
 import { JpdictDatabase } from './database';
-import { getKanji, getNames, getWords, NameResult, WordResult } from './query';
+import { getKanji, getNames, getWords, NameResult } from './query';
+import { WordResult } from './word-result';
 
 mocha.setup('bdd');
 
@@ -520,21 +521,30 @@ describe('query', function () {
     const expected: Array<WordResult> = [
       {
         id: 1004690,
-        k: [{ ent: 'この間', p: ['i1'] }, { ent: '此の間' }],
+        k: [
+          { ent: 'この間', match: true, p: ['i1'] },
+          { ent: '此の間', match: false },
+        ],
         r: [
-          { ent: 'このあいだ', p: ['i1'], a: 0 },
-          { ent: 'このかん', a: 3 },
+          { ent: 'このあいだ', match: true, p: ['i1'], a: 0 },
+          { ent: 'このかん', match: true, a: 3 },
         ],
         s: [
           {
             pos: ['n-t', 'n-adv'],
             g: ['the other day', 'lately', 'recently', 'during this period'],
+            // match: true
           },
-          { rapp: 2, g: ['meanwhile', 'in the meantime'] },
+          { rapp: 2, g: ['meanwhile', 'in the meantime'] /* match: false */ },
         ],
       },
     ];
 
     assert.deepEqual(result, expected);
   });
+
+  // XXX It should mark unmatched fields
+  // XXX It should sort by priority
+  // XXX Should search by kanji
+  // XXX Should search by gloss
 });

@@ -10,7 +10,7 @@ import {
   RadicalRecord,
 } from './store';
 import { stripFields } from './utils';
-import { KanjiMeta, ReadingMeta } from './words';
+import { toWordResult, WordResult } from './word-result';
 
 // Database query methods
 //
@@ -93,43 +93,6 @@ async function open(): Promise<IDBPDatabase<JpdictSchema> | null> {
 //
 // -------------------------------------------------------------------------
 
-export type WordResult = Omit<
-  WordRecord,
-  'k' | 'km' | 'r' | 'rm' | 'h' | 'kc' | 'gt'
-> & {
-  k: Array<ExtendedKanjiEntry>;
-  r: Array<ExtendedKanaEntry>;
-};
-
-type ExtendedKanjiEntry = { ent: string } & KanjiMeta;
-type ExtendedKanaEntry = { ent: string } & ReadingMeta;
-
-function toWordResult(record: WordRecord): WordResult {
-  return {
-    k: mergeMeta(record.k, record.km, (key, meta) => ({ ent: key, ...meta })),
-    r: mergeMeta(record.r, record.rm, (key, meta) => ({ ent: key, ...meta })),
-    ...stripFields(record, ['k', 'km', 'r', 'rm', 'h', 'kc', 'gt']),
-  };
-}
-
-function mergeMeta<MetaType extends KanjiMeta | ReadingMeta, MergedType>(
-  keys: Array<string> | undefined,
-  meta: Array<null | MetaType> | undefined,
-  merge: (key: string, meta?: MetaType) => MergedType
-): Array<MergedType> {
-  const result: Array<MergedType> = [];
-
-  for (const [i, key] of (keys || []).entries()) {
-    if (meta && meta.length >= i + 1 && meta[i] !== null) {
-      result.push(merge(key, meta[i]!));
-    } else {
-      result.push(merge(key));
-    }
-  }
-
-  return result;
-}
-
 export async function getWords(search: string): Promise<Array<WordResult>> {
   const db = await open();
   if (!db) {
@@ -144,10 +107,12 @@ export async function getWords(search: string): Promise<Array<WordResult>> {
   const result: Array<WordResult> = [];
 
   const maybeAddRecord = (record: WordRecord) => {
-    if (!addedRecords.has(record.id)) {
-      result.push(toWordResult(record));
-      addedRecords.add(record.id);
+    if (addedRecords.has(record.id)) {
+      return;
     }
+
+    result.push(toWordResult(record, search));
+    addedRecords.add(record.id);
   };
 
   // Try the k (kanji) index first

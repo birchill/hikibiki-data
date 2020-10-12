@@ -31,4 +31,23 @@ export {
   UpdateErrorCallback,
   updateWithRetry,
 } from './update-with-retry';
-export { getKanji, getNames, KanjiResult, NameResult } from './query';
+export { getKanji, getNames, getWords, KanjiResult, NameResult } from './query';
+export {
+  Accent,
+  CrossReference,
+  Dialect,
+  FieldType,
+  GlossType,
+  LangSource,
+  MiscType,
+  PartOfSpeech,
+  allDialects,
+  isDialect,
+  allFieldTypes,
+  isFieldType,
+  allMiscTypes,
+  isMiscType,
+  allPartsOfSpeech,
+  isPartOfSpeech,
+} from './words';
+export { WordResult } from './word-result';
