@@ -204,3 +204,68 @@ function expandGlosses(sense: WordSense): Array<Gloss> {
     return result;
   });
 }
+
+export function getScore(result: WordResult): number {
+  // Go through each _matching_ kanji / reading and look for priority
+  // information and return the highest score.
+  const scores: Array<number> = [0];
+
+  // Scores from kanji readings
+  for (const k of result.k) {
+    if (!k.match || !k.p) {
+      continue;
+    }
+
+    scores.push(
+      k.p.reduce((value, priority) => value + getScoreForPriority(priority), 0)
+    );
+  }
+
+  // Scores from kana readings
+  for (const r of result.r) {
+    if (!r.match || !r.p) {
+      continue;
+    }
+
+    scores.push(
+      r.p.reduce((value, priority) => value + getScoreForPriority(priority), 0)
+    );
+  }
+
+  // Return top score
+  return Math.max(...scores);
+}
+
+// This assignment is pretty arbitrary. We can tweak it as needed but it's
+// only used for sorting entries and generally all we need to do is distinguish
+// between the really common ones and the obscure academic ones.
+//
+// Entries with (P) are those ones that are marked with (P) in Edict.
+const SCORE_ASSIGNMENTS: Map<string, number> = new Map([
+  ['i1', 50], // Top 10,000 words minus i2 (from 1998) (P)
+  ['i2', 20],
+  ['n1', 40], // Top on 12,000 words in newspapers (from 2003?) (P)
+  ['n2', 20], // Next 12,000
+  ['s1', 45], // "Speculative" annotations? Seem pretty common to me. (P)
+  ['s2', 30], // (P)
+  ['g1', 35], // (P)
+  ['g2', 15],
+]);
+
+export function getScoreForPriority(p: string): number {
+  if (SCORE_ASSIGNMENTS.has(p)) {
+    return SCORE_ASSIGNMENTS.get(p)!;
+  }
+
+  if (p.startsWith('nf')) {
+    // The wordfreq scores are groups of 500 words.
+    // e.g. nf01 is the top 500 words, and nf48 is the 23,501 ~ 24,000
+    // most popular words.
+    const wordfreq = parseInt(p.substring(2), 10);
+    if (wordfreq > 0 && wordfreq < 48) {
+      return 48 - wordfreq;
+    }
+  }
+
+  return 0;
+}

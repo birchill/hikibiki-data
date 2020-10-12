@@ -10,7 +10,7 @@ import {
   RadicalRecord,
 } from './store';
 import { stripFields } from './utils';
-import { toWordResult, WordResult } from './word-result';
+import { getScore, toWordResult, WordResult } from './word-result';
 
 // Database query methods
 //
@@ -104,14 +104,14 @@ export async function getWords(search: string): Promise<Array<WordResult>> {
 
   // Set up our output value.
   const addedRecords: Set<number> = new Set();
-  const result: Array<WordResult> = [];
+  const results: Array<WordResult> = [];
 
   const maybeAddRecord = (record: WordRecord, term: string) => {
     if (addedRecords.has(record.id)) {
       return;
     }
 
-    result.push(toWordResult(record, term));
+    results.push(toWordResult(record, term));
     addedRecords.add(record.id);
   };
 
@@ -139,7 +139,18 @@ export async function getWords(search: string): Promise<Array<WordResult>> {
     maybeAddRecord(cursor.value, hiragana);
   }
 
-  return [...result];
+  // Sort result by frequency.
+  const idToScore: Map<number, number> = new Map();
+  for (const result of results) {
+    idToScore.set(result.id, getScore(result));
+  }
+  results.sort((a, b) => {
+    const aScore = idToScore.get(a.id)!;
+    const bScore = idToScore.get(b.id)!;
+    return aScore === bScore ? 0 : aScore > bScore ? -1 : 1;
+  });
+
+  return [...results];
 }
 
 // -------------------------------------------------------------------------

@@ -615,41 +615,12 @@ describe('query', function () {
       {
         id: 1010230,
         k: [
-          {
-            ent: '半片',
-            match: false,
-          },
-          {
-            ent: '半平',
-            match: true,
-          },
+          { ent: '半片', match: false },
+          { ent: '半平', match: true },
         ],
         r: [
-          {
-            ent: 'はんぺん',
-            a: [
-              {
-                i: 0,
-              },
-              {
-                i: 3,
-              },
-            ],
-            match: false,
-          },
-          {
-            ent: 'はんぺい',
-            app: 2,
-            a: [
-              {
-                i: 0,
-              },
-              {
-                i: 1,
-              },
-            ],
-            match: true,
-          },
+          { ent: 'はんぺん', a: [{ i: 0 }, { i: 3 }], match: false },
+          { ent: 'はんぺい', app: 2, a: [{ i: 0 }, { i: 1 }], match: true },
         ],
         s: [
           {
@@ -722,8 +693,59 @@ describe('query', function () {
     assert.deepEqual(result, expected);
   });
 
-  // XXX It should expand gloss type information
-  // XXX It should sort by priority
+  it('should sort more common entries first', async () => {
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_INFO);
+    fetchMock.mock(
+      'end:words-rc-en-1.0.0.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"n/a","dateOfCreation":"2020-08-22"},"records":2}
+{"r":["ひとびと"],"s":[{"pos":["n"],"g":["people","men and women"]},{"g":["each person","everybody"]}],"k":["人々","人びと","人人"],"id":1500001,"km":[{"p":["i1","n1","nf01"]}],"rm":[{"p":["i1","n1","nf01"],"a":2}]}
+{"r":["にんにん"],"s":[{"xref":[{"r":"ひとびと","sense":2,"k":"人々"}],"pos":["n"],"g":["each person","everybody"],"misc":["dated"]}],"k":["人々","人人"],"id":1500000,"rm":[{"a":1}]}
+`
+    );
+
+    await db.update({ series: 'words', lang: 'en' });
+
+    const result = await getWords('人々');
+    const expected: Array<WordResult> = [
+      {
+        id: 1500001,
+        k: [
+          { ent: '人々', p: ['i1', 'n1', 'nf01'], match: true },
+          { ent: '人びと', match: false },
+          { ent: '人人', match: false },
+        ],
+        r: [{ ent: 'ひとびと', p: ['i1', 'n1', 'nf01'], a: 2, match: true }],
+        s: [
+          {
+            g: [{ str: 'people' }, { str: 'men and women' }],
+            pos: ['n'],
+            match: true,
+          },
+          { g: [{ str: 'each person' }, { str: 'everybody' }], match: true },
+        ],
+      },
+      {
+        id: 1500000,
+        k: [
+          { ent: '人々', match: true },
+          { ent: '人人', match: false },
+        ],
+        r: [{ ent: 'にんにん', a: 1, match: true }],
+        s: [
+          {
+            g: [{ str: 'each person' }, { str: 'everybody' }],
+            xref: [{ r: 'ひとびと', sense: 2, k: '人々' }],
+            pos: ['n'],
+            misc: ['dated'],
+            match: true,
+          },
+        ],
+      },
+    ];
+
+    assert.deepEqual(result, expected);
+  });
+
   // XXX Should search by kanji
   // XXX Should search by gloss
 });
