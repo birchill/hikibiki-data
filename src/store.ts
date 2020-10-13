@@ -39,8 +39,9 @@ export type WordRecord = Omit<WordEntryLine, 'km' | 'rm'> & {
   h: Array<string>;
   // Individual from k split out into separate strings
   kc: Array<string>;
-  // Gloss tokens
-  gt: Array<string>;
+  // Gloss tokens (English and localized)
+  gt_en: Array<string>;
+  gt_l: Array<string>;
 };
 
 export function toWordRecord(entry: WordEntryLine): WordRecord {
@@ -54,7 +55,8 @@ export function toWordRecord(entry: WordEntryLine): WordRecord {
       : undefined,
     h: keysToHiragana([...(entry.k || []), ...entry.r]),
     kc: getKanjiForEntry(entry),
-    gt: getGlossTokensForEntry(entry),
+    gt_en: getGlossTokensForEntry(entry, 'en'),
+    gt_l: getGlossTokensForEntry(entry, 'locale'),
   };
 
   // I'm not sure if IndexedDB preserves properties with undefined values
@@ -94,7 +96,10 @@ function getKanjiForEntry(entry: WordEntryLine): Array<string> {
   return [...new Set(flatKc)];
 }
 
-function getGlossTokensForEntry(entry: WordEntryLine): Array<string> {
+function getGlossTokensForEntry(
+  entry: WordEntryLine,
+  lang: 'en' | 'locale'
+): Array<string> {
   const getTokensForSense = (sense: WordSense): Array<string> => {
     return sense.g.reduce(
       (tokens: Array<string>, gloss: string) =>
@@ -103,11 +108,18 @@ function getGlossTokensForEntry(entry: WordEntryLine): Array<string> {
     );
   };
 
-  const allTokens = entry.s.reduce(
-    (tokens: Array<string>, sense: WordSense) =>
-      tokens.concat(...getTokensForSense(sense)),
-    []
-  );
+  const isMatchingSense = (sense: WordSense): boolean =>
+    lang === 'en'
+      ? typeof sense.lang === 'undefined' || sense.lang === 'en'
+      : typeof sense.lang !== 'undefined';
+
+  const allTokens = entry.s
+    .filter(isMatchingSense)
+    .reduce(
+      (tokens: Array<string>, sense: WordSense) =>
+        tokens.concat(...getTokensForSense(sense)),
+      []
+    );
 
   return [...new Set(allTokens)];
 }
@@ -201,7 +213,8 @@ export interface JpdictSchema extends DBSchema {
       r: Array<string>;
       h: Array<string>;
       kc: Array<string>;
-      gt: Array<string>;
+      gt_en: Array<string>;
+      gt_l: Array<string>;
     };
   };
   kanji: {
@@ -307,7 +320,8 @@ export class JpdictStore {
           wordsTable.createIndex('h', 'h', { multiEntry: true });
 
           wordsTable.createIndex('kc', 'kc', { multiEntry: true });
-          wordsTable.createIndex('gt', 'gt', { multiEntry: true });
+          wordsTable.createIndex('gt_en', 'gt_en', { multiEntry: true });
+          wordsTable.createIndex('gt_l', 'gt_l', { multiEntry: true });
         }
       },
       blocked() {

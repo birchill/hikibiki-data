@@ -14,6 +14,7 @@ import { stripFields } from './utils';
 import {
   sortResultsByFrequency,
   toWordResult,
+  toWordResultFromGlossLookup,
   MatchMode,
   WordResult,
 } from './word-result';
@@ -179,50 +180,202 @@ export async function getWordsWithKanji(
   return sortResultsByFrequency(results);
 }
 
+type GlossSearchRecordMeta = {
+  // A value between 1 and 10.5 for how much of the gloss matched.
+  confidence: number;
+
+  // The character ranges in matched glosses.
+  //
+  // (We use standard JS character offsets because we don't expect non-BMP
+  // data in glosses for any of the languages we support.)
+  matchedRanges: Array<MatchedRange>;
+
+  // Was this a match on a localized gloss, as opposed to falling back to an
+  // English gloss? We weight localized results more highly.
+  localizedMatch: boolean;
+};
+
+type MatchedRange = [sense: number, gloss: number, start: number, end: number];
+
+// This currently only does substring phrase matching.
+//
+// Unlike a document search where you might want the search phrase
+// `twinkling eye` to match "in the twinking of an eye", when you're looking up
+// a dictionary, you're typically more interested in finding an exact phrase.
+// So, for the example above, you might search for "twinkling of" and expect it
+// to match.
+//
+// Furthermore, since we are running locally, we can query as the user types
+// and so we should be able to return suggestions just for "twink" etc.
+// If we only return one result (or one particularly popular result?) an app
+// could even offer auto-complete in that case.
+//
+// We have the caller pass in the language since otherwise we would have to
+// look up the database version record which could cause us to block if the
+// database is being updated.
 export async function getWordsWithGloss(
-  search: string
+  search: string,
+  lang: string,
+  limit?: number
 ): Promise<Array<WordResult>> {
   const db = await open();
   if (!db) {
     return [];
   }
 
+  const actualLimit = Math.max(limit || 0, 0) || 100;
+
+  // Set up our output value.
+  const recordMeta: Map<number, GlossSearchRecordMeta> = new Map();
+  let records: Array<WordRecord> = [];
+
+  // First search using the specified locale (if not English).
+  if (lang !== 'en') {
+    const results = await lookUpGlosses(db, search, lang, actualLimit);
+    for (const [record, confidence, matchedRanges] of results) {
+      recordMeta.set(record.id, {
+        confidence,
+        matchedRanges,
+        localizedMatch: true,
+      });
+      records.push(record);
+    }
+  }
+
+  // Look up English fallback glosses
+  const remainingLimit = actualLimit - records.length;
+  if (remainingLimit) {
+    const results = await lookUpGlosses(db, search, 'en', remainingLimit);
+    for (const [record, confidence, matchedRanges] of results) {
+      // If we already added this record as a localized match, skip it.
+      if (lang !== 'en' && recordMeta.has(record.id)) {
+        continue;
+      }
+
+      recordMeta.set(record.id, {
+        confidence,
+        matchedRanges,
+        localizedMatch: false,
+      });
+      records.push(record);
+    }
+  }
+
+  // Prepare the result
+  //
+  // TODO: Does this really need to be a separate step? Or could we do it
+  // while adding to records in the first place? Then we wouldn't need to store
+  // it in the hashmap
+  const results: Array<WordResult> = records.map((record) => {
+    const matchedRanges = recordMeta.get(record.id)?.matchedRanges || [];
+    return toWordResultFromGlossLookup(record, matchedRanges);
+  });
+
+  // Sort
+  // -- Confidence value (value 1 to 10) -> * 10 -> value from 1~100
+  // -- Frequency (we should scale this to a value from 1~50)
+  // -- Locale vs English fallback (+50 for locale)
+
+  return sortResultsByFrequency(results);
+}
+
+async function lookUpGlosses(
+  db: IDBPDatabase<JpdictSchema>,
+  term: string,
+  locale: string,
+  limit: number
+): Promise<
+  Array<
+    [record: WordRecord, confidence: number, matchedRanges: Array<MatchedRange>]
+  >
+> {
   // Get search tokens
-  // TODO: Use target locale here
-  const tokens = getTokens(search.normalize(), 'en');
+  const tokens = getTokens(term.normalize(), locale);
   if (!tokens) {
     return [];
   }
 
-  // Set up our output value.
-  let records: Array<WordRecord> = [];
+  // Prepare lowercase version of the term for later substring matching
+  const termLower = term.toLocaleLowerCase(locale);
 
-  // Look up the longest token and then refine the search by dropping any
-  // results that don't contain the remaining tokens.
-  const longestToken = tokens.sort((a, b) => b.length - a.length)[0];
-  const glossIndex = db!.transaction('words').store.index('gt');
+  // Prepare result
+  const result: Array<[WordRecord, number, Array<MatchedRange>]> = [];
+
+  // Look for any records matching the first token in the appropriate index
+  const indexName = locale === 'en' ? 'gt_en' : 'gt_l';
+  const glossIndex = db!.transaction('words').store.index(indexName);
+  let hasFullMatchOnFirstToken = false;
   for await (const cursor of glossIndex.iterate(
-    IDBKeyRange.only(longestToken)
+    // Prefix match on first token
+    IDBKeyRange.bound(tokens[0], tokens[0] + '\uFFFF')
   )) {
-    records.push(cursor.value);
+    const record = cursor.value;
+
+    // If we have multiple tokens and completely match the first token, we
+    // should not add any substring matches on that token.
+    //
+    // e.g. if we search on "stand up" and get a match on "stand" we should not
+    // add any results that match on "standard" etc. (but we should add such
+    // results if our search term was "stand" or "stan" or "standa" etc.).
+    const fullMatchOnFirstToken =
+      tokens.length > 1 && record[indexName].includes(tokens[0]);
+    if (!fullMatchOnFirstToken && hasFullMatchOnFirstToken) {
+      break;
+    }
+    hasFullMatchOnFirstToken = fullMatchOnFirstToken;
+
+    // Check if the record has a sense which a substring match on the original
+    // search term.
+    const matchedRanges: Array<MatchedRange> = [];
+    let confidence = 0;
+    for (const [senseIndex, sense] of record.s.entries()) {
+      // We need to skip these here, rather than filtering record.s, in order
+      // to maintain the original sense indices.
+      if ((sense.lang || 'en') !== locale) {
+        continue;
+      }
+
+      // Look for a substring match
+      for (const [glossIndex, gloss] of sense.g.entries()) {
+        const substringStart = gloss
+          .toLocaleLowerCase(locale)
+          .indexOf(termLower);
+        if (substringStart !== -1) {
+          matchedRanges.push([
+            senseIndex,
+            glossIndex,
+            substringStart,
+            substringStart + term.length,
+          ]);
+
+          // Calculate the confidence for this particular match as follows:
+          //
+          // 1) Percentage of string that matched converted to an integer
+          //    between 1 and 10
+          // 2) Extra 0.5 point if the start token of the search term and gloss
+          //    match.
+          let thisConfidence = Math.round((term.length / gloss.length) * 10);
+          if (tokens[0] === record[indexName][0]) {
+            thisConfidence += 0.5;
+          }
+          confidence = Math.max(confidence, thisConfidence);
+        }
+      }
+
+      // Even if we found a match, we need to go through all senses because
+      // there could be multiple matches.
+    }
+
+    if (matchedRanges.length) {
+      result.push([record, confidence, matchedRanges]);
+    }
+
+    if (result.length >= limit) {
+      break;
+    }
   }
 
-  // Now we want to filter out any records that don't have all the tokens.
-  //
-  // Ultimately we should do this by sense (since if the record has the two
-  // words spread across different senses, we don't really want to match it).
-  const containsAllTokens = (record: WordRecord) => {
-    const recordTokens = new Set(record.gt);
-    return tokens.every((token) => recordTokens.has(token));
-  };
-  records = records.filter(containsAllTokens);
-
-  // Prepare the result
-  const results: Array<WordResult> = records.map((record) =>
-    toWordResult(record, tokens, MatchMode.Gloss)
-  );
-
-  return sortResultsByFrequency(results);
+  return result;
 }
 
 // -------------------------------------------------------------------------

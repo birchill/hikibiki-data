@@ -819,7 +819,7 @@ describe('query', function () {
 
     await db.update({ series: 'words', lang: 'en' });
 
-    const result = await getWordsWithGloss('Twinkling eye');
+    const result = await getWordsWithGloss('Twinkl', 'en');
     const expected: Array<WordResult> = [
       {
         id: 1000390,
@@ -851,7 +851,7 @@ describe('query', function () {
           {
             g: [
               { str: 'just like that' },
-              { str: 'in the twinkling of an eye' },
+              { str: 'in the twinkling of an eye', matched: [7, 13] },
               { str: 'in the blink of an eye' },
               { str: 'in the time it takes to say "ah!"', type: 2 },
             ],
@@ -869,7 +869,10 @@ describe('query', function () {
         r: [{ ent: 'またたくまに', a: 3, match: true }],
         s: [
           {
-            g: [{ str: 'in the twinkling of an eye' }, { str: 'in a flash' }],
+            g: [
+              { str: 'in the twinkling of an eye', matched: [7, 13] },
+              { str: 'in a flash' },
+            ],
             pos: ['adv'],
             match: true,
           },

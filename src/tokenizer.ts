@@ -2,7 +2,10 @@
 
 export function getTokens(str: string, lang: string): Array<string> {
   const lc = str.toLocaleLowerCase(lang);
-  return [...new Set(lc.split(/[\W|_]+/).filter(isNotStopWord))];
+  const tokens = [...new Set(lc.split(/[\W|_]+/))];
+  const withoutStopwords = tokens.filter(isNotStopWord);
+  // If we have only stop words, we should return them
+  return withoutStopwords.length ? withoutStopwords : tokens;
 }
 
 function isNotStopWord(token: string): boolean {

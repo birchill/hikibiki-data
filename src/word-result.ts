@@ -1,6 +1,5 @@
-import { stripFields } from './utils';
-import { getTokens } from './tokenizer';
 import { WordRecord } from './store';
+import { stripFields } from './utils';
 import {
   BITS_PER_GLOSS_TYPE,
   GlossType,
@@ -9,16 +8,17 @@ import {
   WordSense,
 } from './words';
 
+// ---------------------------------------------------------------------------
+//
+// Public API
+//
+// ---------------------------------------------------------------------------
+
 export type WordResult = {
   id: number;
   k: Array<ExtendedKanjiEntry>;
   r: Array<ExtendedKanaEntry>;
   s: Array<ExtendedSense>;
-};
-
-export type Gloss = {
-  str: string;
-  type?: GlossType; // undefined = GlossType.None
 };
 
 type ExtendedKanjiEntry = { ent: string; match: boolean } & KanjiMeta;
@@ -28,34 +28,66 @@ type ExtendedSense = { match: boolean; g: Array<Gloss> } & Omit<
   'g' | 'gt'
 >;
 
+export type Gloss = {
+  str: string;
+  type?: GlossType; // undefined = GlossType.None
+  // Character offsets for matched text when doing a gloss search
+  matched?: [start: number, end: number];
+};
+
 export const enum MatchMode {
   Lexeme,
   Kanji,
-  Gloss,
 }
 
 export function toWordResult(
   record: WordRecord,
-  search: string | Array<string>,
+  search: string,
   matchMode: MatchMode
 ): WordResult {
-  let kanjiMatches: number;
-  let kanaMatches: number;
-  let senseMatches: number;
+  const [kanjiMatches, kanaMatches, senseMatches] = getMatchMetadata(
+    record,
+    search as string,
+    matchMode
+  );
 
-  if (matchMode === MatchMode.Gloss) {
-    [kanjiMatches, kanaMatches, senseMatches] = getMatchMetadataForGlossLookup(
-      record,
-      search as Array<string>
-    );
-  } else {
-    [kanjiMatches, kanaMatches, senseMatches] = getMatchMetadata(
-      record,
-      search as string,
-      matchMode
-    );
-  }
+  return makeWordResult(record, kanjiMatches, kanaMatches, senseMatches, []);
+}
 
+type MatchedRange = [sense: number, gloss: number, start: number, end: number];
+
+export function toWordResultFromGlossLookup(
+  record: WordRecord,
+  matchedRanges: Array<MatchedRange>
+): WordResult {
+  const [
+    kanjiMatches,
+    kanaMatches,
+    senseMatches,
+  ] = getMatchMetadataForGlossLookup(record, matchedRanges);
+
+  return makeWordResult(
+    record,
+    kanjiMatches,
+    kanaMatches,
+    senseMatches,
+    matchedRanges
+  );
+}
+
+// ---------------------------------------------------------------------------
+//
+// Helpers
+//
+// ---------------------------------------------------------------------------
+
+function makeWordResult(
+  record: WordRecord,
+  kanjiMatches: number,
+  kanaMatches: number,
+  senseMatches: number,
+  matchedRanges: Array<MatchedRange>
+) {
   return {
     id: record.id,
     k: mergeMeta(record.k, record.km, kanjiMatches, (key, match, meta) => ({
@@ -68,11 +100,7 @@ export function toWordResult(
       ...meta,
       match,
     })),
-    s: record.s.map((sense, i) => ({
-      g: expandGlosses(sense),
-      ...stripFields(sense, ['g', 'gt']),
-      match: !!(senseMatches & (1 << i)),
-    })),
+    s: expandSenses(record.s, senseMatches, matchedRanges),
   };
 }
 
@@ -123,16 +151,7 @@ function getMatchMetadata(
   let senseMatches = 0;
   if (kanjiMatches) {
     // Case (1) from above: Find corresponding kana matches
-    const kanaIsMatch = (rm: ReadingMeta | null) =>
-      !rm || typeof rm.app === 'undefined' || !!(rm.app & kanjiMatches);
-
-    kanaMatches = arrayToBitfield(
-      // We need to extend the rm array with nulls so that any readings without
-      // meta fields are treated as applying to all kanji.
-      extendWithNulls(record.rm || [], record.r.length),
-      kanaIsMatch
-    );
-
+    kanaMatches = kanaMatchesForKanji(record, kanjiMatches);
     senseMatches = arrayToBitfield(record.s, (sense) => {
       if (typeof sense.kapp !== 'undefined') {
         return !!(sense.kapp & kanjiMatches);
@@ -143,15 +162,9 @@ function getMatchMetadata(
       }
     });
   } else if (matchMode === MatchMode.Lexeme) {
-    // Case (2) from above: Find kana matches whilst also remembering which
-    // kanji they apply to.
-    for (const [i, r] of record.r.entries()) {
-      if (r === search) {
-        kanaMatches = kanaMatches | (1 << i);
-        kanjiMatches |= kanjiMatchesForKana(record, i);
-      }
-    }
+    // Case (2) from above: Find kana matches and the kanji they apply to.
     kanaMatches = arrayToBitfield(record.r, (r) => r === search);
+    kanjiMatches = kanjiMatchesForKana(record, kanaMatches);
 
     senseMatches = arrayToBitfield(record.s, (sense) => {
       if (typeof sense.rapp !== 'undefined') {
@@ -167,23 +180,15 @@ function getMatchMetadata(
   return [kanjiMatches, kanaMatches, senseMatches];
 }
 
-function kanjiMatchesForKana(record: WordRecord, i: number) {
-  // A wild-card match is a bitfield with length equal to that of the kanji
-  // array with all bits set to 1.
-  const wildCardMatch = (1 << (record.k || []).length) - 1;
-
-  if (!record.rm || record.rm.length < i + 1) {
-    return wildCardMatch;
-  }
-
-  return record.rm[i]!.app ?? wildCardMatch;
-}
-
 function getMatchMetadataForGlossLookup(
   record: WordRecord,
-  search: Array<string>
+  matchedRanges: Array<MatchedRange>
 ): [kanjiMatches: number, kanaMatches: number, senseMatches: number] {
-  let senseMatches = 0;
+  const senseMatches = matchedRanges
+    .map(([sense]) => sense)
+    .reduce((value, senseIndex) => value | (1 << senseIndex), 0);
+
+  // Work out which kanji and readings also match
   let kanjiMatches = 0;
   let kanaMatches = 0;
 
@@ -191,42 +196,67 @@ function getMatchMetadataForGlossLookup(
   const kanaWildCard = (1 << (record.r || []).length) - 1;
 
   for (const [i, sense] of record.s.entries()) {
-    const senseTokens = getGlossTokensForSense(sense);
-    const containsAllTokens = search.every((token) => senseTokens.has(token));
-    if (containsAllTokens) {
-      senseMatches |= 1 << i;
+    if (!(senseMatches & (1 << i))) {
+      continue;
+    }
 
-      if (sense.kapp) {
-        kanjiMatches |= sense.kapp;
-      } else {
-        // TODO: If we have rapp, we should only apply kanji that the reading
-        // applies to.
-        kanjiMatches = kanjiWildCard;
-      }
-
-      if (sense.rapp) {
-        kanaMatches |= sense.rapp;
-      } else {
-        // TODO: If we have kapp, we should only apply readings that match
-        // the kanji we applied.
-        kanaMatches = kanaWildCard;
-      }
+    if (
+      typeof sense.kapp !== 'undefined' &&
+      typeof sense.rapp !== 'undefined'
+    ) {
+      kanjiMatches |= sense.kapp;
+      kanaMatches |= sense.rapp;
+    } else if (typeof sense.kapp !== 'undefined') {
+      kanjiMatches |= sense.kapp;
+      kanaMatches |= kanaMatchesForKanji(record, kanjiMatches);
+    } else if (typeof sense.rapp !== 'undefined') {
+      kanaMatches |= sense.rapp;
+      kanjiMatches = kanjiMatchesForKana(record, kanaMatches);
+    } else {
+      kanjiMatches = kanjiWildCard;
+      kanaMatches = kanaWildCard;
+      break;
     }
   }
 
   return [kanjiMatches, kanaMatches, senseMatches];
 }
 
-// TODO: We have a very similar function in store.ts.
-// Move this to tokenizer.ts or somesuch.
-function getGlossTokensForSense(sense: WordSense): Set<string> {
-  return new Set(
-    sense.g.reduce(
-      (tokens: Array<string>, gloss: string) =>
-        tokens.concat(...getTokens(gloss, sense.lang || 'en')),
-      []
-    )
+function kanaMatchesForKanji(record: WordRecord, kanjiMatches: number): number {
+  const kanaIsMatch = (rm: ReadingMeta | null) =>
+    !rm || typeof rm.app === 'undefined' || !!(rm.app & kanjiMatches);
+
+  return arrayToBitfield(
+    // We need to extend the rm array with nulls so that any readings without
+    // meta fields are treated as applying to all kanji.
+    extendWithNulls(record.rm || [], record.r.length),
+    kanaIsMatch
   );
+}
+
+function extendWithNulls<T>(
+  arr: Array<T | null>,
+  len: number
+): Array<T | null> {
+  const extra = Math.max(len - arr.length, 0);
+  return arr.concat(Array(extra).fill(null));
+}
+
+function kanjiMatchesForKana(record: WordRecord, kanaMatches: number): number {
+  const wildCardMatch = (1 << (record.k || []).length) - 1;
+  const matchingKanjiAtIndex = (i: number): number => {
+    if (!record.rm || record.rm.length < i + 1) {
+      return wildCardMatch;
+    }
+
+    return record.rm[i]!.app ?? wildCardMatch;
+  };
+
+  let matches = 0;
+  for (let i = 0; i < record.r.length; i++) {
+    matches |= kanaMatches & (1 << i) ? matchingKanjiAtIndex(i) : 0;
+  }
+  return matches;
 }
 
 function arrayToBitfield<T>(arr: Array<T>, test: (elem: T) => boolean): number {
@@ -256,29 +286,55 @@ function mergeMeta<MetaType extends KanjiMeta | ReadingMeta, MergedType>(
   return result;
 }
 
-function extendWithNulls<T>(
-  arr: Array<T | null>,
-  len: number
-): Array<T | null> {
-  const extra = Math.max(len - arr.length, 0);
-  return arr.concat(Array(extra).fill(null));
+function expandSenses(
+  senses: Array<WordSense>,
+  senseMatches: number,
+  matchedRanges: Array<MatchedRange>
+): Array<ExtendedSense> {
+  const getRangesForSense = (i: number): Array<MatchedRangeForGloss> =>
+    matchedRanges
+      .filter(([senseIndex]) => senseIndex === i)
+      .map(([_sense, gloss, start, end]) => [gloss, start, end]);
+
+  return senses.map((sense, i) => ({
+    g: expandGlosses(sense, getRangesForSense(i)),
+    ...stripFields(sense, ['g', 'gt']),
+    match: !!(senseMatches & (1 << i)),
+  }));
 }
 
-function expandGlosses(sense: WordSense): Array<Gloss> {
+type MatchedRangeForGloss = [gloss: number, start: number, end: number];
+
+function expandGlosses(
+  sense: WordSense,
+  matchedRanges: Array<MatchedRangeForGloss>
+): Array<Gloss> {
+  // Helpers to work out the gloss type
   const gt = sense.gt || 0;
   const typeMask = (1 << BITS_PER_GLOSS_TYPE) - 1;
   const glossTypeAtIndex = (i: number): GlossType => {
     return (gt >> (i * BITS_PER_GLOSS_TYPE)) & typeMask;
   };
+
   return sense.g.map((gloss, i) => {
     // This rather convoluted mess is because our test harness differentiates
     // between properties that are not set and those that are set to
     // undefined.
     const result: Gloss = { str: gloss };
+
     const type = glossTypeAtIndex(i);
     if (type !== GlossType.None) {
       result.type = type;
     }
+
+    let range: MatchedRangeForGloss | undefined;
+    while (matchedRanges.length && matchedRanges[0][0] <= i) {
+      range = matchedRanges.shift();
+    }
+    if (range) {
+      result.matched = range.slice(1) as [number, number];
+    }
+
     return result;
   });
 }
