@@ -2,10 +2,45 @@
 
 export function getTokens(str: string, lang: string): Array<string> {
   const lc = str.toLocaleLowerCase(lang);
-  const tokens = [...new Set(lc.split(/[\W|_]+/))];
+  const tokens = [...new Set(tokenize(lc, lang))];
   const withoutStopwords = tokens.filter(isNotStopWord);
   // If we have only stop words, we should return them
   return withoutStopwords.length ? withoutStopwords : tokens;
+}
+
+function tokenize(str: string, lang: string): Array<string> {
+  switch (lang) {
+    case 'de':
+      return str.split(/[^a-zäöüß0-9]+/);
+
+    case 'ru':
+      return str.split(/[^a-zа-яё0-9]/);
+
+    case 'es':
+      return str.split(/[^a-zá-úñü0-9]+/);
+
+    case 'hu':
+      return str.split(/[^a-záéíóúöüőű0-9]+/);
+
+    case 'sv':
+      return str.split(/[^a-z0-9åäöü0-9]+/);
+
+    case 'fr':
+      return str.split(/[^a-z0-9äâàéèëêïîöôùüûæœçÿ]+/);
+
+    case 'sl':
+      return str.split(/[^a-z0-9_čšžáéíóúŕêôàèìòù]+/);
+
+    case 'nl':
+      return str.split(/[^a-záéíóúàèëïöüĳ]+/);
+
+    default:
+      console.error(`Unrecognized language ${lang}`);
+    /* Fall through to default tokenizer */
+
+    case 'en':
+      return str.split(/\W+/);
+  }
 }
 
 function isNotStopWord(token: string): boolean {
@@ -35,10 +70,6 @@ const ENGLISH_STOPWORDS = new Set<string>([
   'your', 'yours', 'yourself', 'yourselves',
 ]);
 
-// Tokenizers
-//
-// https://github.com/NaturalNode/natural/tree/master/lib/natural/tokenizers
-//
 // Stop words
 //
 // English:
