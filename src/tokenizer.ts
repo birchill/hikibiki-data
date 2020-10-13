@@ -1,9 +1,25 @@
-// THIS IS ALL JUST PROOF-OF-CONCEPT! DON'T PAY ANY ATTENTION TO IT!
-
 export function getTokens(str: string, lang: string): Array<string> {
-  // Tokenize
+  // Drop any content in parentheses. These shouldn't be added to the index
+  // and presumably no one types things in parentheses when searching?
+  //
+  // Some example strings from the database:
+  //
+  //   Essais {werk in drie boeken (I en II in 1580; III in 1588) van Michel Montaigne (1533-1592)}
+  //   {tafeltennis} rand van de tafel
+  //   Äthylen (ungesättigter Kohlenwasserstoff; C₂H₄)
+  //   ((нем.) Athylen) (хим.) этилен
+  //
+  // Nested parentheses like the last one won't work but fixing that is _really_
+  // hard.
   const lc = str.toLocaleLowerCase(lang);
-  const tokens = [...new Set(tokenize(lc, lang))];
+  const withoutParens = lc
+    .replace(/\([^)]*\)/g, '')
+    .replace(/\{[^}]*\}/g, '')
+    .replace(/\s+\}/g, ' ')
+    .trim();
+
+  // Tokenize
+  const tokens = [...new Set(tokenize(withoutParens, lang))];
 
   // Stop words
   const stopWordFilter = (word: string) => isNotStopWord(word, lang);
