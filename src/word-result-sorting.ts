@@ -70,7 +70,7 @@ function getPrioritySum(priorities: Array<string>): number {
 const PRIORITY_ASSIGNMENTS: Map<string, number> = new Map([
   ['i1', 50], // Top 10,000 words minus i2 (from 1998) (P)
   ['i2', 20],
-  ['n1', 40], // Top on 12,000 words in newspapers (from 2003?) (P)
+  ['n1', 40], // Top 12,000 words in newspapers (from 2003?) (P)
   ['n2', 20], // Next 12,000
   ['s1', 45], // "Speculative" annotations? Seem pretty common to me. (P)
   ['s2', 30], // (P)
