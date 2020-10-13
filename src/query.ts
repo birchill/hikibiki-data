@@ -12,12 +12,12 @@ import {
 import { getTokens } from './tokenizer';
 import { stripFields } from './utils';
 import {
-  sortResultsByFrequency,
   toWordResult,
   toWordResultFromGlossLookup,
   MatchMode,
   WordResult,
 } from './word-result';
+import { getPriority, sortResultsByPriority } from './word-result-sorting';
 
 // Database query methods
 //
@@ -146,7 +146,7 @@ export async function getWords(search: string): Promise<Array<WordResult>> {
     maybeAddRecord(cursor.value, hiragana);
   }
 
-  return sortResultsByFrequency(results);
+  return sortResultsByPriority(results);
 }
 
 export async function getWordsWithKanji(
@@ -177,18 +177,15 @@ export async function getWordsWithKanji(
     results.push(toWordResult(cursor.value, lookup, MatchMode.Kanji));
   }
 
-  return sortResultsByFrequency(results);
+  return sortResultsByPriority(results);
 }
 
-type GlossSearchRecordMeta = {
+type GlossSearchResultMeta = {
   // A value between 1 and 10.5 for how much of the gloss matched.
   confidence: number;
 
-  // The character ranges in matched glosses.
-  //
-  // (We use standard JS character offsets because we don't expect non-BMP
-  // data in glosses for any of the languages we support.)
-  matchedRanges: Array<MatchedRange>;
+  // A number between 0 and 67 representing the priority of the result.
+  priority: number;
 
   // Was this a match on a localized gloss, as opposed to falling back to an
   // English gloss? We weight localized results more highly.
@@ -226,57 +223,64 @@ export async function getWordsWithGloss(
   const actualLimit = Math.max(limit || 0, 0) || 100;
 
   // Set up our output value.
-  const recordMeta: Map<number, GlossSearchRecordMeta> = new Map();
-  let records: Array<WordRecord> = [];
+  const resultMeta: Map<number, GlossSearchResultMeta> = new Map();
+  let results: Array<WordResult> = [];
 
   // First search using the specified locale (if not English).
   if (lang !== 'en') {
-    const results = await lookUpGlosses(db, search, lang, actualLimit);
-    for (const [record, confidence, matchedRanges] of results) {
-      recordMeta.set(record.id, {
+    const records = await lookUpGlosses(db, search, lang, actualLimit);
+    for (const [record, confidence, matchedRanges] of records) {
+      const result = toWordResultFromGlossLookup(record, matchedRanges);
+      const priority = getPriority(result);
+
+      results.push(result);
+      resultMeta.set(record.id, {
         confidence,
-        matchedRanges,
+        priority,
         localizedMatch: true,
       });
-      records.push(record);
     }
   }
 
   // Look up English fallback glosses
-  const remainingLimit = actualLimit - records.length;
+  const remainingLimit = actualLimit - results.length;
   if (remainingLimit) {
-    const results = await lookUpGlosses(db, search, 'en', remainingLimit);
-    for (const [record, confidence, matchedRanges] of results) {
+    const records = await lookUpGlosses(db, search, 'en', remainingLimit);
+    for (const [record, confidence, matchedRanges] of records) {
       // If we already added this record as a localized match, skip it.
-      if (lang !== 'en' && recordMeta.has(record.id)) {
+      if (lang !== 'en' && resultMeta.has(record.id)) {
         continue;
       }
 
-      recordMeta.set(record.id, {
+      const result = toWordResultFromGlossLookup(record, matchedRanges);
+      const priority = getPriority(result);
+
+      results.push(result);
+      resultMeta.set(record.id, {
         confidence,
-        matchedRanges,
-        localizedMatch: false,
+        priority,
+        localizedMatch: true,
       });
-      records.push(record);
     }
   }
 
-  // Prepare the result
+  // Sort using the following scoring:
   //
-  // TODO: Does this really need to be a separate step? Or could we do it
-  // while adding to records in the first place? Then we wouldn't need to store
-  // it in the hashmap
-  const results: Array<WordResult> = records.map((record) => {
-    const matchedRanges = recordMeta.get(record.id)?.matchedRanges || [];
-    return toWordResultFromGlossLookup(record, matchedRanges);
+  // * Confidence value (value 0 to 10.5) scaled to a value from 0~105
+  // * Priority value in the range 0~67
+  // * Localized vs English fallback: +50 for a localized result
+  //
+  const recordScore = (id: number): number => {
+    const meta = resultMeta.get(id)!;
+    return (
+      meta.confidence * 10 + meta.priority + (meta.localizedMatch ? 50 : 0)
+    );
+  };
+  results.sort((a, b) => {
+    return recordScore(b.id)! - recordScore(a.id)!;
   });
 
-  // Sort
-  // -- Confidence value (value 1 to 10) -> * 10 -> value from 1~100
-  // -- Frequency (we should scale this to a value from 1~50)
-  // -- Locale vs English fallback (+50 for locale)
-
-  return sortResultsByFrequency(results);
+  return results;
 }
 
 async function lookUpGlosses(

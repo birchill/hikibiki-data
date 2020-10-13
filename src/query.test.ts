@@ -768,6 +768,14 @@ describe('query', function () {
     const result = await getWordsWithKanji('仙');
     const expected: Array<WordResult> = [
       {
+        id: 2164680,
+        k: [{ ent: '仙台', p: ['s1'], match: true }],
+        r: [{ ent: 'せんだい', p: ['s1'], a: 1, match: true }],
+        s: [
+          { g: [{ str: 'Sendai (city in Miyagi)' }], pos: ['n'], match: true },
+        ],
+      },
+      {
         id: 1387170,
         k: [
           { ent: '仙人', p: ['n2', 'nf34', 's2'], match: true },
@@ -792,14 +800,6 @@ describe('query', function () {
             ],
             match: true,
           },
-        ],
-      },
-      {
-        id: 2164680,
-        k: [{ ent: '仙台', p: ['s1'], match: true }],
-        r: [{ ent: 'せんだい', p: ['s1'], a: 1, match: true }],
-        s: [
-          { g: [{ str: 'Sendai (city in Miyagi)' }], pos: ['n'], match: true },
         ],
       },
     ];
