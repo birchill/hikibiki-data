@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [6.3.2](https://github.com/birchill/hikibiki-data/compare/v6.3.1...v6.3.2) (2020-10-14)
+
+
+### Bug Fixes
+
+* Store stopword data as arrays ([14251c3](https://github.com/birchill/hikibiki-data/commit/14251c3a519c345ad86c7270f3c1988341b8c0d1))
+
 ### [6.3.1](https://github.com/birchill/hikibiki-data/compare/v6.3.0...v6.3.1) (2020-10-14)
 
 
