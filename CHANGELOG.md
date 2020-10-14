@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [6.3.1](https://github.com/birchill/hikibiki-data/compare/v6.3.0...v6.3.1) (2020-10-14)
+
+
+### Bug Fixes
+
+* Generate CJS and ESM targets ([f8b292c](https://github.com/birchill/hikibiki-data/commit/f8b292cf981b448675f4ce93f08b4ffc74b9e8fd))
+
 ## [6.3.0](https://github.com/birchill/hikibiki-data/compare/v6.2.3...v6.3.0) (2020-10-14)
 
 
