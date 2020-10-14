@@ -65,7 +65,7 @@ function tokenize(str: string, lang: string): Array<string> {
 }
 
 function isNotStopWord(token: string, lang: string): boolean {
-  const stopWords = STOPWORDS[lang] || new Set([]);
+  const stopWords = getStopWordSet(lang);
   return token.length > 1 && !stopWords.has(token);
 }
 
@@ -83,7 +83,7 @@ function isNotStopWord(token: string, lang: string): boolean {
 // "an".
 
 // prettier-ignore
-const ENGLISH_STOPWORDS = new Set<string>([
+const ENGLISH_STOPWORDS = [
   'a', 'am', 'an', 'and', 'are', "aren't", 'as', 'at', 'be', 'because',
   'been', 'being', 'between', 'both', 'but', 'by', "can't", 'cannot',
   "couldn't", 'did', "didn't", 'do', 'does', "doesn't", 'doing', "don't",
@@ -101,19 +101,19 @@ const ENGLISH_STOPWORDS = new Set<string>([
   "who's", 'whom', 'why', "why's", 'with', "won't", 'would', "wouldn't",
   'you', "you'd", "you'll", "you're", "you've", 'your', 'yours', 'yourself',
   'yourselves',
-]);
+];
 
 // prettier-ignore
-const DUTCH_STOPWORDS = new Set<string>([
+const DUTCH_STOPWORDS = [
   'aan', 'af', 'al', 'als', 'bij', 'dan', 'dat', 'die', 'dit', 'een', 'en',
   'er', 'had', 'heb', 'hem', 'het', 'hij', 'hoe', 'hun', 'ik', 'in', 'is',
   'je', 'kan', 'me', 'men', 'met', 'mij', 'nog', 'nu', 'of', 'ons', 'ook',
   'te', 'tot', 'uit', 'van', 'was', 'wat', 'we', 'wel', 'wij', 'zal', 'ze',
   'zei', 'zij', 'zo', 'zou',
-]);
+];
 
 // prettier-ignore
-const GERMAN_STOPWORDS = new Set<string>([
+const GERMAN_STOPWORDS = [
   'aber', 'als', 'am', 'an', 'auch', 'auf', 'aus', 'bei', 'bin', 'bis', 'bist',
   'da', 'dadurch', 'daher', 'darum', 'das', 'daß', 'dass', 'dein', 'deine',
   'dem', 'den', 'der', 'des', 'dessen', 'deshalb', 'die', 'dies', 'dieser',
@@ -129,10 +129,10 @@ const GERMAN_STOPWORDS = new Set<string>([
   'weiter', 'weitere', 'wenn', 'wer', 'werde', 'werden', 'werdet', 'weshalb',
   'wie', 'wieder', 'wieso', 'wir', 'wird', 'wirst', 'wo', 'woher', 'wohin',
   'zu', 'zum', 'zur', 'über'
-]);
+];
 
 // prettier-ignore
-const RUSSIAN_STOPWORDS = new Set<string>([
+const RUSSIAN_STOPWORDS = [
   'а', 'е', 'и', 'ж', 'м', 'о', 'на', 'не', 'ни', 'об', 'но', 'он', 'мне',
   'мои', 'мож', 'она', 'они', 'оно', 'мной', 'много', 'многочисленное',
   'многочисленная', 'многочисленные', 'многочисленный', 'мною', 'мой', 'мог',
@@ -184,10 +184,10 @@ const RUSSIAN_STOPWORDS = new Set<string>([
   'этом', 'этому', 'этой', 'этого', 'чтобы', 'этот', 'стал', 'туда', 'этим',
   'этими', 'рядом', 'тринадцать', 'тринадцатый', 'этих', 'третий', 'тут', 'эту',
   'суть', 'чуть', 'тысяч'
-]);
+];
 
 // prettier-ignore
-const SPANISH_STOPWORDS = new Set<string>([
+const SPANISH_STOPWORDS = [
   'un', 'una', 'unas', 'unos', 'uno', 'sobre', 'todo', 'también', 'tras',
   'otro', 'algún', 'alguno', 'alguna', 'algunos', 'algunas', 'ser', 'es', 'soy',
   'eres', 'somos', 'sois', 'estoy', 'esta', 'estamos', 'estais', 'estan',
@@ -211,18 +211,18 @@ const SPANISH_STOPWORDS = new Set<string>([
   'quien', 'con', 'entre', 'sin', 'trabajo', 'trabajar', 'trabajas', 'trabaja',
   'trabajamos', 'trabajais', 'trabajan', 'podria', 'podrias', 'podriamos',
   'podrian', 'podriais','yo', 'aquel',
-]);
+];
 
 // prettier-ignore
-const HUNGARIAN_STOPWORDS = new Set<string>([
+const HUNGARIAN_STOPWORDS = [
   'a', 'az', 'egy', 'be', 'ki', 'le', 'fel', 'meg', 'el', 'át', 'rá', 'ide',
   'oda', 'szét', 'össze', 'vissza', 'de', 'hát', 'és', 'vagy', 'hogy', 'van',
   'lesz', 'volt', 'csak', 'nem', 'igen', 'mint', 'én', 'te', 'õ', 'mi', 'ti',
   'õk', 'ön',
-]);
+];
 
 // prettier-ignore
-const SWEDISH_STOPWORDS = new Set<string>([
+const SWEDISH_STOPWORDS = [
   'aderton', 'adertonde', 'adjö', 'aldrig', 'alla', 'allas', 'allt', 'alltid',
   'alltså', 'än', 'andra', 'andras', 'annan', 'annat', 'ännu', 'artonde',
   'artonn', 'åtminstone', 'att', 'åtta', 'åttio', 'åttionde', 'åttonde', 'av',
@@ -270,10 +270,10 @@ const SWEDISH_STOPWORDS = new Set<string>([
   'vara', 'våra', 'varför', 'varifrån', 'varit', 'varken', 'värre', 'varsågod',
   'vart', 'vårt', 'vem', 'vems', 'verkligen', 'vi', 'vid', 'vidare', 'viktig',
   'viktigare', 'viktigast', 'viktigt', 'vilka', 'vilken', 'vilket', 'vill',
-]);
+];
 
 // prettier-ignore
-const FRENCH_STOPWORDS = new Set<string>([
+const FRENCH_STOPWORDS = [
   'alors', 'au', 'aucuns', 'aussi', 'autre', 'avant', 'avec', 'avoir', 'bon',
   'car', 'ce', 'cela', 'ces', 'ceux', 'chaque', 'ci', 'comme', 'comment',
   'dans', 'des', 'du', 'dedans', 'dehors', 'depuis', 'devrait', 'doit', 'donc',
@@ -287,13 +287,13 @@ const FRENCH_STOPWORDS = new Set<string>([
   'ta', 'tandis', 'tellement', 'tels', 'tes', 'ton', 'tous', 'tout', 'trop',
   'très', 'tu', 'voient', 'vont', 'votre', 'vous', 'vu', 'ça', 'étaient',
   'état', 'étions', 'été', 'être',
-]);
+];
 
 // The following list is almost certainly too aggressive but I don't know
 // Slovene so I don't know which to drop. I've already dropped several hundred.
 
 // prettier-ignore
-const SLOVENE_STOPWORDS = new Set<string>([
+const SLOVENE_STOPWORDS = [
   'a', 'ali', 'b', 'bi', 'bil', 'bila', 'bile', 'bili', 'bilo', 'biti', 'blizu',
   'bo', 'bodo', 'bojo', 'bolj', 'bom', 'bomo', 'boste', 'bova', 'boš', 'brez',
   'c', 'd', 'da', 'daleč', 'dan', 'datum', 'do', 'dokler', 'dol', 'e', 'eden',
@@ -325,9 +325,9 @@ const SLOVENE_STOPWORDS = new Set<string>([
   'vsakdo', 'vsake', 'vsaki', 'vsakomur', 'vse', 'vsega', 'vsi', 'vso',
   'včasih', 'x', 'z', 'za', 'zadnji', 'zakaj', 'zdaj', 'zelo', 'zunaj', 'č',
   'če', 'često', 'čez', 'čigav', 'š', 'ž', 'že'
-]);
+];
 
-const STOPWORDS: { [lang: string]: Set<string> } = {
+const STOPWORDS: { [lang: string]: Array<string> } = {
   en: ENGLISH_STOPWORDS,
   nl: DUTCH_STOPWORDS,
   de: GERMAN_STOPWORDS,
@@ -338,3 +338,15 @@ const STOPWORDS: { [lang: string]: Set<string> } = {
   fr: FRENCH_STOPWORDS,
   sl: SLOVENE_STOPWORDS,
 };
+
+// We store these as arrays and generate Sets on demand so we can tree-shake
+// the data.
+
+const stopWordSetCache: { [lang: string]: Set<string> } = {};
+
+function getStopWordSet(lang: string): Set<string> {
+  if (!stopWordSetCache[lang]) {
+    stopWordSetCache[lang] = new Set(STOPWORDS[lang] || []);
+  }
+  return stopWordSetCache[lang];
+}
