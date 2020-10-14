@@ -1,7 +1,7 @@
 import { assert } from 'chai';
 import fetchMock from 'fetch-mock';
 
-import { JpdictDatabase } from './database';
+import { JpdictFullTextDatabase } from './database-fulltext';
 import {
   getKanji,
   getNames,
@@ -52,12 +52,12 @@ const VERSION_INFO = {
 };
 
 describe('query', function () {
-  let db: JpdictDatabase;
+  let db: JpdictFullTextDatabase;
 
   this.timeout(15000);
 
   beforeEach(() => {
-    db = new JpdictDatabase();
+    db = new JpdictFullTextDatabase();
   });
 
   afterEach(async () => {

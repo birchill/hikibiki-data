@@ -1,4 +1,4 @@
-import { WordRecord } from './store';
+import { WordRecord } from './records';
 import { stripFields } from './utils';
 import {
   BITS_PER_GLOSS_TYPE,

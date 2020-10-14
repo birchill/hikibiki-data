@@ -2,13 +2,8 @@ import { IDBPDatabase, IDBPTransaction, openDB } from 'idb/with-async-ittr';
 import { kanaToHiragana } from '@birchill/normal-jp';
 
 import { KanjiEntryLine, Misc, Readings } from './kanji';
-import {
-  KanjiRecord,
-  NameRecord,
-  WordRecord,
-  JpdictSchema,
-  RadicalRecord,
-} from './store';
+import { KanjiRecord, NameRecord, WordRecord, RadicalRecord } from './records';
+import { JpdictSchema } from './store';
 import { getTokens } from './tokenizer';
 import { stripFields } from './utils';
 import {

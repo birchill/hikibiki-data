@@ -19,10 +19,10 @@
     "noUnusedLocals": true,
     "outDir": "dist",
     "pretty": true,
+    "rootDir": "./src",
     "sourceMap": true,
     "strictNullChecks": true,
-    "target": "es2017"
+    "target": "es2018"
   },
-  "include": ["./src/**/*"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "dist"]
 }

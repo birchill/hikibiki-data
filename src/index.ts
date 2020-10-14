@@ -14,6 +14,7 @@ export {
   DataSeriesState,
   JpdictDatabase,
 } from './database';
+export { JpdictFullTextDatabase } from './database-fulltext';
 export { DownloadError, DownloadErrorCode } from './download';
 export { NameTranslation, NameType, allNameTypes, isNameType } from './names';
 export { UpdateErrorState, toUpdateErrorState } from './update-error-state';
@@ -50,4 +51,4 @@ export {
   allPartsOfSpeech,
   isPartOfSpeech,
 } from './words';
-export { WordResult } from './word-result';
+export { Gloss, WordResult } from './word-result';

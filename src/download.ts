@@ -244,7 +244,7 @@ function waitWithTimeout<T>(promise: Promise<T>, url?: string): Promise<T> {
   let timeoutId: number;
 
   const timeoutPromise = new Promise((_, reject) => {
-    timeoutId = setTimeout(() => {
+    timeoutId = window.setTimeout(() => {
       clearTimeout(timeoutId);
       reject(
         new DownloadError(

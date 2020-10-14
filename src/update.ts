@@ -4,21 +4,8 @@ import { DownloadEvent } from './download';
 import { KanjiEntryLine, KanjiDeletionLine } from './kanji';
 import { RadicalEntryLine, RadicalDeletionLine } from './radicals';
 import { NameEntryLine, NameDeletionLine } from './names';
-import {
-  getIdForKanjiRecord,
-  getIdForRadicalRecord,
-  getIdForNameRecord,
-  getIdForWordRecord,
-  toKanjiRecord,
-  toRadicalRecord,
-  toNameRecord,
-  toWordRecord,
-  JpdictStore,
-  KanjiRecord,
-  RadicalRecord,
-  NameRecord,
-  WordRecord,
-} from './store';
+import { KanjiRecord, RadicalRecord, NameRecord, WordRecord } from './records';
+import { JpdictStore } from './store';
 import { UpdateAction } from './update-actions';
 import { stripFields } from './utils';
 import { WordEntryLine, WordDeletionLine } from './words';
@@ -69,8 +56,8 @@ export async function updateWords(
   return update<WordEntryLine, WordDeletionLine, WordRecord, number>({
     ...options,
     series: 'words',
-    toRecord: toWordRecord,
-    getId: getIdForWordRecord,
+    toRecord: options.store.toWordRecord,
+    getId: options.store.getIdForWordRecord,
   });
 }
 
@@ -80,8 +67,8 @@ export async function updateKanji(
   return update<KanjiEntryLine, KanjiDeletionLine, KanjiRecord, number>({
     ...options,
     series: 'kanji',
-    toRecord: toKanjiRecord,
-    getId: getIdForKanjiRecord,
+    toRecord: options.store.toKanjiRecord,
+    getId: options.store.getIdForKanjiRecord,
   });
 }
 
@@ -91,8 +78,8 @@ export async function updateRadicals(
   return update<RadicalEntryLine, RadicalDeletionLine, RadicalRecord, string>({
     ...options,
     series: 'radicals',
-    toRecord: toRadicalRecord,
-    getId: getIdForRadicalRecord,
+    toRecord: options.store.toRadicalRecord,
+    getId: options.store.getIdForRadicalRecord,
   });
 }
 
@@ -102,8 +89,8 @@ export async function updateNames(
   return update<NameEntryLine, NameDeletionLine, NameRecord, number>({
     ...options,
     series: 'names',
-    toRecord: toNameRecord,
-    getId: getIdForNameRecord,
+    toRecord: options.store.toNameRecord,
+    getId: options.store.getIdForNameRecord,
   });
 }
 
