@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.3.0](https://github.com/birchill/hikibiki-data/compare/v6.2.3...v6.3.0) (2020-10-14)
+
+
+### Features
+
+* Add ability to search for words that contain a particular kanji ([0d026a0](https://github.com/birchill/hikibiki-data/commit/0d026a0f8f6930328486faeab30b14a444315bb9))
+* Add searching for words ([afb5776](https://github.com/birchill/hikibiki-data/commit/afb57766eb8b70a35d96392388b42b89c3b3ea2e))
+* Add searching for words by gloss ([82a4658](https://github.com/birchill/hikibiki-data/commit/82a46588ad95824ef773efae00ac06dc8ac90cae))
+* Add stopwords for all supported languages ([8a0380b](https://github.com/birchill/hikibiki-data/commit/8a0380bc9ef8ac1f51fe72df2c3e44ee476feb90))
+* Make full-text searching feature configurable ([1eb53b5](https://github.com/birchill/hikibiki-data/commit/1eb53b5c540ba60bec55fd6dead8d2da920f5f7e))
+
+
+### Bug Fixes
+
+* Add various tokenizers ([0aa7a71](https://github.com/birchill/hikibiki-data/commit/0aa7a71ed5ee4bea29d4b044724f29665b97aedf))
+* Completely redo gloss searching to search on substrings of phrases ([bc7bf96](https://github.com/birchill/hikibiki-data/commit/bc7bf969bd5bac7e6829be812afe8813bc72cf2d))
+* Drop text in parentheses before tokenizing ([f142caf](https://github.com/birchill/hikibiki-data/commit/f142cafdb4cbc01fba4c0b7c5b498038205f8e43))
+* Fix various bugs related to sense match metadata ([e456c68](https://github.com/birchill/hikibiki-data/commit/e456c68d7adba264514eb7780e720bfb06cd3849))
+* Normalize gloss information ([fc4d44c](https://github.com/birchill/hikibiki-data/commit/fc4d44ce60307759343b1a53d55f3d4e546dd969))
+
 ### [6.2.3](https://github.com/birchill/hikibiki-data/compare/v6.2.2...v6.2.3) (2020-09-07)
 
 ### [6.2.2](https://github.com/birchill/hikibiki-data/compare/v6.2.1...v6.2.2) (2020-09-07)
