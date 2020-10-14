@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [6.3.3](https://github.com/birchill/hikibiki-data/compare/v6.3.2...v6.3.3) (2020-10-14)
+
+
+### Bug Fixes
+
+* Replace window.setTimeout with self.setTimeout ([94a4d46](https://github.com/birchill/hikibiki-data/commit/94a4d461202e40c2a902c04aa5e4a120e0254451))
+
 ### [6.3.2](https://github.com/birchill/hikibiki-data/compare/v6.3.1...v6.3.2) (2020-10-14)
 
 
