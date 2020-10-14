@@ -19,7 +19,9 @@
   "files": [
     "dist"
   ],
-  "main": "dist/index.js",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "typings": "dist/esm/index.d.ts",
   "homepage": "https://github.com/birchill/hikibiki#readme",
   "dependencies": {
     "@birchill/json-equalish": "^1.0.1",
