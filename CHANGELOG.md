@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.4.0](https://github.com/birchill/hikibiki-data/compare/v6.3.3...v6.4.0) (2020-10-19)
+
+
+### Features
+
+* Add startsWith matches for word dictionary ([bfa74c9](https://github.com/birchill/hikibiki-data/commit/bfa74c9afcf4968e6587c856dbb87bf55371af38))
+
+
+### Bug Fixes
+
+* Don't print out the whole version object as part of the error message ([42813ae](https://github.com/birchill/hikibiki-data/commit/42813ae9102b2a9750963cc67002f727b002301c))
+* Fix word data validation routine ([49fba82](https://github.com/birchill/hikibiki-data/commit/49fba822250bd2c3f8d98ea597e7b0391389c93a))
+
 ### [6.3.3](https://github.com/birchill/hikibiki-data/compare/v6.3.2...v6.3.3) (2020-10-14)
 
 
