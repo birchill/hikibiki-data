@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [6.4.1](https://github.com/birchill/hikibiki-data/compare/v6.4.0...v6.4.1) (2020-10-19)
+
+
+### Bug Fixes
+
+* Export KanjiInfo and ReadingInfo types ([cb26534](https://github.com/birchill/hikibiki-data/commit/cb2653434c3b72ef96a618bc851ee35e81fb2b2b))
+* Rename Gloss.matched to Gloss.matchRange ([7f04a1b](https://github.com/birchill/hikibiki-data/commit/7f04a1b3f9f6227572d970d798f652b90be2458d))
+
 ## [6.4.0](https://github.com/birchill/hikibiki-data/compare/v6.3.3...v6.4.0) (2020-10-19)
 
 
