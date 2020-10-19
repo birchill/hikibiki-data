@@ -21,8 +21,20 @@ export type WordResult = {
   s: Array<ExtendedSense>;
 };
 
-type ExtendedKanjiEntry = { ent: string; match: boolean } & KanjiMeta;
-type ExtendedKanaEntry = { ent: string; match: boolean } & ReadingMeta;
+type ExtendedKanjiEntry = {
+  ent: string;
+  match: boolean;
+  // If set, indicates that the match occurred on this headword and
+  // indicates the range of characters that matched.
+  matchRange?: [start: number, end: number];
+} & KanjiMeta;
+type ExtendedKanaEntry = {
+  ent: string;
+  match: boolean;
+  // If set, indicates that the match occurred on this headword and
+  // indicates the range of characters that matched.
+  matchRange?: [start: number, end: number];
+} & ReadingMeta;
 type ExtendedSense = { match: boolean; g: Array<Gloss> } & Omit<
   WordSense,
   'g' | 'gt'
@@ -37,6 +49,7 @@ export type Gloss = {
 
 export const enum MatchMode {
   Lexeme,
+  StartsWithLexeme,
   Kanji,
 }
 
@@ -45,20 +58,35 @@ export function toWordResult(
   search: string,
   matchMode: MatchMode
 ): WordResult {
-  const [kanjiMatches, kanaMatches, senseMatches] = getMatchMetadata(
-    record,
-    search as string,
-    matchMode
-  );
+  const [
+    kanjiMatches,
+    kanjiMatchRanges,
+    kanaMatches,
+    kanaMatchRanges,
+    senseMatches,
+  ] = getMatchMetadata(record, search as string, matchMode);
 
-  return makeWordResult(record, kanjiMatches, kanaMatches, senseMatches, []);
+  return makeWordResult(
+    record,
+    kanjiMatches,
+    kanjiMatchRanges,
+    kanaMatches,
+    kanaMatchRanges,
+    senseMatches,
+    []
+  );
 }
 
-type MatchedRange = [sense: number, gloss: number, start: number, end: number];
+type MatchedSenseAndGlossRange = [
+  sense: number,
+  gloss: number,
+  start: number,
+  end: number
+];
 
 export function toWordResultFromGlossLookup(
   record: WordRecord,
-  matchedRanges: Array<MatchedRange>
+  matchedRanges: Array<MatchedSenseAndGlossRange>
 ): WordResult {
   const [
     kanjiMatches,
@@ -69,7 +97,9 @@ export function toWordResultFromGlossLookup(
   return makeWordResult(
     record,
     kanjiMatches,
+    [],
     kanaMatches,
+    [],
     senseMatches,
     matchedRanges
   );
@@ -81,26 +111,54 @@ export function toWordResultFromGlossLookup(
 //
 // ---------------------------------------------------------------------------
 
+type MatchedHeadwordRange = [index: number, start: number, end: number];
+
 function makeWordResult(
   record: WordRecord,
   kanjiMatches: number,
+  kanjiMatchRanges: Array<MatchedHeadwordRange>,
   kanaMatches: number,
+  kanaMatchRanges: Array<MatchedHeadwordRange>,
   senseMatches: number,
-  matchedRanges: Array<MatchedRange>
+  matchedGlossRanges: Array<MatchedSenseAndGlossRange>
 ) {
   return {
     id: record.id,
-    k: mergeMeta(record.k, record.km, kanjiMatches, (key, match, meta) => ({
-      ent: key,
-      ...meta,
-      match,
-    })),
-    r: mergeMeta(record.r, record.rm, kanaMatches, (key, match, meta) => ({
-      ent: key,
-      ...meta,
-      match,
-    })),
-    s: expandSenses(record.s, senseMatches, matchedRanges),
+    k: mergeMeta(
+      record.k,
+      record.km,
+      kanjiMatches,
+      kanjiMatchRanges,
+      (key, match, matchRange, meta) => {
+        const result: ExtendedKanjiEntry = {
+          ent: key,
+          ...meta,
+          match,
+        };
+        if (matchRange) {
+          result.matchRange = matchRange;
+        }
+        return result;
+      }
+    ),
+    r: mergeMeta(
+      record.r,
+      record.rm,
+      kanaMatches,
+      kanaMatchRanges,
+      (key, match, matchRange, meta) => {
+        const result: ExtendedKanaEntry = {
+          ent: key,
+          ...meta,
+          match,
+        };
+        if (matchRange) {
+          result.matchRange = matchRange;
+        }
+        return result;
+      }
+    ),
+    s: expandSenses(record.s, senseMatches, matchedGlossRanges),
   };
 }
 
@@ -108,7 +166,13 @@ function getMatchMetadata(
   record: WordRecord,
   search: string,
   matchMode: MatchMode
-): [kanjiMatches: number, kanaMatches: number, senseMatches: number] {
+): [
+  kanjiMatches: number,
+  kanjiMatchRanges: Array<MatchedHeadwordRange>,
+  kanaMatches: number,
+  kanaMatchRanges: Array<MatchedHeadwordRange>,
+  senseMatches: number
+] {
   // There are three cases:
   //
   // 1) We matched on a kanji entry
@@ -141,14 +205,41 @@ function getMatchMetadata(
   // Because of (3), we just always search both arrays.
 
   // First build up a bitfield of all kanji matches.
-  const kanjiMatcher: (k: string) => boolean =
-    matchMode === MatchMode.Lexeme
-      ? (k) => k === search
-      : (k) => [...k].includes(search);
+  const kanjiMatcher: (k: string) => boolean = (k) => {
+    switch (matchMode) {
+      case MatchMode.Lexeme:
+        return k === search;
+      case MatchMode.StartsWithLexeme:
+        return k.startsWith(search);
+      case MatchMode.Kanji:
+        return [...k].includes(search);
+    }
+  };
   let kanjiMatches = arrayToBitfield(record.k || [], kanjiMatcher);
+
+  // Fill out any match information
+  const kanjiMatchRanges: Array<MatchedHeadwordRange> = [];
+  for (let i = 0; i < (record.k?.length || 0); i++) {
+    if (kanjiMatches & (1 << i)) {
+      switch (matchMode) {
+        case MatchMode.Lexeme:
+        case MatchMode.StartsWithLexeme:
+          kanjiMatchRanges.push([i, 0, search.length]);
+          break;
+
+        case MatchMode.Kanji:
+          {
+            const index = [...record.k![i]].indexOf(search);
+            kanjiMatchRanges.push([i, index, index + 1]);
+          }
+          break;
+      }
+    }
+  }
 
   let kanaMatches = 0;
   let senseMatches = 0;
+  const kanaMatchRanges: Array<MatchedHeadwordRange> = [];
   if (kanjiMatches) {
     // Case (1) from above: Find corresponding kana matches
     kanaMatches = kanaMatchesForKanji(record, kanjiMatches);
@@ -161,9 +252,16 @@ function getMatchMetadata(
         return true;
       }
     });
-  } else if (matchMode === MatchMode.Lexeme) {
+  } else if (
+    matchMode === MatchMode.Lexeme ||
+    matchMode === MatchMode.StartsWithLexeme
+  ) {
     // Case (2) from above: Find kana matches and the kanji they apply to.
-    kanaMatches = arrayToBitfield(record.r, (r) => r === search);
+    const kanaMatcher =
+      matchMode === MatchMode.Lexeme
+        ? (r: string) => r === search
+        : (r: string) => r.startsWith(search);
+    kanaMatches = arrayToBitfield(record.r, kanaMatcher);
     kanjiMatches = kanjiMatchesForKana(record, kanaMatches);
 
     senseMatches = arrayToBitfield(record.s, (sense) => {
@@ -175,14 +273,28 @@ function getMatchMetadata(
         return true;
       }
     });
+
+    // Fill out kana match range information
+    for (let i = 0; i < record.r.length; i++) {
+      if (kanaMatches & (1 << i)) {
+        kanaMatchRanges.push([i, 0, search.length]);
+        break;
+      }
+    }
   }
 
-  return [kanjiMatches, kanaMatches, senseMatches];
+  return [
+    kanjiMatches,
+    kanjiMatchRanges,
+    kanaMatches,
+    kanaMatchRanges,
+    senseMatches,
+  ];
 }
 
 function getMatchMetadataForGlossLookup(
   record: WordRecord,
-  matchedRanges: Array<MatchedRange>
+  matchedRanges: Array<MatchedSenseAndGlossRange>
 ): [kanjiMatches: number, kanaMatches: number, senseMatches: number] {
   const senseMatches = matchedRanges
     .map(([sense]) => sense)
@@ -268,19 +380,28 @@ function arrayToBitfield<T>(arr: Array<T>, test: (elem: T) => boolean): number {
 
 function mergeMeta<MetaType extends KanjiMeta | ReadingMeta, MergedType>(
   keys: Array<string> | undefined,
-  meta: Array<null | MetaType> | undefined,
+  metaArray: Array<null | MetaType> | undefined,
   matches: number,
-  merge: (key: string, match: boolean, meta?: MetaType) => MergedType
+  matchRanges: Array<MatchedHeadwordRange>,
+  merge: (
+    key: string,
+    match: boolean,
+    matchRange?: [start: number, end: number] | undefined,
+    meta?: MetaType
+  ) => MergedType
 ): Array<MergedType> {
   const result: Array<MergedType> = [];
 
   for (const [i, key] of (keys || []).entries()) {
     const match = !!(matches & (1 << i));
-    if (meta && meta.length >= i + 1 && meta[i] !== null) {
-      result.push(merge(key, match, meta[i]!));
-    } else {
-      result.push(merge(key, match));
-    }
+    const meta =
+      metaArray && metaArray.length >= i + 1 && metaArray[i] !== null
+        ? metaArray[i]!
+        : undefined;
+    const matchRange = matchRanges.find((item) => item[0] === i)?.slice(1) as
+      | [number, number]
+      | undefined;
+    result.push(merge(key, match, matchRange, meta));
   }
 
   return result;
@@ -289,10 +410,10 @@ function mergeMeta<MetaType extends KanjiMeta | ReadingMeta, MergedType>(
 function expandSenses(
   senses: Array<WordSense>,
   senseMatches: number,
-  matchedRanges: Array<MatchedRange>
+  matchedGlossRanges: Array<MatchedSenseAndGlossRange>
 ): Array<ExtendedSense> {
   const getRangesForSense = (i: number): Array<MatchedRangeForGloss> =>
-    matchedRanges
+    matchedGlossRanges
       .filter(([senseIndex]) => senseIndex === i)
       .map(([_sense, gloss, start, end]) => [gloss, start, end]);
 

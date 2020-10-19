@@ -95,3 +95,50 @@ function getPriorityScore(p: string): number {
 
   return 0;
 }
+
+// A variant on sortResultsByPriority that is useful for substring matching.
+//
+// We want to make sure exact matches sort first. So we have:
+//
+// * Find the matching entry (i.e. the one with matchRange set) and
+//   get its full length.
+//
+//   Sort by the number of excess characters such that entries with
+//   fewer excess characters sort first.
+//
+// * Then sort by priority value.
+//
+export function sortResultsByPriorityAndMatchLength(
+  results: Array<WordResult>,
+  searchLength: number
+): Array<WordResult> {
+  const sortMeta: Map<
+    number,
+    { excessChars: number | undefined; priority: number }
+  > = new Map();
+
+  for (const result of results) {
+    const matchingHeadword =
+      result.k.find((k) => k.matchRange) || result.r.find((r) => r.matchRange);
+    const excessChars = matchingHeadword
+      ? matchingHeadword.ent.length - searchLength
+      : undefined;
+    const priority = getPriority(result);
+    sortMeta.set(result.id, { excessChars, priority });
+  }
+
+  results.sort((a, b) => {
+    const metaA = sortMeta.get(a.id)!;
+    const metaB = sortMeta.get(b.id)!;
+    if (
+      typeof metaA.excessChars !== 'undefined' &&
+      typeof metaB.excessChars !== 'undefined' &&
+      metaA.excessChars !== metaB.excessChars
+    ) {
+      return metaA.excessChars - metaB.excessChars;
+    }
+    return metaB.priority - metaA.priority;
+  });
+
+  return results;
+}

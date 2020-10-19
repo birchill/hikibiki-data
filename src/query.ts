@@ -12,7 +12,11 @@ import {
   MatchMode,
   WordResult,
 } from './word-result';
-import { getPriority, sortResultsByPriority } from './word-result-sorting';
+import {
+  getPriority,
+  sortResultsByPriority,
+  sortResultsByPriorityAndMatchLength,
+} from './word-result-sorting';
 
 // Database query methods
 //
@@ -99,15 +103,16 @@ export type MatchType = 'exact' | 'startsWith';
 
 export async function getWords(
   search: string,
-  options?: { matchType?: MatchType }
+  options?: { matchType?: MatchType; limit: number }
 ): Promise<Array<WordResult>> {
   const db = await open();
   if (!db) {
     return [];
   }
 
-  // Resolve match type
+  // Resolve match type and limit
   const matchType = options?.matchType ?? 'exact';
+  const limit = options?.limit ?? Infinity;
 
   // Normalize search string
   const lookup = search.normalize();
@@ -121,7 +126,9 @@ export async function getWords(
       return;
     }
 
-    results.push(toWordResult(record, term, MatchMode.Lexeme));
+    const matchMode =
+      matchType === 'exact' ? MatchMode.Lexeme : MatchMode.StartsWithLexeme;
+    results.push(toWordResult(record, term, matchMode));
     addedRecords.add(record.id);
   };
 
@@ -130,26 +137,68 @@ export async function getWords(
   // (We explicitly use IDBKeyRange.only because otherwise the idb TS typings
   // fail to recognize that these indices are multi-entry and hence it is
   // valid to supply a single string instead of an array of strings.)
-  for await (const cursor of kanjiIndex.iterate(IDBKeyRange.only(lookup))) {
+  const key =
+    matchType === 'exact'
+      ? IDBKeyRange.only(lookup)
+      : IDBKeyRange.bound(lookup, lookup + '\uFFFF');
+  for await (const cursor of kanjiIndex.iterate(key)) {
     maybeAddRecord(cursor.value, lookup);
   }
 
   // Then the r (reading) index
-  const readingIndex = db!.transaction('words').store.index('r');
-  for await (const cursor of readingIndex.iterate(IDBKeyRange.only(lookup))) {
-    maybeAddRecord(cursor.value, lookup);
+  if (results.length < limit) {
+    const readingIndex = db!.transaction('words').store.index('r');
+    for await (const cursor of readingIndex.iterate(key)) {
+      maybeAddRecord(cursor.value, lookup);
+    }
   }
 
   // Then finally try converting to hiragana and using the hiragana index
-  const hiraganaIndex = db!.transaction('words').store.index('h');
-  const hiragana = kanaToHiragana(lookup);
-  for await (const cursor of hiraganaIndex.iterate(
-    IDBKeyRange.only(hiragana)
-  )) {
-    maybeAddRecord(cursor.value, hiragana);
+  if (results.length < limit) {
+    const hiraganaIndex = db!.transaction('words').store.index('h');
+    const hiragana = kanaToHiragana(lookup);
+    const hiraganaKey =
+      matchType === 'exact'
+        ? IDBKeyRange.only(hiragana)
+        : IDBKeyRange.bound(hiragana, hiragana + '\uFFFF');
+    for await (const cursor of hiraganaIndex.iterate(hiraganaKey)) {
+      maybeAddRecord(cursor.value, hiragana);
+    }
   }
 
-  return sortResultsByPriority(results);
+  // Sort using the following arrangement:
+  //
+  // A) For exact searching, sorting by priority is enough
+  //
+  // B) For prefix ("starts with") searching, we want to make sure exact
+  //    matches sort first. So we have:
+  //
+  //    * Find the matching entry (i.e. the one with matchRange set) and
+  //      get its full length.
+  //
+  //      For an exact match, add 100. For every character over that
+  //      subtract 10 * the number of extra characters.
+  //
+  //    * Then add the priority value (range 0~67).
+  //
+  //    That should mean that as strings get longer, they have to have a greater
+  //    priority in order to jump ahead.
+  //
+  //    We probably should do some sort of exponential drop-off but that
+  //    sounds to involved for now.
+  //
+  let sortedResult: Array<WordResult>;
+  if (matchType === 'exact') {
+    sortedResult = sortResultsByPriority(results);
+  } else {
+    sortedResult = sortResultsByPriorityAndMatchLength(results, lookup.length);
+  }
+
+  if (limit) {
+    sortedResult.splice(limit);
+  }
+
+  return sortedResult;
 }
 
 export async function getWordsWithKanji(
@@ -280,7 +329,7 @@ export async function getWordsWithGloss(
     );
   };
   results.sort((a, b) => {
-    return recordScore(b.id)! - recordScore(a.id)!;
+    return recordScore(b.id) - recordScore(a.id);
   });
 
   return results;

@@ -530,7 +530,7 @@ describe('query', function () {
       {
         id: 1004690,
         k: [
-          { ent: 'この間', match: true, p: ['i1'] },
+          { ent: 'この間', match: true, matchRange: [0, 3], p: ['i1'] },
           { ent: '此の間', match: false },
         ],
         r: [
@@ -580,7 +580,13 @@ describe('query', function () {
           { ent: '此の間', match: true },
         ],
         r: [
-          { ent: 'このあいだ', match: true, p: ['i1'], a: 0 },
+          {
+            ent: 'このあいだ',
+            match: true,
+            matchRange: [0, 5],
+            p: ['i1'],
+            a: 0,
+          },
           { ent: 'このかん', match: false, a: 3 },
         ],
         s: [
@@ -627,7 +633,13 @@ describe('query', function () {
         ],
         r: [
           { ent: 'はんぺん', a: [{ i: 0 }, { i: 3 }], match: false },
-          { ent: 'はんぺい', app: 2, a: [{ i: 0 }, { i: 1 }], match: true },
+          {
+            ent: 'はんぺい',
+            app: 2,
+            a: [{ i: 0 }, { i: 1 }],
+            match: true,
+            matchRange: [0, 4],
+          },
         ],
         s: [
           {
@@ -675,7 +687,7 @@ describe('query', function () {
         r: [
           { ent: 'ばついち', app: 3, match: false },
           { ent: 'バツいち', app: 4, match: false },
-          { ent: 'バツイチ', app: 0, match: true },
+          { ent: 'バツイチ', app: 0, match: true, matchRange: [0, 4] },
         ],
         s: [
           {
@@ -717,7 +729,12 @@ describe('query', function () {
       {
         id: 1500001,
         k: [
-          { ent: '人々', p: ['i1', 'n1', 'nf01'], match: true },
+          {
+            ent: '人々',
+            p: ['i1', 'n1', 'nf01'],
+            match: true,
+            matchRange: [0, 2],
+          },
           { ent: '人びと', match: false },
           { ent: '人人', match: false },
         ],
@@ -734,7 +751,7 @@ describe('query', function () {
       {
         id: 1500000,
         k: [
-          { ent: '人々', match: true },
+          { ent: '人々', match: true, matchRange: [0, 2] },
           { ent: '人人', match: false },
         ],
         r: [{ ent: 'にんにん', a: 1, match: true }],
@@ -753,11 +770,52 @@ describe('query', function () {
     assert.deepEqual(result, expected);
   });
 
-  it('should search by individual kanji', async () => {
+  it('should search by starting string', async () => {
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_INFO);
     fetchMock.mock(
       'end:words-rc-en-1.0.0.ljson',
       `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"n/a","dateOfCreation":"2020-08-22"},"records":3}
+{"r":["せんにん"],"s":[{"pos":["n"],"g":["immortal mountain wizard (in Taoism)","mountain man (esp. a hermit)"]},{"g":["one not bound by earthly desires or the thoughts of normal men"]}],"k":["仙人","僊人"],"id":1387170,"km":[{"p":["n2","nf34","s2"]}],"rm":[{"p":["n2","nf34","s2"],"a":3}]}
+{"r":["せんだい"],"s":[{"pos":["n"],"g":["Sendai (city in Miyagi)"]}],"k":["仙台"],"id":2164680,"km":[{"p":["s1"]}],"rm":[{"p":["s1"],"a":1}]}
+{"r":["セント"],"s":[{"pos":["n"],"g":["cent (monetary unit)"],"misc":["uk"]}],"k":["仙"],"id":1075090,"km":[{"i":["ateji"]}],"rm":[{"p":["g1"],"a":1}]}
+`
+    );
+
+    await db.update({ series: 'words', lang: 'en' });
+
+    const result = await getWords('仙', { matchType: 'startsWith', limit: 2 });
+    const expected: Array<WordResult> = [
+      {
+        id: 1075090,
+        k: [{ ent: '仙', i: ['ateji'], match: true, matchRange: [0, 1] }],
+        r: [{ ent: 'セント', p: ['g1'], a: 1, match: true }],
+        s: [
+          {
+            g: [{ str: 'cent (monetary unit)' }],
+            pos: ['n'],
+            misc: ['uk'],
+            match: true,
+          },
+        ],
+      },
+      {
+        id: 2164680,
+        k: [{ ent: '仙台', p: ['s1'], match: true, matchRange: [0, 1] }],
+        r: [{ ent: 'せんだい', p: ['s1'], a: 1, match: true }],
+        s: [
+          { g: [{ str: 'Sendai (city in Miyagi)' }], pos: ['n'], match: true },
+        ],
+      },
+    ];
+
+    assert.deepEqual(result, expected);
+  });
+
+  it('should search by individual kanji', async () => {
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_INFO);
+    fetchMock.mock(
+      'end:words-rc-en-1.0.0.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"n/a","dateOfCreation":"2020-08-22"},"records":2}
 {"r":["せんにん"],"s":[{"pos":["n"],"g":["immortal mountain wizard (in Taoism)","mountain man (esp. a hermit)"]},{"g":["one not bound by earthly desires or the thoughts of normal men"]}],"k":["仙人","僊人"],"id":1387170,"km":[{"p":["n2","nf34","s2"]}],"rm":[{"p":["n2","nf34","s2"],"a":3}]}
 {"r":["せんだい"],"s":[{"pos":["n"],"g":["Sendai (city in Miyagi)"]}],"k":["仙台"],"id":2164680,"km":[{"p":["s1"]}],"rm":[{"p":["s1"],"a":1}]}
 `
@@ -769,7 +827,7 @@ describe('query', function () {
     const expected: Array<WordResult> = [
       {
         id: 2164680,
-        k: [{ ent: '仙台', p: ['s1'], match: true }],
+        k: [{ ent: '仙台', p: ['s1'], match: true, matchRange: [0, 1] }],
         r: [{ ent: 'せんだい', p: ['s1'], a: 1, match: true }],
         s: [
           { g: [{ str: 'Sendai (city in Miyagi)' }], pos: ['n'], match: true },
@@ -778,7 +836,12 @@ describe('query', function () {
       {
         id: 1387170,
         k: [
-          { ent: '仙人', p: ['n2', 'nf34', 's2'], match: true },
+          {
+            ent: '仙人',
+            p: ['n2', 'nf34', 's2'],
+            match: true,
+            matchRange: [0, 1],
+          },
           { ent: '僊人', match: false },
         ],
         r: [{ ent: 'せんにん', p: ['n2', 'nf34', 's2'], a: 3, match: true }],
