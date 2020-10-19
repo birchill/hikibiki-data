@@ -44,7 +44,7 @@ export type Gloss = {
   str: string;
   type?: GlossType; // undefined = GlossType.None
   // Character offsets for matched text when doing a gloss search
-  matched?: [start: number, end: number];
+  matchRange?: [start: number, end: number];
 };
 
 export const enum MatchMode {
@@ -453,7 +453,7 @@ function expandGlosses(
       range = matchedRanges.shift();
     }
     if (range) {
-      result.matched = range.slice(1) as [number, number];
+      result.matchRange = range.slice(1) as [number, number];
     }
 
     return result;

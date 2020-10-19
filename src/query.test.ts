@@ -914,7 +914,7 @@ describe('query', function () {
           {
             g: [
               { str: 'just like that' },
-              { str: 'in the twinkling of an eye', matched: [7, 13] },
+              { str: 'in the twinkling of an eye', matchRange: [7, 13] },
               { str: 'in the blink of an eye' },
               { str: 'in the time it takes to say "ah!"', type: 2 },
             ],
@@ -933,7 +933,7 @@ describe('query', function () {
         s: [
           {
             g: [
-              { str: 'in the twinkling of an eye', matched: [7, 13] },
+              { str: 'in the twinkling of an eye', matchRange: [7, 13] },
               { str: 'in a flash' },
             ],
             pos: ['adv'],
