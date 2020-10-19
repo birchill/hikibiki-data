@@ -30,7 +30,7 @@ function isKanjiMeta(a: unknown): a is KanjiMeta {
     // i
     (typeof (a as KanjiMeta).i === 'undefined' ||
       (Array.isArray((a as KanjiMeta).i) &&
-        (a as Array<any>).every(isKanjiInfo))) &&
+        ((a as KanjiMeta).i as Array<any>).every(isKanjiInfo))) &&
     // p
     (typeof (a as KanjiMeta).p === 'undefined' ||
       isArrayOfStrings((a as KanjiMeta).p))
@@ -84,7 +84,7 @@ function isReadingMeta(a: unknown): a is ReadingMeta {
     // i
     (typeof (a as ReadingMeta).i === 'undefined' ||
       (Array.isArray((a as ReadingMeta).i) &&
-        (a as Array<any>).every(isReadingInfo))) &&
+        ((a as ReadingMeta).i as Array<any>).every(isReadingInfo))) &&
     // p
     (typeof (a as ReadingMeta).p === 'undefined' ||
       isArrayOfStrings((a as ReadingMeta).p)) &&
@@ -428,7 +428,10 @@ export function isWordEntryLine(a: any): a is WordEntryLine {
     isArrayOfStrings(a.r) &&
     // rm
     (typeof a.rm === 'undefined' ||
-      (Array.isArray(a.rm) && a.rm.every(isReadingMeta))) &&
+      (Array.isArray(a.rm) &&
+        (a.rm as Array<0 | ReadingMeta>).every(
+          (rm) => rm === 0 || isReadingMeta(rm)
+        ))) &&
     // s
     Array.isArray(a.s) &&
     a.s.every(isWordSense) &&

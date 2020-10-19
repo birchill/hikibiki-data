@@ -95,11 +95,19 @@ async function open(): Promise<IDBPDatabase<JpdictSchema> | null> {
 //
 // -------------------------------------------------------------------------
 
-export async function getWords(search: string): Promise<Array<WordResult>> {
+export type MatchType = 'exact' | 'startsWith';
+
+export async function getWords(
+  search: string,
+  options?: { matchType?: MatchType }
+): Promise<Array<WordResult>> {
   const db = await open();
   if (!db) {
     return [];
   }
+
+  // Resolve match type
+  const matchType = options?.matchType ?? 'exact';
 
   // Normalize search string
   const lookup = search.normalize();
