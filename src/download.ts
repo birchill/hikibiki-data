@@ -328,11 +328,9 @@ async function getVersionInfo({
     majorVersion
   );
   if (!dbVersionInfo) {
-    console.error('Invalid version object');
-    console.log(versionInfo);
     throw new DownloadError(
       { code: DownloadErrorCode.VersionFileInvalid },
-      'Invalid version object: Did not match expected structure'
+      'Invalid version object: Did not match expected structure or requested series was not available in this language'
     );
   }
 
