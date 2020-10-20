@@ -32,7 +32,15 @@ export {
   UpdateErrorCallback,
   updateWithRetry,
 } from './update-with-retry';
-export { getKanji, getNames, getWords, KanjiResult, NameResult } from './query';
+export {
+  getKanji,
+  getNames,
+  getWords,
+  getWordsWithGloss,
+  getWordsWithKanji,
+  KanjiResult,
+  NameResult,
+} from './query';
 export {
   Accent,
   CrossReference,
