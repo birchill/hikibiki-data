@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.5.0](https://github.com/birchill/hikibiki-data/compare/v6.4.1...v6.5.0) (2020-10-20)
+
+
+### Features
+
+* Export functions for searching by gloss or kanji ([dde5e29](https://github.com/birchill/hikibiki-data/commit/dde5e291122dace72901d6c026fc677ac65b4e2f))
+
 ### [6.4.1](https://github.com/birchill/hikibiki-data/compare/v6.4.0...v6.4.1) (2020-10-19)
 
 
