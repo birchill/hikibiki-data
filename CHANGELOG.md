@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [6.5.1](https://github.com/birchill/hikibiki-data/compare/v6.5.0...v6.5.1) (2020-10-20)
+
+
+### Bug Fixes
+
+* Drop unnecessary console.log ([55e18c2](https://github.com/birchill/hikibiki-data/commit/55e18c25f42ef40471c2d8e13ff9a61dc59a1ce2))
+
 ## [6.5.0](https://github.com/birchill/hikibiki-data/compare/v6.4.1...v6.5.0) (2020-10-20)
 
 
