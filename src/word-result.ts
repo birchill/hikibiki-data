@@ -357,7 +357,7 @@ function extendWithNulls<T>(
 function kanjiMatchesForKana(record: WordRecord, kanaMatches: number): number {
   const wildCardMatch = (1 << (record.k || []).length) - 1;
   const matchingKanjiAtIndex = (i: number): number => {
-    if (!record.rm || record.rm.length < i + 1) {
+    if (!record.rm || record.rm.length < i + 1 || record.rm[i] === null) {
       return wildCardMatch;
     }
 
