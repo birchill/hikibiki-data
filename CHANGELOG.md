@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.7.0](https://github.com/birchill/hikibiki-data/compare/v6.6.0...v6.7.0) (2020-11-05)
+
+
+### Features
+
+* Add new field types audvid, ornith, vidg ([93fb023](https://github.com/birchill/hikibiki-data/commit/93fb0237f38c2e4d1eb475dff47ea995ee41e2fb))
+
 ## [6.6.0](https://github.com/birchill/hikibiki-data/compare/v6.5.2...v6.6.0) (2020-11-05)
 
 
