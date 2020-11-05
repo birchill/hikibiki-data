@@ -17,6 +17,7 @@ import {
   sortResultsByPriority,
   sortResultsByPriorityAndMatchLength,
 } from './word-result-sorting';
+import { CrossReference } from './words';
 
 // Database query methods
 //
@@ -199,6 +200,42 @@ export async function getWords(
   }
 
   return sortedResult;
+}
+
+export async function getWordsByCrossReference(
+  xref: CrossReference
+): Promise<Array<WordResult>> {
+  const db = await open();
+  if (!db) {
+    return [];
+  }
+
+  // Normalize input
+  const k = (xref as any).k?.normalize();
+  const r = (xref as any).r?.normalize();
+
+  // Set up our output value.
+  const results: Array<WordResult> = [];
+
+  // Matches with a kanji key
+  if (k) {
+    const kanjiIndex = db!.transaction('words').store.index('k');
+    const key = IDBKeyRange.only(k);
+    for await (const cursor of kanjiIndex.iterate(key)) {
+      if (r && !cursor.value.r.includes(r)) {
+        continue;
+      }
+      results.push(toWordResult(cursor.value, xref, MatchMode.Lexeme));
+    }
+  } else {
+    const readingIndex = db!.transaction('words').store.index('r');
+    const key = IDBKeyRange.only(r);
+    for await (const cursor of readingIndex.iterate(key)) {
+      results.push(toWordResult(cursor.value, xref, MatchMode.Lexeme));
+    }
+  }
+
+  return sortResultsByPriority(results);
 }
 
 export async function getWordsWithKanji(

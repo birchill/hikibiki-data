@@ -5,6 +5,7 @@ import { JpdictFullTextDatabase } from './database-fulltext';
 import {
   getKanji,
   getNames,
+  getWordsByCrossReference,
   getWords,
   getWordsWithGloss,
   getWordsWithKanji,
@@ -944,5 +945,135 @@ describe('query', function () {
     ];
 
     assert.deepEqual(result, expected);
+  });
+
+  it('should search by cross-reference', async () => {
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_INFO);
+    fetchMock.mock(
+      'end:words-rc-en-1.0.0.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"n/a","dateOfCreation":"2020-08-22"},"records":8}
+{"r":["せいしょ"],"s":[{"field":["Christn"],"pos":["n"],"g":["Bible","Holy Writ","scriptures"]}],"k":["聖書"],"id":1380340,"km":[{"p":["i1","n1","nf14"]}],"rm":[{"p":["i1","n1","nf14"],"a":1}]}
+{"r":["ワイシャツ"],"s":[{"lsrc":[{"src":"white shirt","wasei":true}],"xref":[{"r":"ホワイトシャツ"}],"pos":["n"],"g":["shirt","business shirt","dress shirt"],"misc":["uk","abbr"]}],"k":["Ｙシャツ"],"id":1148640,"km":[{"p":["i1","s1"]}],"rm":[{"p":["i1","s1"]}]}
+{"r":["ジャントー","ジャントウ"],"s":[{"lsrc":[{"lang":"zh"}],"xref":[{"k":"対子"}],"field":["mahj"],"pos":["n"],"g":["pair (as part of a winning hand, together with four melds)","eyes"]}],"k":["雀頭"],"id":2749740,"rm":[0,{"i":["ik"]}]}
+{"r":["もとめる"],"s":[{"pos":["v1","vt"],"g":["to want","to wish for"]},{"pos":["v1","vt"],"g":["to request","to demand","to require","to ask for"]},{"pos":["v1","vt"],"g":["to seek","to search for","to look for","to pursue (pleasure)","to hunt (a job)"]},{"xref":[{"sense":1,"k":"買う"}],"pos":["v1","vt"],"g":["to purchase","to buy"],"misc":["pol"]}],"k":["求める"],"id":1229350,"km":[{"p":["i1"]}],"rm":[{"p":["i1"],"a":3}]}
+{"r":["こちら","こっち","こち"],"s":[{"xref":[{"r":"そちら","sense":1},{"r":"あちら","sense":1},{"r":"どちら","sense":1}],"pos":["pn"],"g":["this way (direction close to the speaker or towards the speaker)","this direction"],"misc":["uk"]},{"pos":["pn"],"g":["here (place close to the speaker or where the speaker is)"],"misc":["uk"]},{"pos":["pn"],"g":["this one (something physically close to the speaker)"],"misc":["uk"]},{"pos":["pn"],"g":["I","me","we","us"],"misc":["uk"]},{"rapp":1,"pos":["pn"],"g":["this person (someone physically close to the speaker and of equal or higher status)"],"misc":["uk"]}],"k":["此方"],"id":1004500,"km":[{"p":["i1"]}],"rm":[{"p":["i1"],"a":0},{"p":["i1"],"a":3},{"i":["ok"],"a":1}]}
+{"r":["ぶんしょ","もんじょ","ぶんじょ"],"s":[{"pos":["n"],"g":["document","writing","letter","papers","notes","records","archives"]},{"inf":"paleography term","rapp":2,"pos":["n"],"g":["document addressed to someone"]}],"k":["文書"],"id":1583840,"km":[{"p":["i1","n1","nf02"]}],"rm":[{"p":["i1","n1","nf02"],"a":1},{"a":1},{"i":["ok"]}]}
+{"r":["まる"],"s":[{"pos":["n"],"g":["circle"],"xref":[{"r":"まる","sense":1,"k":"○"}]},{"pos":["n","n-pref"],"g":["entirety","whole","full","complete"]},{"pos":["n"],"g":["money","dough","moola"],"misc":["sl"]},{"inf":"esp. 丸","pos":["n"],"g":["enclosure inside a castle's walls"]},{"xref":[{"r":"スッポン","sense":1}],"pos":["n"],"g":["soft-shelled turtle"],"dial":["ks"]},{"inf":"esp. 丸","xref":[{"sense":3,"k":"麻呂"}],"pos":["suf"],"g":["suffix for ship names","suffix for names of people (esp. infants)","suffix for names of swords, armour, musical instruments, etc.","suffix for names of dogs, horses, etc."]}],"k":["丸","円"],"id":1216250,"km":[{"p":["i1"]}],"rm":[{"p":["i1"],"a":0}]}
+{"r":["がん"],"s":[{"pos":["n","n-suf"],"g":["fishball","meatball"]},{"pos":["n","n-suf"],"g":["pill"],"xref":[{"k":"丸薬"}]}],"k":["丸"],"id":2252570,"rm":[{"a":1}]}
+`
+    );
+
+    await db.update({ series: 'words', lang: 'en' });
+
+    // 1. Search on k only (聖書 linked from バイブル)
+    let result = await getWordsByCrossReference({ k: '聖書' });
+    assert.lengthOf(result, 1);
+    assert.nestedInclude(result[0], {
+      'k.length': 1,
+      'k[0].ent': '聖書',
+      'k[0].match': true,
+      'r.length': 1,
+      'r[0].match': true,
+      's.length': 1,
+      's[0].match': true,
+    });
+
+    // 2. Search on r only (ワイシャツ linked from カッターシャツ)
+    result = await getWordsByCrossReference({ r: 'ワイシャツ' });
+    assert.lengthOf(result, 1);
+    assert.nestedInclude(result[0], {
+      'k.length': 1,
+      'k[0].match': true,
+      'r.length': 1,
+      'r[0].match': true,
+      's.length': 1,
+      's[0].match': true,
+    });
+
+    // 3. Search on k and r (雀頭, ジャントー linked from 頭)
+    result = await getWordsByCrossReference({ k: '雀頭', r: 'ジャントー' });
+    assert.lengthOf(result, 1);
+    assert.nestedInclude(result[0], {
+      'k.length': 1,
+      'k[0].match': true,
+      'r.length': 2,
+      'r[0].ent': 'ジャントー',
+      'r[0].match': true,
+      'r[1].ent': 'ジャントウ',
+      'r[1].match': false,
+      's.length': 1,
+      's[0].match': true,
+    });
+
+    // 4. Search on k and sense (求める, 2  linked from 求む)
+    result = await getWordsByCrossReference({ k: '求める', sense: 2 });
+    assert.lengthOf(result, 1);
+    assert.nestedInclude(result[0], {
+      'k.length': 1,
+      'k[0].match': true,
+      'r.length': 1,
+      'r[0].match': true,
+      's.length': 4,
+      's[0].match': false,
+      's[1].match': true,
+      's[2].match': false,
+      's[3].match': false,
+    });
+
+    // 5. Search on r and sense (こちら, 1 linked from そちら)
+    result = await getWordsByCrossReference({ r: 'こちら', sense: 1 });
+    assert.lengthOf(result, 1);
+    assert.nestedInclude(result[0], {
+      'k.length': 1,
+      'k[0].match': true,
+      'r.length': 3,
+      'r[0].match': true,
+      'r[1].match': false,
+      'r[2].match': false,
+      's.length': 5,
+      's[0].match': true,
+      's[1].match': false,
+      's[2].match': false,
+      's[3].match': false,
+      's[4].match': false,
+    });
+
+    // 6. Search on k and r and sense (文書, ぶんしょ, 2 linked from 古文書))
+    result = await getWordsByCrossReference({
+      k: '文書',
+      r: 'ぶんしょ',
+      sense: 2,
+    });
+    assert.lengthOf(result, 1);
+    assert.nestedInclude(result[0], {
+      'k.length': 1,
+      'k[0].match': true,
+      'r.length': 3,
+      'r[0].match': true,
+      'r[1].match': false,
+      'r[2].match': false,
+      's.length': 2,
+      's[0].match': false,
+      's[1].match': true,
+    });
+
+    // 7. Search on k and r and sense where there are multiple records that
+    //    match on k (丸, まる, 1 linked from 〇).
+    result = await getWordsByCrossReference({ k: '丸', r: 'まる', sense: 1 });
+    assert.lengthOf(result, 1);
+    assert.nestedInclude(result[0], {
+      'k.length': 2,
+      'k[0].match': true,
+      'k[1].match': false,
+      'r.length': 1,
+      'r[0].match': true,
+      's.length': 6,
+      's[0].match': true,
+      's[1].match': false,
+      's[2].match': false,
+      's[3].match': false,
+      's[4].match': false,
+      's[5].match': false,
+    });
   });
 });

@@ -2,6 +2,7 @@ import { WordRecord } from './records';
 import { stripFields } from './utils';
 import {
   BITS_PER_GLOSS_TYPE,
+  CrossReference,
   GlossType,
   KanjiMeta,
   ReadingMeta,
@@ -55,16 +56,31 @@ export const enum MatchMode {
 
 export function toWordResult(
   record: WordRecord,
-  search: string,
+  search: string | CrossReference,
   matchMode: MatchMode
 ): WordResult {
-  const [
-    kanjiMatches,
+  let kanjiMatches,
     kanjiMatchRanges,
     kanaMatches,
     kanaMatchRanges,
-    senseMatches,
-  ] = getMatchMetadata(record, search as string, matchMode);
+    senseMatches;
+  if (typeof search !== 'string') {
+    [
+      kanjiMatches,
+      kanjiMatchRanges,
+      kanaMatches,
+      kanaMatchRanges,
+      senseMatches,
+    ] = getMatchMetadataForCrossRefLookup(record, search, matchMode);
+  } else {
+    [
+      kanjiMatches,
+      kanjiMatchRanges,
+      kanaMatches,
+      kanaMatchRanges,
+      senseMatches,
+    ] = getMatchMetadata(record, search, matchMode);
+  }
 
   return makeWordResult(
     record,
@@ -281,6 +297,77 @@ function getMatchMetadata(
         break;
       }
     }
+  }
+
+  return [
+    kanjiMatches,
+    kanjiMatchRanges,
+    kanaMatches,
+    kanaMatchRanges,
+    senseMatches,
+  ];
+}
+
+function getMatchMetadataForCrossRefLookup(
+  record: WordRecord,
+  xref: CrossReference,
+  matchMode: MatchMode
+): [
+  kanjiMatches: number,
+  kanjiMatchRanges: Array<MatchedHeadwordRange>,
+  kanaMatches: number,
+  kanaMatchRanges: Array<MatchedHeadwordRange>,
+  senseMatches: number
+] {
+  let kanjiMatches: number = 0;
+  let kanjiMatchRanges: Array<MatchedHeadwordRange> = [];
+  let kanaMatches: number = 0;
+  let kanaMatchRanges: Array<MatchedHeadwordRange> = [];
+  let senseMatches: number = 0;
+
+  const xRefK = (xref as any).k as string | undefined;
+  const xRefR = (xref as any).r as string | undefined;
+
+  if (xRefK && xRefR) {
+    // Fill out kanji match information
+    kanjiMatches = arrayToBitfield(record.k || [], (k) => k === xRefK);
+    for (let i = 0; i < (record.k?.length || 0); i++) {
+      if (kanjiMatches & (1 << i)) {
+        kanjiMatchRanges.push([i, 0, xRefK.length]);
+      }
+    }
+
+    // Fill out reading match information
+    kanaMatches = arrayToBitfield(record.r, (r) => r === xRefR);
+    for (let i = 0; i < record.r.length; i++) {
+      if (kanaMatches & (1 << i)) {
+        kanaMatchRanges.push([i, 0, xRefR.length]);
+      }
+    }
+
+    // Fill out sense information, although we may end up overwriting this
+    // below.
+    senseMatches = arrayToBitfield(record.s, (sense) => {
+      if (typeof sense.kapp !== 'undefined') {
+        return !!(sense.kapp & kanjiMatches);
+      } else if (typeof sense.rapp !== 'undefined') {
+        return !!(sense.rapp & kanaMatches);
+      } else {
+        return true;
+      }
+    });
+  } else {
+    [
+      kanjiMatches,
+      kanjiMatchRanges,
+      kanaMatches,
+      kanaMatchRanges,
+      senseMatches,
+    ] = getMatchMetadata(record, (xRefK || xRefR)!, matchMode);
+  }
+
+  if (xref.sense) {
+    senseMatches = 1 << (xref.sense - 1);
   }
 
   return [
