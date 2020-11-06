@@ -398,7 +398,7 @@ async function lookUpGlosses(
 > {
   // Get search tokens
   const tokens = getTokens(term.normalize(), locale);
-  if (!tokens) {
+  if (!tokens || !tokens.length) {
     return [];
   }
 

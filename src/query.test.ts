@@ -895,7 +895,7 @@ describe('query', function () {
 
     await db.update({ series: 'words', lang: 'en' });
 
-    const result = await getWordsWithGloss('Twinkl', 'en');
+    let result = await getWordsWithGloss('Twinkl', 'en');
     const expected: Array<WordResult> = [
       {
         id: 1000390,
@@ -957,6 +957,10 @@ describe('query', function () {
     ];
 
     assert.deepEqual(result, expected);
+
+    // Try something random that tokenizes to nothing
+    result = await getWordsWithGloss('○', 'en');
+    assert.deepEqual(result, []);
   });
 
   it('should search by cross-reference', async () => {

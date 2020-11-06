@@ -19,7 +19,11 @@ export function getTokens(str: string, lang: string): Array<string> {
     .trim();
 
   // Tokenize
-  const tokens = [...new Set(tokenize(withoutParens, lang))];
+  const tokens = [
+    ...new Set(
+      tokenize(withoutParens, lang).filter((token) => token.length > 0)
+    ),
+  ];
 
   // Stop words
   const stopWordFilter = (word: string) => isNotStopWord(word, lang);
