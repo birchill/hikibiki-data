@@ -617,14 +617,15 @@ describe('query', function () {
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_INFO);
     fetchMock.mock(
       'end:words-rc-en-1.0.0.ljson',
-      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"n/a","dateOfCreation":"2020-08-22"},"records":1}
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"n/a","dateOfCreation":"2020-08-22"},"records":2}
 {"r":["はんぺん","はんぺい"],"s":[{"pos":["n"],"g":["pounded fish cake"],"misc":["uk"]},{"kapp":1,"g":["half a slice","half a ticket","ticket stub"]}],"k":["半片","半平"],"id":1010230,"rm":[{"a":[{"i":0},{"i":3}]},{"app":2,"a":[{"i":0},{"i":1}]}]}
+{"r":["わいシャツ"],"s":[{"pos":["n"],"g":["obscene shirt (pun)"],"xref":[{"k":"Ｙシャツ"}]}],"k":["猥シャツ"],"id":1569320}
 `
     );
 
     await db.update({ series: 'words', lang: 'en' });
 
-    const result = await getWords('ハンペイ');
+    let result = await getWords('ハンペイ');
     const expected: Array<WordResult> = [
       {
         id: 1010230,
@@ -663,6 +664,17 @@ describe('query', function () {
     ];
 
     assert.deepEqual(result, expected);
+
+    result = await getWords('ワイシャツ');
+    assert.lengthOf(result, 1);
+    assert.nestedInclude(result[0], {
+      'k.length': 1,
+      'k[0].match': true,
+      'r.length': 1,
+      'r[0].match': true,
+      'r[0].matchRange[0]': 0,
+      'r[0].matchRange[1]': 5,
+    });
   });
 
   it('should expand gloss type information', async () => {

@@ -122,13 +122,27 @@ export async function getWords(
   const addedRecords: Set<number> = new Set();
   const results: Array<WordResult> = [];
 
-  const maybeAddRecord = (record: WordRecord, term: string) => {
+  const maybeAddRecord = (
+    record: WordRecord,
+    term: string,
+    kanaMatching: 'exact' | 'kana-equivalent' = 'exact'
+  ) => {
     if (addedRecords.has(record.id)) {
       return;
     }
 
-    const matchMode =
-      matchType === 'exact' ? MatchMode.Lexeme : MatchMode.StartsWithLexeme;
+    let matchMode: MatchMode;
+    if (matchType === 'exact') {
+      matchMode =
+        kanaMatching === 'exact'
+          ? MatchMode.Lexeme
+          : MatchMode.KanaEquivalentLexeme;
+    } else {
+      matchMode =
+        kanaMatching === 'exact'
+          ? MatchMode.StartsWithLexeme
+          : MatchMode.StartsWithKanaEquivalentLexeme;
+    }
     results.push(toWordResult(record, term, matchMode));
     addedRecords.add(record.id);
   };
@@ -163,7 +177,7 @@ export async function getWords(
         ? IDBKeyRange.only(hiragana)
         : IDBKeyRange.bound(hiragana, hiragana + '\uFFFF');
     for await (const cursor of hiraganaIndex.iterate(hiraganaKey)) {
-      maybeAddRecord(cursor.value, hiragana);
+      maybeAddRecord(cursor.value, hiragana, 'kana-equivalent');
     }
   }
 

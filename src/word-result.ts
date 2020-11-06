@@ -1,3 +1,5 @@
+import { kanaToHiragana } from '@birchill/normal-jp';
+
 import { WordRecord } from './records';
 import { stripFields } from './utils';
 import {
@@ -50,7 +52,9 @@ export type Gloss = {
 
 export const enum MatchMode {
   Lexeme,
+  KanaEquivalentLexeme,
   StartsWithLexeme,
+  StartsWithKanaEquivalentLexeme,
   Kanji,
 }
 
@@ -221,17 +225,21 @@ function getMatchMetadata(
   // Because of (3), we just always search both arrays.
 
   // First build up a bitfield of all kanji matches.
-  const kanjiMatcher: (k: string) => boolean = (k) => {
+  const matcher: (str: string) => boolean = (str) => {
     switch (matchMode) {
       case MatchMode.Lexeme:
-        return k === search;
+        return str === search;
+      case MatchMode.KanaEquivalentLexeme:
+        return kanaToHiragana(str) === search;
       case MatchMode.StartsWithLexeme:
-        return k.startsWith(search);
+        return str.startsWith(search);
+      case MatchMode.StartsWithKanaEquivalentLexeme:
+        return kanaToHiragana(str).startsWith(search);
       case MatchMode.Kanji:
-        return [...k].includes(search);
+        return [...str].includes(search);
     }
   };
-  let kanjiMatches = arrayToBitfield(record.k || [], kanjiMatcher);
+  let kanjiMatches = arrayToBitfield(record.k || [], matcher);
 
   // Fill out any match information
   const kanjiMatchRanges: Array<MatchedHeadwordRange> = [];
@@ -239,7 +247,9 @@ function getMatchMetadata(
     if (kanjiMatches & (1 << i)) {
       switch (matchMode) {
         case MatchMode.Lexeme:
+        case MatchMode.KanaEquivalentLexeme:
         case MatchMode.StartsWithLexeme:
+        case MatchMode.StartsWithKanaEquivalentLexeme:
           kanjiMatchRanges.push([i, 0, search.length]);
           break;
 
@@ -270,14 +280,12 @@ function getMatchMetadata(
     });
   } else if (
     matchMode === MatchMode.Lexeme ||
-    matchMode === MatchMode.StartsWithLexeme
+    matchMode === MatchMode.KanaEquivalentLexeme ||
+    matchMode === MatchMode.StartsWithLexeme ||
+    matchMode === MatchMode.StartsWithKanaEquivalentLexeme
   ) {
     // Case (2) from above: Find kana matches and the kanji they apply to.
-    const kanaMatcher =
-      matchMode === MatchMode.Lexeme
-        ? (r: string) => r === search
-        : (r: string) => r.startsWith(search);
-    kanaMatches = arrayToBitfield(record.r, kanaMatcher);
+    kanaMatches = arrayToBitfield(record.r, matcher);
     kanjiMatches = kanjiMatchesForKana(record, kanaMatches);
 
     senseMatches = arrayToBitfield(record.s, (sense) => {
