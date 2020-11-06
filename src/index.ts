@@ -36,6 +36,7 @@ export {
   getKanji,
   getNames,
   getWords,
+  getWordsByCrossReference,
   getWordsWithGloss,
   getWordsWithKanji,
   KanjiResult,
