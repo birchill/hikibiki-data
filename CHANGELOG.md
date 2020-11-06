@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [6.8.2](https://github.com/birchill/hikibiki-data/compare/v6.8.1...v6.8.2) (2020-11-06)
+
+
+### Bug Fixes
+
+* Avoid generating empty tokens ([25e0bd3](https://github.com/birchill/hikibiki-data/commit/25e0bd3963e4092dbfc5585175459307f193077d))
+
 ### [6.8.1](https://github.com/birchill/hikibiki-data/compare/v6.8.0...v6.8.1) (2020-11-06)
 
 
