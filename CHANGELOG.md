@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.0.0](https://github.com/birchill/hikibiki-data/compare/v6.8.2...v7.0.0) (2020-11-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* New name types added
+
+### Features
+
+* Add new name types and download v3 of names data ([00d51c5](https://github.com/birchill/hikibiki-data/commit/00d51c5692496321d06944fb7f15076194770d05))
+
 ### [6.8.2](https://github.com/birchill/hikibiki-data/compare/v6.8.1...v6.8.2) (2020-11-06)
 
 
