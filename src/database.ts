@@ -23,7 +23,7 @@ import { isWordDeletionLine, isWordEntryLine } from './words';
 const MAJOR_VERSION: { [series in DataSeries]: number } = {
   kanji: 4,
   radicals: 4,
-  names: 2,
+  names: 3,
   words: 1,
 };
 

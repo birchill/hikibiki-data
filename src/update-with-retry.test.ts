@@ -30,8 +30,8 @@ const VERSION_INFO = {
     },
   },
   names: {
-    '2': {
-      major: 2,
+    '3': {
+      major: 3,
       minor: 0,
       patch: 0,
       dateOfCreation: '2019-09-06',

@@ -29,8 +29,8 @@ const VERSION_INFO = {
     },
   },
   names: {
-    '2': {
-      major: 2,
+    '3': {
+      major: 3,
       minor: 0,
       patch: 0,
       dateOfCreation: '2020-08-22',
@@ -200,8 +200,8 @@ describe('database', function () {
 `
     );
     fetchMock.mock(
-      'end:names-rc-en-2.0.0.ljson',
-      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+      'end:names-rc-en-3.0.0.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
 `
     );
 
@@ -211,7 +211,7 @@ describe('database', function () {
     await Promise.all([kanjiUpdate, namesUpdate]);
 
     assert.equal(db.kanji.version!.major, 4);
-    assert.equal(db.names.version!.major, 2);
+    assert.equal(db.names.version!.major, 3);
   });
 
   it('should handle error actions', async () => {
@@ -397,8 +397,8 @@ describe('database', function () {
 `
     );
     fetchMock.mock(
-      'end:names-rc-en-2.0.0.ljson',
-      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
+      'end:names-rc-en-3.0.0.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"databaseVersion":"175","dateOfCreation":"2019-07-09"},"records":0}
 `
     );
 

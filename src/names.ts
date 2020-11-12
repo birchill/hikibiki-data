@@ -20,34 +20,54 @@ export interface NameTranslation {
 }
 
 export type NameType =
-  | 'surname'
-  | 'place'
-  | 'unclass'
+  | 'char'
   | 'company'
-  | 'product'
-  | 'work'
-  | 'masc'
+  | 'creat'
+  | 'dei'
+  | 'ev'
   | 'fem'
-  | 'person'
+  | 'fict'
   | 'given'
-  | 'station'
+  | 'leg'
+  | 'masc'
+  | 'myth'
+  | 'obj'
   | 'org'
-  | 'ok';
+  | 'oth'
+  | 'person'
+  | 'place'
+  | 'product'
+  | 'relig'
+  | 'serv'
+  | 'station'
+  | 'surname'
+  | 'unclass'
+  | 'work';
 
 export const allNameTypes: ReadonlyArray<NameType> = [
-  'surname',
-  'place',
-  'unclass',
+  'char',
   'company',
-  'product',
-  'work',
-  'masc',
+  'creat',
+  'dei',
+  'ev',
   'fem',
-  'person',
+  'fict',
   'given',
-  'station',
+  'leg',
+  'masc',
+  'myth',
+  'obj',
   'org',
-  'ok',
+  'oth',
+  'person',
+  'place',
+  'product',
+  'relig',
+  'serv',
+  'station',
+  'surname',
+  'unclass',
+  'work',
 ];
 
 export function isNameType(a: unknown): a is NameType {
@@ -81,9 +101,14 @@ function isNameTranslation(a: any): a is NameTranslation {
   return (
     typeof a === 'object' &&
     a !== null &&
-    (typeof a.type === 'undefined' ||
-      (isArrayOfStrings(a.type) &&
-        (a.type as Array<NameType>).every(isNameType))) &&
+    // We deliberately don't validate the type is one of the recognized ones
+    // since the set of name types is likely to change in future (it has in the
+    // past) and we don't want to require a major version bump of the database
+    // each time.
+    //
+    // Instead, clients should just ignore types they don't understand or do
+    // some suitable fallback.
+    (typeof a.type === 'undefined' || isArrayOfStrings(a.type)) &&
     isArrayOfStrings(a.det) &&
     (typeof a.cf === 'undefined' || isArrayOfStrings(a.cf))
   );

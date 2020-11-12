@@ -35,8 +35,8 @@ const VERSION_INFO = {
     },
   },
   names: {
-    '2': {
-      major: 2,
+    '3': {
+      major: 3,
       minor: 0,
       patch: 0,
       dateOfCreation: '2020-08-22',
@@ -438,8 +438,8 @@ describe('query', function () {
   it('should fetch names by kanji', async () => {
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_INFO);
     fetchMock.mock(
-      'end:names-rc-en-2.0.0.ljson',
-      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"n/a","dateOfCreation":"2020-08-22"},"records":1}
+      'end:names-rc-en-3.0.0.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"databaseVersion":"n/a","dateOfCreation":"2020-08-22"},"records":1}
 {"r":["こくろう"],"k":["国労"],"id":1657560,"tr":[{"type":["org"],"det":["National Railway Workers' Union"]}]}
 `
     );
@@ -462,8 +462,8 @@ describe('query', function () {
   it('should fetch names by reading', async () => {
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_INFO);
     fetchMock.mock(
-      'end:names-rc-en-2.0.0.ljson',
-      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"n/a","dateOfCreation":"2020-08-22"},"records":1}
+      'end:names-rc-en-3.0.0.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"databaseVersion":"n/a","dateOfCreation":"2020-08-22"},"records":1}
 {"r":["こくろう"],"k":["国労"],"id":1657560,"tr":[{"type":["org"],"det":["National Railway Workers' Union"]}]}
 `
     );
@@ -486,8 +486,8 @@ describe('query', function () {
   it('should fetch names by kana-equivalence', async () => {
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_INFO);
     fetchMock.mock(
-      'end:names-rc-en-2.0.0.ljson',
-      `{"type":"header","version":{"major":2,"minor":0,"patch":0,"databaseVersion":"n/a","dateOfCreation":"2020-08-22"},"records":3}
+      'end:names-rc-en-3.0.0.ljson',
+      `{"type":"header","version":{"major":3,"minor":0,"patch":0,"databaseVersion":"n/a","dateOfCreation":"2020-08-22"},"records":3}
 {"r":["マルタ"],"id":5082405,"tr":[{"type":["place"],"det":["Malta"]},{"type":["fem"],"det":["Marta","Martha"]}]}
 {"r":["まるた"],"k":["円田"],"id":5143227,"tr":[{"type":["surname"],"det":["Maruta"]}]}
 {"r":["まるた"],"k":["丸太"],"id":5193528,"tr":[{"type":["place","surname"],"det":["Maruta"]}]}
