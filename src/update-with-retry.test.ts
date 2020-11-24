@@ -70,7 +70,7 @@ describe('updateWithRetry', function () {
 `
     );
 
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       updateWithRetry({
         db,
         series: 'kanji',
@@ -99,7 +99,7 @@ describe('updateWithRetry', function () {
       throw new Error('Forced error');
     });
 
-    const retryPromise = new Promise((resolve, reject) => {
+    const retryPromise = new Promise<void>((resolve, reject) => {
       updateWithRetry({
         db,
         series: 'kanji',
@@ -134,7 +134,7 @@ describe('updateWithRetry', function () {
     }> = [];
     const updateStart = new Date();
 
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       updateWithRetry({
         db,
         series: 'kanji',
@@ -187,7 +187,7 @@ describe('updateWithRetry', function () {
 
     let gotOfflineError: boolean = false;
 
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       updateWithRetry({
         db,
         series: 'kanji',
@@ -234,7 +234,7 @@ describe('updateWithRetry', function () {
       retryCount?: number;
     }> = [];
 
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       updateWithRetry({
         db,
         series: 'kanji',
@@ -292,7 +292,7 @@ describe('updateWithRetry', function () {
 
     const clock = sinon.useFakeTimers({ toFake: ['setTimeout'] });
 
-    const firstInvocation = new Promise((resolve, reject) => {
+    const firstInvocation = new Promise<void>((resolve, reject) => {
       updateWithRetry({
         db,
         series: 'kanji',
@@ -305,7 +305,7 @@ describe('updateWithRetry', function () {
     });
 
     let secondCompletionCallbackCalled = false;
-    const secondInvocation = new Promise((resolve, reject) => {
+    const secondInvocation = new Promise<void>((resolve, reject) => {
       updateWithRetry({
         db,
         series: 'kanji',
@@ -358,7 +358,7 @@ describe('updateWithRetry', function () {
 
     // Then try again while it is waiting
 
-    const secondInvocation = new Promise((resolve, reject) => {
+    const secondInvocation = new Promise<void>((resolve, reject) => {
       updateWithRetry({
         db,
         series: 'kanji',
@@ -416,7 +416,7 @@ describe('updateWithRetry', function () {
 
     // Then try again while it is waiting
 
-    const secondInvocation = new Promise((resolve, reject) => {
+    const secondInvocation = new Promise<void>((resolve, reject) => {
       updateWithRetry({
         db,
         series: 'kanji',
@@ -606,7 +606,7 @@ describe('updateWithRetry', function () {
       retryCount?: number;
     }> = [];
 
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       updateWithRetry({
         db,
         series: 'kanji',
@@ -664,7 +664,7 @@ describe('updateWithRetry', function () {
     stub.onFirstCall().throws('ConstraintError');
     stub.onSecondCall().throws('ConstraintError');
 
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       updateWithRetry({
         db,
         series: 'kanji',
@@ -700,7 +700,7 @@ describe('updateWithRetry', function () {
 
     const errors: Array<Error> = [];
 
-    const updateResult = new Promise((resolve, reject) => {
+    const updateResult = new Promise<void>((resolve, reject) => {
       updateWithRetry({
         db,
         series: 'kanji',
