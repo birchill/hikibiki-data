@@ -351,6 +351,7 @@ export class JpdictStore {
       }
     } catch (e) {
       console.log('Error during put portion of bulk update');
+      console.log(e);
       console.log(JSON.stringify(put));
 
       // Ignore the abort from the transaction
@@ -359,6 +360,33 @@ export class JpdictStore {
         tx.abort();
       } catch (_) {
         // As above, ignore exceptions from aborting the transaction.
+      }
+
+      // We sometimes encounter a situation where Firefox throws an Error with
+      // an undefined message. All we have to go by is a user's screenshot that
+      // shows the following in the browser console:
+      //
+      //   Error: undefined
+      //
+      // We _think_ this happens in some cases where the disk space quota is
+      // exceeded, and then something else goes wrong (e.g. QuotaManager finds
+      // unexpected files in the idb folder). For now, we are simply trying to
+      // find a reliable way to detect this so the following adds various
+      // logging that hopefully sheds some light on this case.
+      if (
+        typeof e === 'undefined' ||
+        (e instanceof Error &&
+          (typeof e.name === 'undefined' || e.name === 'undefined'))
+      ) {
+        console.log('Got undefined error');
+        try {
+          const estimate = await self.navigator.storage.estimate();
+          console.log('Storage estimate');
+          console.log(JSON.stringify(estimate));
+        } catch (e) {
+          console.log('Got error querying the storage quota');
+          console.log(e);
+        }
       }
 
       throw e;
