@@ -293,6 +293,7 @@ async function doUpdate({
       });
     } else if (
       e &&
+      e instanceof Error &&
       e.name === 'ConstraintError' &&
       (!currentRetryStatus ||
         !currentRetryStatus.retryCount ||
