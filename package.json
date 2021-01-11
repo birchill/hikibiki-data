@@ -26,7 +26,7 @@
   "dependencies": {
     "@birchill/json-equalish": "^1.0.1",
     "@birchill/normal-jp": "^1.1.3",
-    "idb": "^5.0.0"
+    "idb": "^6.0.0"
   },
   "devDependencies": {
     "@rollup/plugin-typescript": "^8.0.0",
