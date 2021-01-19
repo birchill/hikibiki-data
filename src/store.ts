@@ -3,6 +3,7 @@ import {
   deleteDB,
   IDBPDatabase,
   IDBPTransaction,
+  StoreNames,
   openDB,
 } from 'idb/with-async-ittr';
 
@@ -127,8 +128,12 @@ export class JpdictStore {
       upgrade(
         db: IDBPDatabase<JpdictSchema>,
         oldVersion: number,
-        newVersion: number | null,
-        transaction: IDBPTransaction<JpdictSchema>
+        _newVersion: number | null,
+        transaction: IDBPTransaction<
+          JpdictSchema,
+          StoreNames<JpdictSchema>[],
+          'versionchange'
+        >
       ) {
         if (oldVersion < 1) {
           const kanjiTable = db.createObjectStore<'kanji'>('kanji', {
