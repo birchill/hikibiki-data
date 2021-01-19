@@ -1,4 +1,9 @@
-import { IDBPDatabase, IDBPTransaction, openDB } from 'idb/with-async-ittr';
+import {
+  IDBPDatabase,
+  IDBPTransaction,
+  StoreNames,
+  openDB,
+} from 'idb/with-async-ittr';
 import { kanaToHiragana } from '@birchill/normal-jp';
 
 import { KanjiEntryLine, Misc, Readings } from './kanji';
@@ -56,7 +61,11 @@ async function open(): Promise<IDBPDatabase<JpdictSchema> | null> {
       _db: IDBPDatabase<JpdictSchema>,
       _oldVersion: number,
       _newVersion: number | null,
-      transaction: IDBPTransaction<JpdictSchema>
+      transaction: IDBPTransaction<
+        JpdictSchema,
+        StoreNames<JpdictSchema>[],
+        'versionchange'
+      >
     ) {
       // If the database does not exist, do not try to create it.
       // If it is for an old version, do not try to use it.
