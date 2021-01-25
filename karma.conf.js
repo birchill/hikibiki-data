@@ -1,4 +1,5 @@
 const path = require('path');
+const webpack = require('webpack');
 
 module.exports = (config) => {
   config.set({
@@ -19,6 +20,9 @@ module.exports = (config) => {
       mode: 'development',
       resolve: {
         extensions: ['.ts', '.js'],
+        fallback: {
+          util: require.resolve('util/'),
+        },
       },
       resolveLoader: {
         modules: [path.join(__dirname, 'node_modules')],
@@ -26,6 +30,11 @@ module.exports = (config) => {
       module: {
         rules: [{ test: /\.ts$/, use: 'ts-loader' }],
       },
+      plugins: [
+        new webpack.ProvidePlugin({
+          process: 'process/browser.js',
+        }),
+      ],
     },
   });
 };
