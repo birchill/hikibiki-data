@@ -314,7 +314,6 @@ export class JpdictStore {
     } catch (e) {
       console.log('Error during delete portion of bulk update');
       console.log(e);
-      console.log(JSON.stringify(drop));
 
       // Ignore the abort from the transaction
       tx.done.catch(() => {});
@@ -370,7 +369,6 @@ export class JpdictStore {
     } catch (e) {
       console.log('Error during put portion of bulk update');
       console.log(e);
-      console.log(JSON.stringify(put));
 
       // Ignore the abort from the transaction
       tx.done.catch(() => {});
