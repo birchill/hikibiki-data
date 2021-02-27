@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [7.0.2](https://github.com/birchill/hikibiki-data/compare/v7.0.1...v7.0.2) (2021-02-27)
+
+
+### Bug Fixes
+
+* Add some more logging to bulkUpdateTable ([e4fce37](https://github.com/birchill/hikibiki-data/commit/e4fce37e19fdfdeffbb2b057f6e9b1cd7eff739f))
+* Drop some no-longer-necessary logging ([82cb4d0](https://github.com/birchill/hikibiki-data/commit/82cb4d0e1c0fe096352c0d98f1a2f777152763b9))
+* Try to detect masked QuotaExceededErrors and re-throw them ([34380bf](https://github.com/birchill/hikibiki-data/commit/34380bf6c8109fff2f7a628d01e090c94394514c))
+
 ### [7.0.1](https://github.com/birchill/hikibiki-data/compare/v7.0.0...v7.0.1) (2020-11-24)
 
 
