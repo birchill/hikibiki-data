@@ -350,8 +350,10 @@ export class JpdictStore {
 
           // Add some extra logging directly on the put promise.
           putPromise.catch((e) => {
-            console.log('Got error putting record');
-            console.log(e, e?.name, e?.message);
+            if (e?.name !== 'AbortError') {
+              console.log('Got error putting record');
+              console.log(e, e?.name, e?.message);
+            }
           });
 
           // Note that we hold on to the original promise (NOT the result of the
