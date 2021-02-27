@@ -312,6 +312,7 @@ export class JpdictStore {
       }
     } catch (e) {
       console.log('Error during delete portion of bulk update');
+      console.log(e);
       console.log(JSON.stringify(drop));
 
       // Ignore the abort from the transaction
@@ -345,7 +346,20 @@ export class JpdictStore {
           // is Dexie's secret sauce.
           //
           // See: https://jsfiddle.net/birtles/vx4urLkw/17/
-          putPromises.push(targetTable.put(record));
+          const putPromise = targetTable.put(record);
+
+          // Add some extra logging for puts because we occasionally encounter
+          // a situation where we get very generic errors like `Error:
+          // undefined` and we'd like to understand better what is going on.
+          putPromise.catch((e) => {
+            console.log('Got error putting record');
+            console.log(e, e?.name, e?.message);
+          });
+
+          // Note that we hold on to the original promise (NOT the result of the
+          // call to catch() above) so that the call to Promise.all below still
+          // rejects.
+          putPromises.push(putPromise);
         }
         await Promise.all(putPromises);
 
