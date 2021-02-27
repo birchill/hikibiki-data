@@ -1,6 +1,6 @@
 {
   "name": "@birchill/hikibiki-data",
-  "version": "7.0.2",
+  "version": "7.0.3",
   "description": "Download hikibiki data",
   "author": "Brian Birtles",
   "scripts": {
