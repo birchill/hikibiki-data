@@ -9,7 +9,7 @@ import {
 
 import { DataSeries } from './data-series';
 import { DataVersion } from './data-version';
-import { stripFields } from './utils';
+import { QuotaExceededError } from './quota-exceeded-error';
 import {
   getIdForKanjiRecord,
   getIdForNameRecord,
@@ -24,6 +24,7 @@ import {
   toWordRecord,
   WordRecord,
 } from './records';
+import { stripFields } from './utils';
 
 interface DataVersionRecord extends DataVersion {
   id: 1 | 2 | 3 | 4;
@@ -348,9 +349,7 @@ export class JpdictStore {
           // See: https://jsfiddle.net/birtles/vx4urLkw/17/
           const putPromise = targetTable.put(record);
 
-          // Add some extra logging for puts because we occasionally encounter
-          // a situation where we get very generic errors like `Error:
-          // undefined` and we'd like to understand better what is going on.
+          // Add some extra logging directly on the put promise.
           putPromise.catch((e) => {
             console.log('Got error putting record');
             console.log(e, e?.name, e?.message);
@@ -388,24 +387,13 @@ export class JpdictStore {
       //   Error: undefined
       //
       // We _think_ this happens in some cases where the disk space quota is
-      // exceeded, and then something else goes wrong (e.g. QuotaManager finds
-      // unexpected files in the idb folder). For now, we are simply trying to
-      // find a reliable way to detect this so the following adds various
-      // logging that hopefully sheds some light on this case.
-      if (
-        typeof e === 'undefined' ||
-        (e instanceof Error &&
-          (typeof e.name === 'undefined' || e.name === 'undefined'))
-      ) {
-        console.log('Got undefined error');
-        try {
-          const estimate = await self.navigator.storage.estimate();
-          console.log('Storage estimate');
-          console.log(JSON.stringify(estimate));
-        } catch (e) {
-          console.log('Got error querying the storage quota');
-          console.log(e);
-        }
+      // exceeded so we try to detect that case and throw an actual
+      // QuotaExceededError instead.
+      if (isVeryGenericError(e) && (await atOrNearQuota())) {
+        console.log(
+          'Detected generic error masking a quota exceeded situation'
+        );
+        throw new QuotaExceededError();
       }
 
       throw e;
@@ -456,5 +444,36 @@ export class JpdictStore {
     }
 
     return result;
+  }
+}
+
+// We occasionally get these obscure errors when running IndexedDB in an
+// extension context where the error returned serializes as simply:
+//
+//   Error: undefined
+//
+// Our current theory is that it occurs when we hit an out-of-quota situation.
+function isVeryGenericError(e: any): boolean {
+  if (typeof e === 'undefined') {
+    return true;
+  }
+
+  // Look for an Error without a name or an object with name 'Error' but no
+  // message
+  return (
+    (e instanceof Error && !e?.name) || (e?.name === 'Error' && !e?.message)
+  );
+}
+
+async function atOrNearQuota(): Promise<boolean> {
+  try {
+    const estimate = await self.navigator.storage.estimate();
+    return (
+      typeof estimate.usage !== 'undefined' &&
+      typeof estimate.quota !== 'undefined' &&
+      estimate.usage / estimate.quota > 0.9
+    );
+  } catch (_e) {
+    return false;
   }
 }
