@@ -580,7 +580,7 @@ async function* ljsonStreamIterator({
   };
 
   while (true) {
-    let readResult: ReadableStreamReadResult<Uint8Array>;
+    let readResult: ReadableStreamDefaultReadResult<Uint8Array>;
     try {
       readResult = await waitWithTimeout(reader.read(), url);
     } catch (e) {
