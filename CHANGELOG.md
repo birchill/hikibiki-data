@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [7.0.4](https://github.com/birchill/hikibiki-data/compare/v7.0.3...v7.0.4) (2021-03-27)
+
+
+### Bug Fixes
+
+* Ignore exceptions from calling releaseLock ([c3e3f10](https://github.com/birchill/hikibiki-data/commit/c3e3f102f23e3319420e7410718547f6291e8b5c))
+
 ### [7.0.3](https://github.com/birchill/hikibiki-data/compare/v7.0.2...v7.0.3) (2021-02-27)
 
 
