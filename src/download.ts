@@ -571,7 +571,11 @@ async function* ljsonStreamIterator({
     try {
       return JSON.parse(line);
     } catch (e) {
-      reader.releaseLock();
+      try {
+        reader.releaseLock();
+      } catch (e) {
+        /* Ignore */
+      }
       throw new DownloadError(
         { code: DownloadErrorCode.DatabaseFileInvalidJSON, url },
         `Could not parse JSON in database file: ${line}`
@@ -584,7 +588,11 @@ async function* ljsonStreamIterator({
     try {
       readResult = await waitWithTimeout(reader.read(), url);
     } catch (e) {
-      reader.releaseLock();
+      try {
+        reader.releaseLock();
+      } catch (e) {
+        /* Ignore */
+      }
       if (e.name === 'AbortError' || e.name === 'DownloadError') {
         throw e;
       }
