@@ -320,6 +320,7 @@ export class JpdictDatabase {
           series,
           lang: requestedLang,
           majorVersion: MAJOR_VERSION[series],
+          signal,
         }))
           ? requestedLang
           : 'en';

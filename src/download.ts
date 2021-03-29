@@ -110,21 +110,21 @@ export async function hasLanguage({
   series,
   majorVersion,
   lang,
+  signal,
 }: {
   baseUrl?: string;
   series: DataSeries;
   majorVersion: number;
   lang: string;
+  signal?: AbortSignal;
 }): Promise<boolean> {
-  const abortController = new AbortController();
-
   try {
     await getVersionInfo({
       baseUrl,
       series,
       majorVersion,
       lang,
-      signal: abortController.signal,
+      signal,
     });
     return true;
   } catch (e) {
@@ -273,7 +273,7 @@ async function getVersionInfo({
   majorVersion: number;
   series: string;
   lang: string;
-  signal: AbortSignal;
+  signal?: AbortSignal;
   forceFetch?: boolean;
 }): Promise<VersionInfo> {
   let versionInfo;
