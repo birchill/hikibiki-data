@@ -309,7 +309,7 @@ type MatchedRange = [sense: number, gloss: number, start: number, end: number];
 // This currently only does substring phrase matching.
 //
 // Unlike a document search where you might want the search phrase
-// `twinkling eye` to match "in the twinking of an eye", when you're looking up
+// `twinkling eye` to match "in the twinkling of an eye", when you're looking up
 // a dictionary, you're typically more interested in finding an exact phrase.
 // So, for the example above, you might search for "twinkling of" and expect it
 // to match.
@@ -332,7 +332,9 @@ export async function getWordsWithGloss(
     return [];
   }
 
-  const actualLimit = Math.max(limit || 0, 0) || 100;
+  // Fetch at least 50 initial candidates. For common words we need at least
+  // 40 or 50 or else we'll possibly fail to include the best entries.
+  const numGlossCandidates = Math.max(limit || 0, 50);
 
   // Set up our output value.
   const resultMeta: Map<number, GlossSearchResultMeta> = new Map();
@@ -340,7 +342,7 @@ export async function getWordsWithGloss(
 
   // First search using the specified locale (if not English).
   if (lang !== 'en') {
-    const records = await lookUpGlosses(db, search, lang, actualLimit);
+    const records = await lookUpGlosses(db, search, lang, numGlossCandidates);
     for (const [record, confidence, matchedRanges] of records) {
       const result = toWordResultFromGlossLookup(record, matchedRanges);
       const priority = getPriority(result);
@@ -355,9 +357,11 @@ export async function getWordsWithGloss(
   }
 
   // Look up English fallback glosses
-  const remainingLimit = actualLimit - results.length;
-  if (remainingLimit) {
-    const records = await lookUpGlosses(db, search, 'en', remainingLimit);
+  //
+  // We do this even if we have enough candidates in results since the search
+  // might be on an English term.
+  {
+    const records = await lookUpGlosses(db, search, 'en', numGlossCandidates);
     for (const [record, confidence, matchedRanges] of records) {
       // If we already added this record as a localized match, skip it.
       if (lang !== 'en' && resultMeta.has(record.id)) {
@@ -371,7 +375,7 @@ export async function getWordsWithGloss(
       resultMeta.set(record.id, {
         confidence,
         priority,
-        localizedMatch: true,
+        localizedMatch: false,
       });
     }
   }
@@ -388,11 +392,12 @@ export async function getWordsWithGloss(
       meta.confidence * 10 + meta.priority + (meta.localizedMatch ? 50 : 0)
     );
   };
-  results.sort((a, b) => {
-    return recordScore(b.id) - recordScore(a.id);
-  });
+  results.sort((a, b) => recordScore(b.id) - recordScore(a.id));
 
-  return results;
+  // Limit the results to the requested limit
+  const actualLimit = Math.max(limit || 0, 0) || 100;
+
+  return results.slice(0, actualLimit);
 }
 
 async function lookUpGlosses(
