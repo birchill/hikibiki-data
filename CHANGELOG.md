@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [7.0.6](https://github.com/birchill/hikibiki-data/compare/v7.0.5...v7.0.6) (2021-03-29)
+
+
+### Bug Fixes
+
+* Use a larger set of candidate glosses for gloss search ([8f65f1a](https://github.com/birchill/hikibiki-data/commit/8f65f1a338ead824e68b26e04f40e70b85eec272))
+
 ### [7.0.5](https://github.com/birchill/hikibiki-data/compare/v7.0.4...v7.0.5) (2021-03-29)
 
 
