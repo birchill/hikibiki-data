@@ -339,6 +339,10 @@ export class JpdictDatabase {
         this.updateDataVersion(series, null);
       }
 
+      if (signal.aborted) {
+        throw new AbortError();
+      }
+
       if (this.verbose) {
         console.log(
           `Requesting download for ${series} series with current version ${JSON.stringify(
