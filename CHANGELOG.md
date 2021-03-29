@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [7.0.5](https://github.com/birchill/hikibiki-data/compare/v7.0.4...v7.0.5) (2021-03-29)
+
+
+### Bug Fixes
+
+* Check for abort after clobbering database ([a610b73](https://github.com/birchill/hikibiki-data/commit/a610b73f553f2a1cd5caafa34b02a45b243e5e53))
+* Drop redundant check ([54bdf6e](https://github.com/birchill/hikibiki-data/commit/54bdf6ea4e65bfe23474ce5aff4ea79bd60fccda))
+* Re-use AbortController in hasLanguage ([95ae626](https://github.com/birchill/hikibiki-data/commit/95ae626364e07d6e7e1d2bfb5a9cb826f2e31d3f))
+
 ### [7.0.4](https://github.com/birchill/hikibiki-data/compare/v7.0.3...v7.0.4) (2021-03-27)
 
 
