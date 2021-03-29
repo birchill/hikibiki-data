@@ -92,10 +92,6 @@ export async function updateWithRetry({
   }
 
   if (currentRetryStatus) {
-    if (currentRetryStatus.lang !== lang) {
-      cancelUpdateWithRetry({ db, series });
-    }
-
     // If we are not trying to force an update then just use the existing
     // in-progress update.
     if (!forceUpdate) {
