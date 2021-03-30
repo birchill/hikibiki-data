@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [7.1.2](https://github.com/birchill/hikibiki-data/compare/v7.1.1...v7.1.2) (2021-03-30)
+
+
+### Bug Fixes
+
+* Drop unneeded import ([d9f2e26](https://github.com/birchill/hikibiki-data/commit/d9f2e26e95c7ca8fb20ea1fd89bdae505cecf52c))
+
 ### [7.1.1](https://github.com/birchill/hikibiki-data/compare/v7.1.0...v7.1.1) (2021-03-30)
 
 
