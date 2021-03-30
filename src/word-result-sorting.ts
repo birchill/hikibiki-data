@@ -72,8 +72,8 @@ const PRIORITY_ASSIGNMENTS: Map<string, number> = new Map([
   ['i2', 20],
   ['n1', 40], // Top 12,000 words in newspapers (from 2003?) (P)
   ['n2', 20], // Next 12,000
-  ['s1', 45], // "Speculative" annotations? Seem pretty common to me. (P)
-  ['s2', 30], // (P)
+  ['s1', 40], // "Speculative" annotations? Seem pretty common to me. (P)
+  ['s2', 25], // (P)
   ['g1', 35], // (P)
   ['g2', 15],
 ]);

@@ -963,6 +963,51 @@ describe('query', function () {
     assert.deepEqual(result, []);
   });
 
+  it('should rank common words first', async () => {
+    // Set up a bunch of sleep-related words
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_INFO);
+    fetchMock.mock(
+      'end:words-rc-en-1.0.0.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"n/a","dateOfCreation":"2020-08-22"},"records":21}
+{"id":1,"r":["すいみん"],"s":[{"pos":["n","adj-no"],"g":["sleep"]}],"k":["睡眠"],"km":[{"p":["i1","n1","nf07"]}],"rm":[{"p":["i1","n1","nf07"],"a":0}]}
+{"id":2,"r":["すいみんざい"],"s":[{"pos":["n"],"g":["sleeping tablet"]}],"k":["睡眠剤"],"rm":[{"a":[{"i":3},{"i":0}]}]}
+{"id":3,"r":["すいみんぶそく"],"s":[{"pos":["n","adj-no"],"g":["lack of sleep"]}],"k":["睡眠不足"],"rm":[{"a":5}]}
+{"id":4,"r":["すいみんやく"],"s":[{"pos":["n"],"g":["sleeping pill","sleep medication"]}],"k":["睡眠薬"],"rm":[{"a":3}]}
+{"id":5,"r":["ねむり","ねぶり"],"s":[{"pos":["n"],"g":["sleep","sleeping"]},{"pos":["n"],"g":["inactivity"]},{"pos":["n"],"g":["death"]}],"k":["眠り","睡り","睡"],"km":[{"p":["i1","n1","nf16"]},0,{"i":["io"]}],"rm":[{"p":["i1","n1","nf16"],"a":0},{"i":["ok"]}]}
+{"id":6,"r":["ねむりぐすり"],"s":[{"pos":["n"],"g":["sleeping powder","sleeping drug","narcotic","anaesthetic","anesthetic"]}],"k":["眠り薬"],"rm":[{"a":4}]}
+{"id":7,"r":["おやすみ"],"s":[{"pos":["n"],"g":["holiday","day off","absence"],"misc":["pol"]},{"pos":["n"],"g":["sleep","rest"],"misc":["hon"]},{"pos":["exp"],"g":["Good night"],"misc":["abbr","uk"]}],"k":["お休み","御休み"],"km":[{"p":["i1"]}],"rm":[{"p":["i1"],"a":0}]}
+{"id":8,"r":["ね","しん","い"],"s":[{"pos":["n"],"g":["sleep"]}],"k":["寝"],"km":[{"p":["n1","nf15"]}],"rm":[{"p":["n1","nf15"],"a":0},{"a":1},{"i":["ok"],"a":1}]}
+{"id":9,"r":["スリープ"],"s":[{"pos":["n"],"g":["sleep"]}]}
+{"id":10,"r":["ねまき"],"s":[{"pos":["n"],"g":["sleep-wear","nightclothes","pyjamas","pajamas","nightgown","nightdress"]}],"k":["寝巻き","寝巻","寝間着","寝衣"],"km":[{"p":["i1"]},{"p":["i1"]},{"p":["i1","n2","nf42"]}],"rm":[{"p":["i1","n2","nf42"],"a":0}]}
+{"id":11,"r":["めやに","めヤニ","がんし"],"s":[{"pos":["n"],"g":["eye mucus","eye discharge","sleep"]}],"k":["目やに","目ヤニ","目脂","眼脂"],"rm":[{"app":13,"a":3},{"app":2,"a":3},{"app":12}]}
+{"id":12,"r":["とうじんのねごと"],"s":[{"pos":["exp","n"],"g":["gibberish"]}],"k":["唐人の寝言"]}
+{"id":13,"r":["とうみん"],"s":[{"pos":["n","vs"],"g":["hibernation","winter sleep","torpor"]}],"k":["冬眠"],"km":[{"p":["i1","n2","nf34"]}],"rm":[{"p":["i1","n2","nf34"],"a":0}]}
+{"id":14,"r":["ねつく"],"s":[{"pos":["v5k","vi"],"g":["to go to bed","to go to sleep","to fall asleep"]},{"pos":["v5k","vi"],"g":["to be laid up (with a cold)","to be ill in bed"]}],"k":["寝付く","寝つく"],"km":[{"p":["i1"]}],"rm":[{"p":["i1"],"a":2}]}
+{"id":15,"r":["ねこむ"],"s":[{"pos":["v5m","vi"],"g":["to stay in bed","to sleep","to be laid up for a long time"]}],"k":["寝込む","寝こむ"],"km":[{"p":["n2","nf27"]}],"rm":[{"p":["n2","nf27"],"a":2}]}
+{"id":16,"r":["さます"],"s":[{"pos":["v5s","vt"],"g":["to awaken","to arouse from sleep"]},{"pos":["v5s","vt"],"g":["to bring to one's senses","to disabuse (someone of)"]},{"pos":["v5s","vt"],"g":["to sober up"]},{"kapp":2,"pos":["v5s","vt"],"g":["to dampen","to throw a damper on","to spoil"]}],"k":["覚ます","醒ます"],"km":[{"p":["i1","n2","nf43"]}],"rm":[{"p":["i1","n2","nf43"],"a":2}]}
+{"id":17,"r":["ねる"],"s":[{"pos":["v1","vi"],"g":["to sleep (lying down)"]},{"pos":["v1","vi"],"g":["to go to bed","to lie in bed"]},{"pos":["v1","vi"],"g":["to lie down"]},{"pos":["v1","vi"],"g":["to sleep (with someone, i.e. have intercourse)"]},{"pos":["v1","vi"],"g":["to lie flat (e.g. of hair)"]},{"pos":["v1","vi"],"g":["to lie idle (of funds, stock, etc.)"]},{"pos":["v1","vi"],"g":["to ferment (of soy sauce, miso, etc.)"]}],"k":["寝る","寐る"],"km":[{"p":["i1","n1","nf15"]},{"i":["oK"]}],"rm":[{"p":["i1","n1","nf15"],"a":0}]}
+{"id":18,"r":["ねかす"],"s":[{"pos":["v5s"],"g":["to put to sleep","to lay (something) on its side"]}],"k":["寝かす"],"km":[{"p":["i1","n2","nf47"]}],"rm":[{"p":["i1","n2","nf47"],"a":0}]}
+{"id":19,"r":["ねむる","ねぶる"],"s":[{"pos":["v5r","vi"],"g":["to sleep"]},{"pos":["v5r","vi"],"g":["to die","to rest (in peace)","to lie (buried)","to sleep (in the grave)"]},{"pos":["v5r","vi"],"rapp":1,"g":["to lie idle (e.g. of resources)","to lie unused","to lie untapped","to lie untouched"]},{"pos":["v5r","vi"],"g":["to close one's eyes"],"misc":["arch"]}],"k":["眠る","睡る"],"km":[{"p":["i1","n2","nf39"]}],"rm":[{"p":["i1","n2","nf39"],"a":0},{"i":["ok"]}]}
+{"id":20,"r":["やすむ"],"s":[{"pos":["v5m","vi"],"g":["to be absent","to take a day off"]},{"pos":["v5m","vi"],"g":["to rest","to have a break"]},{"pos":["v5m","vi"],"g":["to go to bed","to (lie down to) sleep","to turn in","to retire"]},{"pos":["v5m","vi"],"g":["to stop doing some ongoing activity for a time","to suspend business"]}],"k":["休む"],"km":[{"p":["i1","n1","nf20"]}],"rm":[{"p":["i1","n1","nf20"],"a":2}]}
+{"id":21,"r":["しびれる"],"s":[{"pos":["v1","vi"],"g":["to become numb","to go to sleep (e.g. a limb)"],"misc":["uk"]},{"pos":["v1","vi"],"g":["to get an electric shock","to tingle (from an electric shock)"],"misc":["uk"]},{"pos":["v1","vi"],"g":["to be excited","to be titillated","to be mesmerized","to be enthralled"],"misc":["uk"]}],"k":["痺れる"],"km":[{"p":["i1"]}],"rm":[{"p":["i1"],"a":3}]}
+`
+    );
+
+    await db.update({ series: 'words', lang: 'en' });
+
+    // 1. Search on 'sleep' and check that 寝る (id: 17) comes up within the
+    //    top 3
+    let result = await getWordsWithGloss('sleep', 'en');
+    let neruRanking = result.findIndex((record) => record.id === 17);
+    assert.isBelow(neruRanking, 3, '寝る should be in the first 3 results');
+
+    // 2. Search on 'to sleep' and check that 寝る (id: 17) comes up within the
+    //    top 3
+    result = await getWordsWithGloss('to sleep', 'en');
+    neruRanking = result.findIndex((record) => record.id === 17);
+    assert.isBelow(neruRanking, 3, '寝る should be in the first 3 results');
+  });
+
   it('should search by cross-reference', async () => {
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_INFO);
     fetchMock.mock(

@@ -450,7 +450,7 @@ async function lookUpGlosses(
     const matchedRanges: Array<MatchedRange> = [];
     let confidence = 0;
     for (const [senseIndex, sense] of record.s.entries()) {
-      // We need to skip these here, rather than filtering record.s, in order
+      // We need to skip these here, rather than filtering records, in order
       // to maintain the original sense indices.
       if ((sense.lang || 'en') !== locale) {
         continue;
@@ -475,7 +475,12 @@ async function lookUpGlosses(
           //    between 1 and 10
           // 2) Extra 0.5 point if the start token of the search term and gloss
           //    match.
-          let thisConfidence = Math.round((term.length / gloss.length) * 10);
+          const textConfidence = (term.length / gloss.length) * 10;
+          const tokenConfidence =
+            (tokens.length / getTokens(gloss, locale).length) * 10;
+          let thisConfidence = Math.round(
+            Math.max(textConfidence, tokenConfidence)
+          );
           if (tokens[0] === record[indexName][0]) {
             thisConfidence += 0.5;
           }
