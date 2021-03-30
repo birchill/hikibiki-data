@@ -812,11 +812,45 @@ describe('query', function () {
         ],
       },
       {
-        id: 2164680,
-        k: [{ ent: '仙台', p: ['s1'], match: true, matchRange: [0, 1] }],
-        r: [{ ent: 'せんだい', p: ['s1'], a: 1, match: true }],
+        id: 1387170,
+        k: [
+          {
+            ent: '仙人',
+            p: ['n2', 'nf34', 's2'],
+            match: true,
+            matchRange: [0, 1],
+          },
+          {
+            ent: '僊人',
+            match: false,
+          },
+        ],
+        r: [
+          {
+            ent: 'せんにん',
+            p: ['n2', 'nf34', 's2'],
+            a: 3,
+            match: true,
+          },
+        ],
         s: [
-          { g: [{ str: 'Sendai (city in Miyagi)' }], pos: ['n'], match: true },
+          {
+            g: [
+              { str: 'immortal mountain wizard (in Taoism)' },
+              { str: 'mountain man (esp. a hermit)' },
+            ],
+            pos: ['n'],
+            match: true,
+          },
+          {
+            g: [
+              {
+                str:
+                  'one not bound by earthly desires or the thoughts of normal men',
+              },
+            ],
+            match: true,
+          },
         ],
       },
     ];
@@ -838,14 +872,6 @@ describe('query', function () {
 
     const result = await getWordsWithKanji('仙');
     const expected: Array<WordResult> = [
-      {
-        id: 2164680,
-        k: [{ ent: '仙台', p: ['s1'], match: true, matchRange: [0, 1] }],
-        r: [{ ent: 'せんだい', p: ['s1'], a: 1, match: true }],
-        s: [
-          { g: [{ str: 'Sendai (city in Miyagi)' }], pos: ['n'], match: true },
-        ],
-      },
       {
         id: 1387170,
         k: [
@@ -876,6 +902,14 @@ describe('query', function () {
             ],
             match: true,
           },
+        ],
+      },
+      {
+        id: 2164680,
+        k: [{ ent: '仙台', p: ['s1'], match: true, matchRange: [0, 1] }],
+        r: [{ ent: 'せんだい', p: ['s1'], a: 1, match: true }],
+        s: [
+          { g: [{ str: 'Sendai (city in Miyagi)' }], pos: ['n'], match: true },
         ],
       },
     ];
@@ -999,13 +1033,39 @@ describe('query', function () {
     //    top 3
     let result = await getWordsWithGloss('sleep', 'en');
     let neruRanking = result.findIndex((record) => record.id === 17);
-    assert.isBelow(neruRanking, 3, '寝る should be in the first 3 results');
+    assert.isBelow(neruRanking, 2, '寝る should be in the first 2 results');
 
     // 2. Search on 'to sleep' and check that 寝る (id: 17) comes up within the
     //    top 3
     result = await getWordsWithGloss('to sleep', 'en');
     neruRanking = result.findIndex((record) => record.id === 17);
-    assert.isBelow(neruRanking, 3, '寝る should be in the first 3 results');
+    assert.equal(neruRanking, 0, '寝る should be the first result');
+  });
+
+  it('should rank 食べる before 食う', async () => {
+    // Set up a bunch of eating-related words
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_INFO);
+    fetchMock.mock(
+      'end:words-rc-en-1.0.0.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"n/a","dateOfCreation":"2020-08-22"},"records":10}
+{"id":1,"r":["たべる"],"s":[{"pos":["v1","vt"],"g":["to eat"]},{"pos":["v1","vt"],"g":["to live on (e.g. a salary)","to live off","to subsist on"]}],"k":["食べる","喰べる"],"km":[{"p":["i1","n2","nf25"]},{"i":["iK"]}],"rm":[{"p":["i1","n2","nf25"],"a":2}]}
+{"id":2,"r":["くう"],"s":[{"pos":["v5u","vt"],"g":["to eat"],"misc":["male"]},{"pos":["v5u","vt"],"g":["to live","to make a living","to survive"]},{"pos":["v5u","vt"],"g":["to bite","to sting (as insects do)"]},{"pos":["v5u","vt"],"g":["to tease","to torment","to taunt","to make light of","to make fun of"]},{"pos":["v5u","vt"],"g":["to encroach on","to eat into","to consume"]},{"pos":["v5u","vt"],"g":["to defeat a superior","to threaten a position"]},{"pos":["v5u","vt"],"g":["to consume time and-or resources"]},{"pos":["v5u","vt"],"g":["to receive something (usu. an unfavourable event)"],"misc":["col"]},{"pos":["v5u","vt"],"g":["to have sexual relations with a woman, esp. for the first time"],"misc":["male","vulg"]}],"k":["食う","喰う","啖う"],"km":[{"p":["i1","n2","nf33"]},{"p":["s1"]},{"i":["oK"]}],"rm":[{"p":["i1","n2","nf33","s1"],"a":1}]}
+{"id":3,"r":["めしあがる"],"s":[{"pos":["v5r","vt"],"g":["to eat","to drink"],"misc":["hon"]}],"k":["召し上がる","召しあがる","召上がる","召し上る"],"km":[{"p":["i1","n2","nf45"]}],"rm":[{"p":["i1","n2","nf45"],"a":[{"i":0},{"i":4}]}]}
+{"id":4,"r":["いただく"],"s":[{"pos":["v5k","vt"],"g":["to receive","to get","to accept","to take","to buy"],"misc":["hum","uk"]},{"pos":["v5k","vt"],"g":["to eat","to drink"],"misc":["hum","pol","uk"]},{"inf":"orig. meaning","pos":["v5k","vt"],"g":["to be crowned with","to wear (on one's head)","to have (on top)"],"misc":["uk"]},{"pos":["v5k","vt"],"g":["to have (as one's leader)","to live under (a ruler)","to install (a president)"],"misc":["uk"]},{"inf":"follows a verb in \\"-te\\" form","pos":["aux-v","v5k"],"g":["to get somebody to do something"],"misc":["hum","uk"]}],"k":["頂く","戴く"],"km":[{"p":["i1"]},{"p":["i1"]}],"rm":[{"p":["i1"],"a":0}]}
+{"id":5,"r":["きっする"],"s":[{"pos":["vs-s","vt"],"g":["to eat","to drink","to smoke","to take"]},{"pos":["vs-s","vt"],"g":["to suffer (e.g. defeat)","to receive a blow"]}],"k":["喫する"],"km":[{"p":["n1","nf18"]}],"rm":[{"p":["n1","nf18"],"a":[{"i":0},{"i":3}]}]}
+{"id":6,"r":["くらう"],"s":[{"pos":["v5u","vt"],"g":["to eat","to drink","to wolf","to knock back"],"misc":["vulg"]},{"pos":["v5u","vt"],"g":["to receive (e.g. a blow)"]},{"pos":["v5u","vt"],"g":["to be on the receiving end (of something undesirable)","to undergo (trouble)"]}],"k":["食らう","喰らう"],"km":[{"p":["n2","nf30","s2"]}],"rm":[{"p":["n2","nf30","s2"],"a":[{"i":0},{"i":2}]}]}
+{"id":7,"r":["めす"],"s":[{"pos":["v5s","vt"],"g":["to call","to invite","to send for","to summon"],"misc":["hon"]},{"pos":["v5s","vt"],"g":["to eat","to drink"]},{"pos":["v5s","vt"],"g":["to put on","to wear"]},{"pos":["v5s","vt"],"g":["to ride"]},{"pos":["v5s","vt"],"g":["to catch (a cold)","to take (a bath)","to tickle (one's fancy)","to put on (years)","to commit (seppuku)"]},{"pos":["v5s","vt"],"g":["to do"]},{"inf":"used after the -masu stem of a verb","pos":["v5s","vt"],"gt":1,"g":["used to show respect"],"misc":["hon","arch"]}],"k":["召す"],"km":[{"p":["n2","nf47","s2"]}],"rm":[{"p":["n2","nf47","s2"],"a":1}]}
+{"id":8,"r":["やる"],"s":[{"pos":["v5r","vt"],"g":["to do","to undertake","to perform","to play (a game)","to study"],"misc":["uk","col"]},{"pos":["v5r","vt"],"g":["to send","to dispatch","to despatch"],"misc":["uk"]},{"pos":["v5r","vt"],"g":["to put","to move","to turn (one's head, glance, etc.)"],"misc":["uk"]},{"pos":["v5r","vt"],"g":["to give (esp. to someone of equal or lower status)","to let have","to present","to bestow","to confer"],"misc":["uk"]},{"pos":["v5r","vt"],"g":["to make (a vehicle) go faster"],"misc":["uk"]},{"pos":["v5r","vt"],"g":["to run (a business)","to keep","to be engaged in","to practice (law, medicine, etc.)","to practise"],"misc":["uk"]},{"pos":["v5r","vt"],"g":["to have (food, drink, etc.)","to eat","to drink","to smoke"],"misc":["uk"]},{"pos":["v5r","vt"],"g":["to hold (a performance)","to perform","to show"],"misc":["uk"]},{"pos":["v5r","vt"],"g":["to ease (one's mind)"],"misc":["uk"]},{"pos":["v5r","vt"],"g":["to harm","to injure","to kill"],"misc":["col","uk"]},{"pos":["v5r","vt"],"g":["to have sex with"],"misc":["uk","sl"]},{"pos":["v5r","vi"],"g":["to live","to get by","to get along"],"misc":["uk"]},{"inf":"after the -masu stem of a verb, often in the negative","pos":["suf","v5r"],"g":["to do ... completely"],"misc":["uk"]},{"inf":"after the -masu stem of a verb","pos":["suf","v5r"],"g":["to do ... broadly","to do ... to a great distance"],"misc":["uk"]},{"inf":"after the -te form of a verb","pos":["aux-v","v5r"],"g":["to do ... for (someone of equal or lower status)","to do ... to (sometimes with negative nuance)"],"misc":["uk"]},{"inf":"after the -te form of a verb","pos":["aux-v","v5r"],"g":["to make active efforts to ..."],"misc":["uk"]}],"k":["遣る","行る"],"km":[{"p":["i1"]}],"rm":[{"p":["i1"],"a":0}]}
+{"id":9,"r":["あがる"],"s":[{"pos":["v5r","vi"],"g":["to rise","to go up","to come up","to ascend","to be raised"]},{"pos":["v5r","vi"],"g":["to enter (esp. from outdoors)","to come in","to go in"]},{"pos":["v5r","vi"],"g":["to enter (a school)","to advance to the next grade"]},{"pos":["v5r","vi"],"g":["to get out (of water)","to come ashore"]},{"inf":"also written as 騰る in ref. to price","pos":["v5r","vi"],"g":["to increase"]},{"pos":["v5r","vi"],"g":["to improve","to make progress"]},{"pos":["v5r","vi"],"g":["to be promoted","to advance"]},{"pos":["v5r","vi"],"g":["to be made (of profit, etc.)"]},{"pos":["v5r","vi"],"g":["to occur (esp. of a favourable result)"]},{"inf":"often as 〜で上がる","pos":["v5r","vi"],"g":["to be adequate (to cover expenses, etc.)"]},{"pos":["v5r","vi"],"g":["to be finished","to be done","to be over"]},{"pos":["v5r","vi"],"g":["(of rain) to stop","to lift"]},{"pos":["v5r","vi"],"g":["to stop (working properly)","to cut out","to give out","to die"]},{"pos":["v5r","vi"],"g":["to win (in a card game, etc.)"]},{"kapp":4,"pos":["v5r","vi"],"g":["to be arrested"]},{"kapp":4,"pos":["v5r","vi"],"g":["to turn up (of evidence, etc.)"]},{"kapp":2,"pos":["v5r","vi"],"g":["to be deep fried"]},{"pos":["v5r","vi"],"g":["to be spoken loudly"]},{"pos":["v5r","vi"],"g":["to get nervous","to get stage fright"]},{"pos":["v5r","vi"],"g":["to be offered (to the gods, etc.)"]},{"pos":["v5r","vi"],"g":["to go","to visit"],"misc":["hum"]},{"pos":["v5r","vi"],"g":["to eat","to drink"],"misc":["hon"]},{"inf":"esp. 挙がる","pos":["v5r","vi"],"g":["to be listed (as a candidate)"]},{"pos":["v5r","vi"],"g":["to serve (in one's master's home)"]},{"inf":"in Kyoto","pos":["v5r","vi"],"g":["to go north"]},{"inf":"after the -masu stem of a verb","pos":["aux-v","v5r"],"g":["to be complete","to finish"]}],"k":["上がる","揚がる","挙がる","上る"],"km":[{"p":["i1","n1","nf13"]},{"p":["n2","nf39","s2"]},{"p":["n1","nf13"]},{"i":["io"]}],"rm":[{"p":["i1","n1","n2","nf13","nf39","s2"],"a":0}]}
+{"id":10,"r":["とる"],"s":[{"pos":["v5r","vt"],"g":["to take","to pick up","to grab","to catch"]},{"pos":["v5r","vt"],"g":["to pass","to hand","to give"]},{"pos":["v5r","vt"],"g":["to get","to obtain","to acquire","to win","to receive","to earn","to take (e.g. a vacation)"]},{"pos":["v5r","vt"],"g":["to adopt (a method, proposal, etc.)","to take (a measure, attitude, etc.)","to choose"]},{"pos":["v5r","vt"],"g":["to remove","to get rid of","to take off"]},{"pos":["v5r","vt"],"g":["to take away","to steal","to rob"]},{"pos":["v5r","vt"],"g":["to eat","to have (e.g. lunch)","to take (e.g. vitamins)"]},{"pos":["v5r","vt"],"g":["to pick (e.g. flowers)","to gather","to extract (e.g. juice)","to catch (e.g. fish)"]},{"pos":["v5r","vt"],"g":["to take up (time, space)","to occupy","to spare","to set aside"]},{"pos":["v5r","vt"],"g":["to secure","to reserve","to save","to put aside","to keep"]},{"pos":["v5r","vt"],"g":["to take (e.g. a joke)","to interpret","to understand","to make out","to grasp"]},{"pos":["v5r","vt"],"g":["to record","to take down"]},{"pos":["v5r","vt"],"g":["to subscribe to (e.g. a newspaper)","to take","to buy","to get"]},{"pos":["v5r","vt"],"g":["to order","to have delivered"]},{"pos":["v5r","vt"],"g":["to charge","to fine","to take (tax)"]},{"pos":["v5r","vt"],"g":["to take (e.g. a wife)","to take on (e.g. an apprentice)","to adopt","to accept"]},{"pos":["v5r","vt"],"g":["to compete (in sumo, cards, etc.)","to play"]}],"k":["取る"],"km":[{"p":["i1","n1","nf06"]}],"rm":[{"p":["i1","n1","nf06"],"a":1}]}
+`
+    );
+
+    // Check that 食べる comes first
+    await db.update({ series: 'words', lang: 'en' });
+    const result = await getWordsWithGloss('eat', 'en');
+    const taberuRanking = result.findIndex((record) => record.id === 1);
+    assert.equal(taberuRanking, 0, '食べる should appear first');
   });
 
   it('should search by cross-reference', async () => {

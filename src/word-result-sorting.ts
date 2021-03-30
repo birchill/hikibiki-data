@@ -48,8 +48,8 @@ export function getPriority(result: WordResult): number {
 // This should produce a value somewhere in the range 0~67.
 //
 // In general we report the highest priority, but if we have several priority
-// scores we add a fraction (10%) of the lesser scores as an indication that
-// several sources have attested to the priority.
+// scores we add a decreasing fraction (10%) of the lesser scores as an
+// indication that several sources have attested to the priority.
 //
 // That should typically produce a maximum attainable score of 66.8.
 // Having a bounded range like this makes it easier to combine this value with
@@ -58,7 +58,12 @@ function getPrioritySum(priorities: Array<string>): number {
   const scores = priorities.map(getPriorityScore).sort().reverse();
   return scores.length
     ? scores[0] +
-        scores.slice(1).reduce((total, score) => total + score * 0.1, 0)
+        scores
+          .slice(1)
+          .reduce(
+            (total, score, index) => total + score / Math.pow(10, index + 1),
+            0
+          )
     : 0;
 }
 
@@ -72,13 +77,13 @@ const PRIORITY_ASSIGNMENTS: Map<string, number> = new Map([
   ['i2', 20],
   ['n1', 40], // Top 12,000 words in newspapers (from 2003?) (P)
   ['n2', 20], // Next 12,000
-  ['s1', 40], // "Speculative" annotations? Seem pretty common to me. (P)
-  ['s2', 25], // (P)
-  ['g1', 35], // (P)
+  ['s1', 32], // "Speculative" annotations? Seem pretty common to me. (P)
+  ['s2', 20], // (P)
+  ['g1', 30], // (P)
   ['g2', 15],
 ]);
 
-function getPriorityScore(p: string): number {
+export function getPriorityScore(p: string): number {
   if (PRIORITY_ASSIGNMENTS.has(p)) {
     return PRIORITY_ASSIGNMENTS.get(p)!;
   }
@@ -89,7 +94,7 @@ function getPriorityScore(p: string): number {
     // most popular words.
     const wordfreq = parseInt(p.substring(2), 10);
     if (wordfreq > 0 && wordfreq < 48) {
-      return 48 - wordfreq;
+      return 48 - wordfreq / 2;
     }
   }
 
