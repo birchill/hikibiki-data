@@ -19,7 +19,6 @@ import {
 } from './word-result';
 import {
   getPriority,
-  getPriorityScore,
   sortResultsByPriority,
   sortResultsByPriorityAndMatchLength,
 } from './word-result-sorting';
