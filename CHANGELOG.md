@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.1.0](https://github.com/birchill/hikibiki-data/compare/v7.0.6...v7.1.0) (2021-03-30)
+
+
+### Features
+
+* Tweak confidence calculation ([21953f9](https://github.com/birchill/hikibiki-data/commit/21953f9ac9d5f35521c48809d405331c86e643e6))
+
 ### [7.0.6](https://github.com/birchill/hikibiki-data/compare/v7.0.5...v7.0.6) (2021-03-29)
 
 
