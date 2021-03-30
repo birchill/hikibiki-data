@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [7.1.1](https://github.com/birchill/hikibiki-data/compare/v7.1.0...v7.1.1) (2021-03-30)
+
+
+### Bug Fixes
+
+* Tweak weightings to get 食べる to sort before 食う ([5bba62b](https://github.com/birchill/hikibiki-data/commit/5bba62b3039ddee56af47b8fb2a09a90c8b21ca3))
+
 ## [7.1.0](https://github.com/birchill/hikibiki-data/compare/v7.0.6...v7.1.0) (2021-03-30)
 
 
