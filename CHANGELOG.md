@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [7.1.3](https://github.com/birchill/hikibiki-data/compare/v7.1.2...v7.1.3) (2021-03-31)
+
+
+### Bug Fixes
+
+* Don't include priority of unmatched headwords when sorting ([22b279f](https://github.com/birchill/hikibiki-data/commit/22b279fb72ab1f76880584147ab884fc915840df))
+
 ### [7.1.2](https://github.com/birchill/hikibiki-data/compare/v7.1.1...v7.1.2) (2021-03-30)
 
 
