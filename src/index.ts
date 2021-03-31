@@ -65,5 +65,12 @@ export {
   isPartOfSpeech,
   allReadingInfo,
   isReadingInfo,
+  // The following types are related to the format of the input data files
+  // and exposed purely for Rikaichamp and the like that work with snapshots
+  // of the data
+  KanjiMeta as RawKanjiMeta,
+  ReadingMeta as RawReadingMeta,
+  WordSense as RawWordSense,
+  GLOSS_TYPE_MAX,
 } from './words';
 export { Gloss, WordResult } from './word-result';
