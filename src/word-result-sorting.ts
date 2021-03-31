@@ -20,10 +20,13 @@ export function getPriority(result: WordResult): number {
   // Go through each _matching_ kanji / reading and look for priority
   // information and return the highest score.
   const scores: Array<number> = [0];
+  const isHeadwordSearch =
+    result.k.some((k) => !!k.matchRange) ||
+    result.r.some((r) => !!r.matchRange);
 
   // Scores from kanji readings
   for (const k of result.k) {
-    if (!k.match || !k.p) {
+    if ((isHeadwordSearch ? !k.matchRange : !k.match) || !k.p) {
       continue;
     }
 
@@ -32,7 +35,7 @@ export function getPriority(result: WordResult): number {
 
   // Scores from kana readings
   for (const r of result.r) {
-    if (!r.match || !r.p) {
+    if ((isHeadwordSearch ? !r.matchRange : !r.match) || !r.p) {
       continue;
     }
 

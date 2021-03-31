@@ -192,24 +192,11 @@ export async function getWords(
 
   // Sort using the following arrangement:
   //
-  // A) For exact searching, sorting by priority is enough
+  // A) For exact searching, sorting by priority is enough.
   //
   // B) For prefix ("starts with") searching, we want to make sure exact
-  //    matches sort first. So we have:
-  //
-  //    * Find the matching entry (i.e. the one with matchRange set) and
-  //      get its full length.
-  //
-  //      For an exact match, add 100. For every character over that
-  //      subtract 10 * the number of extra characters.
-  //
-  //    * Then add the priority value (range 0~67).
-  //
-  //    That should mean that as strings get longer, they have to have a greater
-  //    priority in order to jump ahead.
-  //
-  //    We probably should do some sort of exponential drop-off but that
-  //    sounds to involved for now.
+  //    matches sort first so we penalize matches where the matched string
+  //    is longer than the search term.
   //
   let sortedResult: Array<WordResult>;
   if (matchType === 'exact') {

@@ -783,6 +783,27 @@ describe('query', function () {
     assert.deepEqual(result, expected);
   });
 
+  it('should sort only using matched headwords', async () => {
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_INFO);
+    fetchMock.mock(
+      'end:words-rc-en-1.0.0.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"n/a","dateOfCreation":"2020-08-22"},"records":3}
+{"id":1,"r":["うま","いま","おま","ウマ"],"s":[{"pos":["n"],"g":["horse"]},{"rapp":1,"pos":["n"],"g":["horse racing"]},{"rapp":1,"field":["shogi"],"pos":["n"],"g":["promoted bishop"],"misc":["abbr"]}],"k":["馬"],"km":[{"p":["i1","n1","nf02"]}],"rm":[{"p":["i1","n1","nf02"],"a":2},{"i":["ok"]},{"i":["ok"]},{"app":0,"a":2}]}
+{"id":2,"r":["いま"],"s":[{"pos":["n-adv","adj-no"],"g":["now","the present time","just now","soon","immediately"]},{"pos":["adv"],"g":["another","more"]}],"k":["今"],"km":[{"p":["i1","n1","nf07"]}],"rm":[{"p":["i1","n1","nf07"],"a":1}]}
+{"id":3,"r":["いま"],"s":[{"pos":["n"],"g":["living room (Western style)","sitting room"]}],"k":["居間"],"km":[{"p":["i1","n1","nf12"]}],"rm":[{"p":["i1","n1","nf12"],"a":2}]}
+`
+    );
+
+    await db.update({ series: 'words', lang: 'en' });
+
+    const result = await getWords('いま');
+    const nowRanking = result.findIndex((record) => record.id === 2);
+
+    // 馬 is more common than 今 (apparently), but only for the うま reading,
+    // not the いま reading so we should rank 今 first.
+    assert.equal(nowRanking, 0);
+  });
+
   it('should search by starting string', async () => {
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_INFO);
     fetchMock.mock(
