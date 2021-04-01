@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [7.2.1](https://github.com/birchill/hikibiki-data/compare/v7.2.0...v7.2.1) (2021-04-01)
+
+
+### Bug Fixes
+
+* Make sure to read from all indices before culling results ([83cbd10](https://github.com/birchill/hikibiki-data/commit/83cbd1022a102db252a9c4689c1fd0c37896fb05))
+
 ## [7.2.0](https://github.com/birchill/hikibiki-data/compare/v7.1.3...v7.2.0) (2021-03-31)
 
 
