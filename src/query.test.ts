@@ -658,6 +658,9 @@ describe('query', function () {
 
     await db.update({ series: 'words', lang: 'en' });
 
+    // If we fail to look at both indices we will find at least 5 records
+    // beginning with かき in the kanji index and content ourselves with that,
+    // despite their being better matches in the kana index.
     const result = await getWords('かき', {
       limit: 5,
       matchType: 'startsWith',
