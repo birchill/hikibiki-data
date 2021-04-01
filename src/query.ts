@@ -170,15 +170,13 @@ export async function getWords(
   }
 
   // Then the r (reading) index
-  if (results.length < limit) {
-    const readingIndex = db!.transaction('words').store.index('r');
-    for await (const cursor of readingIndex.iterate(key)) {
-      maybeAddRecord(cursor.value, lookup);
-    }
+  const readingIndex = db!.transaction('words').store.index('r');
+  for await (const cursor of readingIndex.iterate(key)) {
+    maybeAddRecord(cursor.value, lookup);
   }
 
   // Then finally try converting to hiragana and using the hiragana index
-  if (results.length < limit) {
+  {
     const hiraganaIndex = db!.transaction('words').store.index('h');
     const hiragana = kanaToHiragana(lookup);
     const hiraganaKey =

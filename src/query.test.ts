@@ -613,6 +613,62 @@ describe('query', function () {
     assert.deepEqual(result, expected);
   });
 
+  it('should fetch words by kana by looking at both kanji and reading indices', async () => {
+    fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_INFO);
+    fetchMock.mock(
+      'end:words-rc-en-1.0.0.ljson',
+      `{"type":"header","version":{"major":1,"minor":0,"patch":0,"databaseVersion":"n/a","dateOfCreation":"2020-08-22"},"records":35}
+{"id":1,"r":["かきまわす"],"s":[{"pos":["v5s","vt"],"g":["to stir","to churn","to poke (a fire)","to disturb (water)"]},{"pos":["v5s","vt"],"g":["to rummage around"]},{"pos":["v5s","vt"],"g":["to throw into confusion","to throw into chaos","to disturb"]}],"k":["かき回す","掻き回す"],"km":[0,{"p":["i2"]}],"rm":[{"p":["i2"],"a":[{"i":0},{"i":4}]}]}
+{"id":2,"r":["かきこむ"],"s":[{"pos":["v5m","vt"],"g":["to bolt down one's food","to gulp down","to eat quickly"]},{"pos":["v5m","vt"],"g":["to carry under the arm","to rake in","to scoop up"]}],"k":["かき込む","掻き込む","掻きこむ"],"rm":[{"a":[{"i":3},{"i":0}]}]}
+{"id":3,"r":["かきあつめる"],"s":[{"pos":["v1","vt"],"g":["to gather up","to scrape up together","to rake"]}],"k":["かき集める","掻き集める"],"rm":[{"a":[{"i":5},{"i":0}]}]}
+{"id":4,"r":["かきごおり","カキごおり"],"s":[{"pos":["n"],"g":["shaved ice (usually served with flavored simple syrup)","Italian ice","snow cone","sno-cone"]}],"k":["かき氷","カキ氷","掻き氷","欠き氷","欠氷"],"km":[{"p":["s1"]},0,{"i":["oK"]}],"rm":[{"app":29,"p":["s1"],"a":3},{"app":2,"a":3}]}
+{"id":5,"r":["かきならす"],"s":[{"pos":["v5s","vt"],"g":["to thrum","to strum"]}],"k":["かき鳴らす","掻き鳴らす"],"rm":[{"a":[{"i":0},{"i":4}]}]}
+{"id":6,"r":["かきまぜる"],"s":[{"pos":["v1"],"g":["to mix","to stir","to scramble","to churn"]}],"k":["かき交ぜる","掻き混ぜる","掻き交ぜる","かき混ぜる"],"rm":[{"a":[{"i":4},{"i":0}]}]}
+{"id":7,"r":["かきあげ"],"s":[{"kapp":23,"pos":["n"],"g":["mixed vegetable and seafood tempura"]},{"pos":["n"],"g":["something pulled upwards"]},{"kapp":131,"pos":["n"],"g":["small castle with a simple earthen-walled moat"],"misc":["abbr"]},{"pos":["n"],"g":["turning up a lamp wick"]}],"k":["かき揚げ","掻き揚げ","掻揚げ","掻き上げ","掻揚","掻上","掻上げ","搔き揚げ"],"km":[0,0,0,0,{"i":["io"]},{"i":["io"]},0,{"i":["oK"]}],"rm":[{"a":0}]}
+{"id":8,"r":["かきだす"],"s":[{"pos":["v5s","vt"],"g":["to scrape out","to rake out (e.g. ashes)","to bail out (e.g. water)"]}],"k":["かき出す","掻き出す","掻きだす"],"rm":[{"a":[{"i":3},{"i":0}]}]}
+{"id":9,"r":["かきけす"],"s":[{"pos":["v5s","vt"],"g":["to erase","to drown out (e.g. noise, sound)"]}],"k":["かき消す","掻き消す"],"rm":[{"a":[{"i":3},{"i":0}]}]}
+{"id":10,"r":["かきまぜきそく"],"s":[{"pos":["n"],"g":["scrambling"]}],"k":["かき混ぜ規則"]}
+{"id":11,"r":["かきな","カキナ"],"s":[{"pos":["n"],"g":["kakina (green leafy vegetable of the genus Brassica)"],"misc":["uk"]}],"k":["かき菜"],"rm":[0,{"app":0}]}
+{"id":12,"r":["かきあげじろ"],"s":[{"pos":["n"],"g":["small castle with a simple earthen-walled moat"],"misc":["obsc","arch"]}],"k":["かき揚げ城","掻き揚げ城","搔き揚げ城"],"km":[0,0,{"i":["oK"]}]}
+{"id":13,"r":["かきあわせる"],"s":[{"pos":["v1","vt"],"g":["to adjust","to arrange"]}],"k":["掻き合せる","かき合せる","掻き合わせる"],"rm":[{"a":[{"i":5},{"i":0}]}]}
+{"id":14,"r":["かきみだす"],"s":[{"pos":["v5s","vt"],"g":["to stir up","to disturb"]}],"k":["掻き乱す","かき乱す"],"rm":[{"a":[{"i":4},{"i":0}]}]}
+{"id":15,"r":["かきたてる"],"s":[{"pos":["v1","vt"],"g":["to stir up","to arouse"]}],"k":["掻き立てる","かき立てる"],"rm":[{"a":[{"i":4},{"i":0}]}]}
+{"id":16,"r":["かきいれどき"],"s":[{"pos":["n"],"g":["busiest and most profitable business period","peak season"]}],"k":["書き入れ時","かきいれ時","書入れ時","掻き入れ時"],"km":[0,0,0,{"i":["iK"]}],"rm":[{"a":0}]}
+{"id":17,"r":["かきつらねる"],"s":[{"pos":["v1","vt"],"g":["to make a list","to enumerate"]}],"k":["書き連ねる","書連ねる","かき連ねる"],"rm":[{"a":[{"i":5},{"i":0}]}]}
+{"id":18,"r":["かきあげる"],"s":[{"pos":["v1","vt"],"g":["to comb upwards","to brush up (a loose strand of hair)"]}],"k":["掻き上げる","かき上げる"],"rm":[{"a":[{"i":4},{"i":0}]}]}
+{"id":19,"r":["かきくどく"],"s":[{"pos":["v5k","vi"],"g":["to complain","to pester","to plead","to beg"]}],"k":["掻き口説く","かき口説く"],"rm":[{"a":4}]}
+{"id":20,"r":["かききる"],"s":[{"pos":["v5r","vt"],"g":["to cut","to slit"]}],"k":["掻き切る","かき切る"],"rm":[{"a":0}]}
+{"id":21,"r":["かきわける"],"s":[{"pos":["v1","vt"],"g":["to push aside","to push one's way through"]}],"k":["掻き分ける","かき分ける"],"rm":[{"a":[{"i":4},{"i":0}]}]}
+{"id":22,"r":["かきのける"],"s":[{"pos":["v1","vt"],"g":["to push aside","to shove aside","to rake away (leaves)"],"misc":["uk"]}],"k":["掻きのける","掻き退ける"],"rm":[{"a":0}]}
+{"id":23,"r":["かきよせる"],"s":[{"pos":["v1","vt"],"g":["to sweep together","to rake up","to gather up"]},{"pos":["v1","vt"],"g":["to drag towards oneself","to pull nearer"]}],"k":["掻き寄せる","かき寄せる"],"rm":[{"a":[{"i":0},{"i":4}]}]}
+{"id":24,"r":["かきまぜきそく"],"s":[{"pos":["n"],"g":["scrambling"]}],"k":["かき混ぜ規則"]}
+{"id":25,"r":["かききず"],"s":[{"pos":["n"],"g":["scratch","scrape","abrasion"]}],"k":["掻き傷","かき傷"],"rm":[{"a":2}]}
+{"id":26,"r":["かき"],"s":[{"pos":["n"],"g":["firearms","guns"]}],"k":["火器"],"km":[{"p":["n1","nf12"]}],"rm":[{"p":["n1","nf12"],"a":1}]}
+{"id":27,"r":["かき"],"s":[{"pos":["n"],"g":["flower vase"]}],"k":["花器"],"km":[{"p":["n2","nf38"]}],"rm":[{"p":["n2","nf38"],"a":1}]}
+{"id":28,"r":["かき"],"s":[{"pos":["n"],"g":["fence","hedge","barrier","wall","railing"]}],"k":["垣","牆"],"km":[{"p":["n1","nf17"]}],"rm":[{"p":["n1","nf17"],"a":2}]}
+{"id":29,"r":["かき","カキ"],"s":[{"pos":["n"],"g":["kaki","Japanese persimmon (Diospyros kaki)"]}],"k":["柿","柹"],"km":[{"p":["i1","n1","nf16"]}],"rm":[{"p":["i1","n1","nf16"],"a":0},{"app":0,"a":0}]}
+{"id":30,"r":["かき","なつき"],"s":[{"pos":["n","adj-no"],"g":["summer season"]}],"k":["夏季"],"km":[{"p":["i1","n1","nf13"]}],"rm":[{"p":["i1","n1","nf13"],"a":1},{"a":0}]}
+{"id":31,"r":["かき"],"s":[{"pos":["n"],"g":["flowering plant","flower"]},{"pos":["n"],"g":["ornamental plant"]}],"k":["花き","花卉"],"rm":[{"a":1}]}
+{"id":32,"r":["かき"],"s":[{"pos":["n","adj-no"],"g":["summer term (e.g. school)","summer period"]}],"k":["夏期"],"km":[{"p":["i1"]}],"rm":[{"p":["i1"],"a":1}]}
+{"id":33,"r":["かき"],"s":[{"pos":["n"],"g":["stroke (swimming)","arm stroke"]},{"pos":["pref"],"gt":1,"g":["adds strength or emphasis to verbs"]}],"k":["掻き","搔き"],"km":[0,{"i":["oK"]}]}
+{"id":34,"r":["かき","ぼれい","カキ"],"s":[{"pos":["n"],"g":["oyster","oyster shell"],"misc":["uk"]}],"k":["牡蠣","牡蛎","蠣","硴"],"km":[{"p":["s1"]}],"rm":[{"p":["s1"],"a":1},{"app":3,"a":0},{"app":0,"p":["s1"],"a":1}]}
+{"id":35,"r":["かき"],"s":[{"pos":["n","adj-no"],"g":["the following"]}],"k":["下記"],"km":[{"p":["n2","nf32","s1"]}],"rm":[{"p":["n2","nf32","s1"],"a":1}]}
+`
+    );
+
+    await db.update({ series: 'words', lang: 'en' });
+
+    const result = await getWords('かき', {
+      limit: 5,
+      matchType: 'startsWith',
+    });
+
+    // The first record should be something with the reading 'かき', NOT some
+    // thing that matched on a kanji entry beginning with かき.
+    const firstRecord = result[0];
+    assert.isTrue(firstRecord.r.some((r) => r.ent === 'かき'));
+  });
+
   it('should fetch words by kana-equivalence', async () => {
     fetchMock.mock('end:jpdict-rc-en-version.json', VERSION_INFO);
     fetchMock.mock(
