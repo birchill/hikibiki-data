@@ -612,7 +612,6 @@ async function* ljsonStreamIterator({
         buffer = '';
       }
 
-      reader.releaseLock();
       return;
     }
 
