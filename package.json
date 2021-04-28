@@ -25,6 +25,9 @@
   "module": "dist/esm/index.js",
   "typings": "dist/esm/index.d.ts",
   "homepage": "https://github.com/birchill/hikibiki#readme",
+  "engines": {
+    "node": ">=12.0.0"
+  },
   "dependencies": {
     "@birchill/json-equalish": "^1.0.1",
     "@birchill/normal-jp": "^1.1.3",
