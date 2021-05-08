@@ -16,6 +16,7 @@ export {
 } from './database';
 export { JpdictFullTextDatabase } from './database-fulltext';
 export { DownloadError, DownloadErrorCode } from './download';
+export { groupSenses, PosGroup } from './grouping';
 export { NameTranslation, NameType, allNameTypes, isNameType } from './names';
 export { UpdateErrorState, toUpdateErrorState } from './update-error-state';
 export {
