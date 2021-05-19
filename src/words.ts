@@ -270,25 +270,26 @@ export function isPartOfSpeech(a: unknown): a is PartOfSpeech {
 export type FieldType =
   | 'agric' | 'anat' | 'archeol' | 'archit' | 'art' | 'astron' | 'audvid'
   | 'aviat' | 'baseb' | 'biochem' | 'biol' | 'bot' | 'Buddh' | 'bus' | 'chem'
-  | 'Christn' | 'comp' | 'cryst' | 'ecol' | 'econ' | 'elec' | 'electr'
+  | 'Christn' | 'cloth' | 'comp' | 'cryst' | 'ecol' | 'econ' | 'elec' | 'electr'
   | 'embryo' | 'engr' | 'ent' | 'finc' | 'fish' | 'food' | 'gardn' | 'genet'
   | 'geogr' | 'geol' | 'geom' | 'go' | 'golf' | 'gramm' | 'grmyth' | 'hanaf'
   | 'horse' | 'law' | 'ling' | 'logic' | 'MA' | 'mahj' | 'math' | 'mech'
   | 'med' | 'met' | 'mil' | 'music' | 'ornith' | 'paleo' | 'pathol' | 'pharm'
-  | 'phil' | 'photo' | 'physics' | 'physiol' | 'print' | 'psych' | 'Shinto'
-  | 'shogi' | 'sports' | 'stat' | 'sumo' | 'telec' | 'tradem' | 'vidg' | 'zool';
+  | 'phil' | 'photo' | 'physics' | 'physiol' | 'print' | 'psych' | 'rail'
+  | 'Shinto' | 'shogi' | 'sports' | 'stat' | 'sumo' | 'telec' | 'tradem'
+  | 'vidg' | 'zool';
 
 // prettier-ignore
 export const allFieldTypes: ReadonlyArray<FieldType> = [
   'agric', 'anat', 'archeol', 'archit', 'art', 'astron', 'audvid', 'aviat',
-  'baseb', 'biochem', 'biol', 'bot', 'Buddh', 'bus', 'chem', 'Christn',
+  'baseb', 'biochem', 'biol', 'bot', 'Buddh', 'bus', 'chem', 'Christn', 'cloth',
   'comp', 'cryst', 'ecol', 'econ', 'elec', 'electr', 'embryo', 'engr', 'ent',
   'finc', 'fish', 'food', 'gardn', 'genet', 'geogr', 'geol', 'geom', 'go',
   'golf', 'gramm', 'grmyth', 'hanaf', 'horse', 'law', 'ling', 'logic', 'MA',
   'mahj', 'math', 'mech', 'med', 'met', 'mil', 'music', 'ornith', 'paleo',
   'pathol', 'pharm', 'phil', 'photo', 'physics', 'physiol', 'print', 'psych',
-  'Shinto', 'shogi', 'sports', 'stat', 'sumo', 'telec', 'tradem', 'vidg',
-  'zool'
+  'rail', 'Shinto', 'shogi', 'sports', 'stat', 'sumo', 'telec', 'tradem',
+  'vidg', 'zool'
 ];
 
 export function isFieldType(a: unknown): a is FieldType {

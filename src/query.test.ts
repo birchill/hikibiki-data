@@ -660,7 +660,7 @@ describe('query', function () {
 
     // If we fail to look at both indices we will find at least 5 records
     // beginning with かき in the kanji index and content ourselves with that,
-    // despite their being better matches in the kana index.
+    // despite there being better matches in the kana index.
     const result = await getWords('かき', {
       limit: 5,
       matchType: 'startsWith',
@@ -769,8 +769,7 @@ describe('query', function () {
               { str: 'being once divorced' },
               { str: 'one-time divorcee' },
               {
-                str:
-                  'one x mark (i.e. one name struck from the family register)',
+                str: 'one x mark (i.e. one name struck from the family register)',
                 type: GlossType.Lit,
               },
             ],
@@ -925,8 +924,7 @@ describe('query', function () {
           {
             g: [
               {
-                str:
-                  'one not bound by earthly desires or the thoughts of normal men',
+                str: 'one not bound by earthly desires or the thoughts of normal men',
               },
             ],
             match: true,
@@ -976,8 +974,7 @@ describe('query', function () {
           {
             g: [
               {
-                str:
-                  'one not bound by earthly desires or the thoughts of normal men',
+                str: 'one not bound by earthly desires or the thoughts of normal men',
               },
             ],
             match: true,
