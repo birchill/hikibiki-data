@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.4.0](https://github.com/birchill/hikibiki-data/compare/v7.3.1...v7.4.0) (2021-05-19)
+
+
+### Features
+
+* Add 'cloth' (clothing) and 'rail' (railway) field types ([a5c7ee9](https://github.com/birchill/hikibiki-data/commit/a5c7ee953f4a4185b13c6b6f420e806a4a70fb75))
+
 ### [7.3.1](https://github.com/birchill/hikibiki-data/compare/v7.3.0...v7.3.1) (2021-05-10)
 
 ## [7.3.0](https://github.com/birchill/hikibiki-data/compare/v7.2.3...v7.3.0) (2021-05-08)
