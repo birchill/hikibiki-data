@@ -277,9 +277,9 @@ export type FieldType =
   | 'Christn' | 'cloth' | 'comp' | 'cryst' | 'ecol' | 'econ' | 'elec' | 'electr'
   | 'embryo' | 'engr' | 'ent' | 'finc' | 'fish' | 'food' | 'gardn' | 'genet'
   | 'geogr' | 'geol' | 'geom' | 'go' | 'golf' | 'gramm' | 'grmyth' | 'hanaf'
-  | 'horse' | 'law' | 'ling' | 'logic' | 'MA' | 'mahj' | 'math' | 'mech'
-  | 'med' | 'met' | 'mil' | 'music' | 'ornith' | 'paleo' | 'pathol' | 'pharm'
-  | 'phil' | 'photo' | 'physics' | 'physiol' | 'print' | 'psych' | 'rail'
+  | 'horse' | 'law' | 'ling' | 'logic' | 'MA' | 'mahj' | 'math' | 'mech' | 'med'
+  | 'met' | 'mil' | 'music' | 'ornith' | 'paleo' | 'pathol' | 'pharm' | 'phil'
+  | 'photo' | 'physics' | 'physiol' | 'print' | 'psy' | 'psych' | 'rail'
   | 'Shinto' | 'shogi' | 'sports' | 'stat' | 'sumo' | 'telec' | 'tradem'
   | 'vidg' | 'zool';
 
@@ -291,9 +291,9 @@ export const allFieldTypes: ReadonlyArray<FieldType> = [
   'finc', 'fish', 'food', 'gardn', 'genet', 'geogr', 'geol', 'geom', 'go',
   'golf', 'gramm', 'grmyth', 'hanaf', 'horse', 'law', 'ling', 'logic', 'MA',
   'mahj', 'math', 'mech', 'med', 'met', 'mil', 'music', 'ornith', 'paleo',
-  'pathol', 'pharm', 'phil', 'photo', 'physics', 'physiol', 'print', 'psych',
-  'rail', 'Shinto', 'shogi', 'sports', 'stat', 'sumo', 'telec', 'tradem',
-  'vidg', 'zool'
+  'pathol', 'pharm', 'phil', 'photo', 'physics', 'physiol', 'print', 'psy',
+  'psych', 'rail', 'Shinto', 'shogi', 'sports', 'stat', 'sumo', 'telec',
+  'tradem', 'vidg', 'zool'
 ];
 
 export function isFieldType(a: unknown): a is FieldType {
