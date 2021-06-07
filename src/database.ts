@@ -24,7 +24,7 @@ const MAJOR_VERSION: { [series in DataSeries]: number } = {
   kanji: 4,
   radicals: 4,
   names: 3,
-  words: 1,
+  words: 2,
 };
 
 export const enum DataSeriesState {

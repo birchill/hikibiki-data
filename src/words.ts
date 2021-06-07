@@ -229,8 +229,9 @@ export const enum GlossType {
   Expl,
   Lit,
   Fig,
+  Tm,
 }
-export const GLOSS_TYPE_MAX: number = GlossType.Fig;
+export const GLOSS_TYPE_MAX: number = GlossType.Tm;
 export const BITS_PER_GLOSS_TYPE = Math.floor(Math.log2(GLOSS_TYPE_MAX)) + 1;
 
 // Part-of-speech types.
