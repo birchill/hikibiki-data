@@ -46,8 +46,10 @@ export type KanjiInfo =
   | 'iK'
   // word containing irregular kana usage
   | 'ik'
-  // word containing out-dated kanji
-  | 'oK';
+  // word containing out-dated kanji or kanji usage
+  | 'oK'
+  // rarely-used kanji form
+  | 'rK';
 
 export const allKanjiInfo: ReadonlyArray<KanjiInfo> = [
   'ateji',
@@ -55,6 +57,7 @@ export const allKanjiInfo: ReadonlyArray<KanjiInfo> = [
   'iK',
   'ik',
   'oK',
+  'rK',
 ];
 
 export function isKanjiInfo(a: unknown): a is KanjiInfo {
