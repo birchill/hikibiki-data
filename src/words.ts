@@ -329,6 +329,7 @@ export function isMiscType(a: unknown): a is MiscType {
 }
 
 export type Dialect =
+  | 'bra' // Brazilian
   | 'ho' // Hokkaido
   | 'tsug' // Tsugaru
   | 'th' // Tohoku
@@ -343,7 +344,7 @@ export type Dialect =
 
 // prettier-ignore
 export const allDialects: ReadonlyArray<Dialect> = [
-  'ho', 'tsug', 'th', 'na', 'kt', 'ks', 'ky', 'os', 'ts', '9s', 'ok',
+  'bra', 'ho', 'tsug', 'th', 'na', 'kt', 'ks', 'ky', 'os', 'ts', '9s', 'ok',
 ];
 
 export function isDialect(a: unknown): a is Dialect {
