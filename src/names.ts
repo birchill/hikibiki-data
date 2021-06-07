@@ -24,10 +24,12 @@ export type NameType =
   | 'company'
   | 'creat'
   | 'dei'
+  | 'doc'
   | 'ev'
   | 'fem'
   | 'fict'
   | 'given'
+  | 'group'
   | 'leg'
   | 'masc'
   | 'myth'
@@ -49,10 +51,12 @@ export const allNameTypes: ReadonlyArray<NameType> = [
   'company',
   'creat',
   'dei',
+  'doc',
   'ev',
   'fem',
   'fict',
   'given',
+  'group',
   'leg',
   'masc',
   'myth',
