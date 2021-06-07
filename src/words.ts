@@ -305,20 +305,23 @@ export function isFieldType(a: unknown): a is FieldType {
 //
 // prettier-ignore
 export type MiscType =
-  | 'abbr' | 'arch' | 'chn' | 'col' | 'company' | 'dated' | 'derog' | 'fam'
-  | 'fem' | 'given' | 'hist' | 'hon' | 'hum' | 'id' | 'joc' | 'litf' | 'm-sl'
-  | 'male' | 'net-sl' | 'obs' | 'obsc' | 'on-mim' | 'organization' | 'person'
-  | 'place' | 'poet' | 'pol' | 'product' | 'proverb' | 'quote' | 'rare' | 'sens'
-  | 'sl' | 'station' | 'surname' | 'uk' | 'unclass' | 'vulg' | 'work' | 'X'
-  | 'yoji';
+  | 'abbr' | 'arch' | 'char' | 'chn' | 'col' | 'company' | 'creat' | 'dated'
+  | 'dei' | 'derog' | 'doc' | 'ev' | 'fam' | 'fem' | 'fict' | 'form' | 'given'
+  | 'group' | 'hist' | 'hon' | 'hum' | 'id' | 'joc' | 'leg' | 'm-sl' | 'male'
+  | 'myth' | 'net-sl' | 'obj' | 'obs' | 'obsc' | 'on-mim' | 'organization'
+  | 'oth' | 'person' | 'place' | 'poet' | 'pol' | 'product' | 'proverb'
+  | 'quote' | 'rare' | 'relig' | 'sens' | 'serv' | 'sl' | 'station' | 'surname'
+  | 'uk' | 'unclass' | 'vulg' | 'work' | 'X' | 'yoji';
 
 // prettier-ignore
 export const allMiscTypes: ReadonlyArray<MiscType> = [
-  'abbr', 'arch', 'chn', 'col', 'company', 'dated', 'derog', 'fam', 'fem',
-  'given', 'hist', 'hon', 'hum', 'id', 'joc', 'litf', 'm-sl', 'male',
-  'net-sl', 'obs', 'obsc', 'on-mim', 'organization', 'person', 'place',
-  'poet', 'pol', 'product', 'proverb', 'quote', 'rare', 'sens', 'sl',
-  'station', 'surname', 'uk', 'unclass', 'vulg', 'work', 'X', 'yoji'
+  'abbr', 'arch', 'char', 'chn', 'col', 'company', 'creat', 'dated',
+  'dei', 'derog', 'doc', 'ev', 'fam', 'fem', 'fict', 'form', 'given',
+  'group', 'hist', 'hon', 'hum', 'id', 'joc', 'leg', 'm-sl', 'male',
+  'myth', 'net-sl', 'obj', 'obs', 'obsc', 'on-mim', 'organization',
+  'oth', 'person', 'place', 'poet', 'pol', 'product', 'proverb',
+  'quote', 'rare', 'relig', 'sens', 'serv', 'sl', 'station', 'surname',
+  'uk', 'unclass', 'vulg', 'work', 'X', 'yoji'
 ];
 
 export function isMiscType(a: unknown): a is MiscType {
