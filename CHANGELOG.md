@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.5.0](https://github.com/birchill/hikibiki-data/compare/v7.4.0...v7.5.0) (2021-06-09)
+
+
+### Features
+
+* Add 'char', 'creat', 'dei', 'doc', 'ev', 'fict', 'form', 'group', 'leg', 'myth', 'obj', 'oth', 'relig', 'serv' word misc types and drop 'litf' ([4091539](https://github.com/birchill/hikibiki-data/commit/4091539a52a88277ab3605514445a59f5b061684))
+* Add 'doc' and 'group' name types ([85fbbf2](https://github.com/birchill/hikibiki-data/commit/85fbbf20e06c8cb658f409adbc33faa065435644))
+* Add 'psy' field type ([d35a1d6](https://github.com/birchill/hikibiki-data/commit/d35a1d62ebcd175850b386813658ac9325dd994c))
+* Add Brazilian dialect ([af54eb9](https://github.com/birchill/hikibiki-data/commit/af54eb92fdfc4414187acd76c657f5f123b8b186))
+* Add rK KanjiInfo value ([7dcc48f](https://github.com/birchill/hikibiki-data/commit/7dcc48f285d4447e9753bd3c0fc69267856e5956))
+* Handle Trademark gloss type ([03e5296](https://github.com/birchill/hikibiki-data/commit/03e5296167372232842d394715882a1a0f1985f6))
+
 ## [7.4.0](https://github.com/birchill/hikibiki-data/compare/v7.3.1...v7.4.0) (2021-05-19)
 
 
