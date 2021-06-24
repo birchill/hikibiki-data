@@ -31,7 +31,8 @@
   "dependencies": {
     "@birchill/json-equalish": "^1.1.2",
     "@birchill/normal-jp": "^1.2.2",
-    "idb": "^6.0.0"
+    "idb": "^6.0.0",
+    "safari-14-idb-fix": "^1.0.3"
   },
   "devDependencies": {
     "@rollup/plugin-typescript": "^8.0.0",

@@ -4,6 +4,7 @@ import {
   StoreNames,
   openDB,
 } from 'idb/with-async-ittr';
+import idbReady from 'safari-14-idb-fix';
 import { kanaToHiragana } from '@birchill/normal-jp';
 
 import { KanjiEntryLine, Misc, Readings } from './kanji';
@@ -45,9 +46,9 @@ let _state: 'idle' | 'opening' | 'open' = 'idle';
 let _db: IDBPDatabase<JpdictSchema> | undefined;
 let _openPromise: Promise<IDBPDatabase<JpdictSchema> | null> | undefined;
 
-async function open(): Promise<IDBPDatabase<JpdictSchema> | null> {
+function open(): Promise<IDBPDatabase<JpdictSchema> | null> {
   if (_state === 'open') {
-    return _db!;
+    return Promise.resolve(_db!);
   }
 
   if (_state === 'opening') {
@@ -56,49 +57,51 @@ async function open(): Promise<IDBPDatabase<JpdictSchema> | null> {
 
   _state = 'opening';
 
-  _openPromise = openDB<JpdictSchema>('jpdict', 4, {
-    upgrade(
-      _db: IDBPDatabase<JpdictSchema>,
-      _oldVersion: number,
-      _newVersion: number | null,
-      transaction: IDBPTransaction<
-        JpdictSchema,
-        StoreNames<JpdictSchema>[],
-        'versionchange'
-      >
-    ) {
-      // If the database does not exist, do not try to create it.
-      // If it is for an old version, do not try to use it.
-      transaction.abort();
-    },
-    blocked() {
-      console.log('Opening blocked');
-    },
-    blocking() {
-      if (_db) {
-        _db.close();
+  _openPromise = idbReady().then(() =>
+    openDB<JpdictSchema>('jpdict', 4, {
+      upgrade(
+        _db: IDBPDatabase<JpdictSchema>,
+        _oldVersion: number,
+        _newVersion: number | null,
+        transaction: IDBPTransaction<
+          JpdictSchema,
+          StoreNames<JpdictSchema>[],
+          'versionchange'
+        >
+      ) {
+        // If the database does not exist, do not try to create it.
+        // If it is for an old version, do not try to use it.
+        transaction.abort();
+      },
+      blocked() {
+        console.log('Opening blocked');
+      },
+      blocking() {
+        if (_db) {
+          _db.close();
+          _db = undefined;
+          _state = 'idle';
+        }
+      },
+      terminated() {
         _db = undefined;
         _state = 'idle';
-      }
-    },
-    terminated() {
-      _db = undefined;
-      _state = 'idle';
-    },
-  })
-    .then((db) => {
-      _db = db;
-      _state = 'open';
-      return db;
+      },
     })
-    .catch((_) => {
-      _state = 'idle';
-      _db = undefined;
-      return null;
-    })
-    .finally(() => {
-      _openPromise = undefined;
-    });
+      .then((db) => {
+        _db = db;
+        _state = 'open';
+        return db;
+      })
+      .catch((_) => {
+        _state = 'idle';
+        _db = undefined;
+        return null;
+      })
+      .finally(() => {
+        _openPromise = undefined;
+      })
+  );
 
   return _openPromise!;
 }
