@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [7.5.1](https://github.com/birchill/hikibiki-data/compare/v7.5.0...v7.5.1) (2021-06-24)
+
+
+### Bug Fixes
+
+* Add fix for Safari IndexedDB issues ([7751903](https://github.com/birchill/hikibiki-data/commit/7751903b78cc26f5cec2e7757b3c5f170b2599d1))
+
 ## [7.5.0](https://github.com/birchill/hikibiki-data/compare/v7.4.0...v7.5.0) (2021-06-09)
 
 
