@@ -299,9 +299,9 @@
   integrity sha512-EYNwp3bU+98cpU4lAWYYL7Zz+2gryWH1qbdDTidVd6hkiR6weksdbMadyXKXNPEkQFhXM+hVO9ZygomHXp+AIw==
 
 "@types/fetch-mock@^7.3.1":
-  version "7.3.4"
-  resolved "https://registry.yarnpkg.com/@types/fetch-mock/-/fetch-mock-7.3.4.tgz#cf756f63f4dfb5be5d19242629c60157aadd8253"
-  integrity sha512-9KqWnsMqFbmrz8F3LMpUIUaz+VYvrtHvAHsYctAqxajLAeb7oanblXXcJG57xUeUs+1ayPqAFPe5dOQid9BInQ==
+  version "7.3.5"
+  resolved "https://registry.yarnpkg.com/@types/fetch-mock/-/fetch-mock-7.3.5.tgz#7aee678c4e7c7e1a168bae8fdab5b8d712e377f6"
+  integrity sha512-sLecm9ohBdGIpYUP9rWk5/XIKY2xHMYTBJIcJuBBM8IJWnYoQ1DAj8F4OVjnfD0API1drlkWEV0LPNk+ACuhsg==
 
 "@types/json-schema@*", "@types/json-schema@^7.0.6":
   version "7.0.7"
