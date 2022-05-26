@@ -1,3 +1,5 @@
+# ⚠️ Obsolete: This has been replaced by the [`@birchill/jpdict-idb`](https://github.com/birchill/jpdict-idb) package ⚠️
+
 ## Usage
 
 NOTE: There are TWO versions of the database:
